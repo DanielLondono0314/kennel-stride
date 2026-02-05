@@ -75,6 +75,32 @@ export enum MembershipStatus {
   EXPIRED = 'expired',
 }
 
+export enum DocumentType {
+  LIABILITY_WAIVER = 'liability_waiver',
+  VACCINATION_RECORD = 'vaccination_record',
+  VET_CERTIFICATE = 'vet_certificate',
+  SPAY_NEUTER_CERTIFICATE = 'spay_neuter_certificate',
+  TRAINING_AGREEMENT = 'training_agreement',
+  EMERGENCY_CONSENT = 'emergency_consent',
+}
+
+export enum DocumentStatus {
+  PENDING = 'pending',
+  SUBMITTED = 'submitted',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  EXPIRED = 'expired',
+}
+
+export enum VaccinationType {
+  RABIES = 'rabies',
+  DHPP = 'dhpp',
+  BORDETELLA = 'bordetella',
+  CANINE_INFLUENZA = 'canine_influenza',
+  LEPTOSPIROSIS = 'leptospirosis',
+  LYME = 'lyme',
+}
+
 // ============================================
 // INTERFACES
 // ============================================
@@ -127,6 +153,7 @@ export interface Dog {
   medicalNotes?: string;
   flags: DogFlag[];
   vaccinations: Vaccination[];
+  documents: Document[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,10 +173,28 @@ export interface Vaccination {
   id: string;
   dogId: string;
   name: string;
+  type: VaccinationType;
   administeredAt: Date;
   expiresAt: Date;
   documentUrl?: string;
   verified: boolean;
+  verifiedBy?: string;
+  verifiedAt?: Date;
+}
+
+export interface Document {
+  id: string;
+  dogId: string;
+  customerId: string;
+  type: DocumentType;
+  name: string;
+  status: DocumentStatus;
+  fileUrl?: string;
+  signedAt?: Date;
+  expiresAt?: Date;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Service {
@@ -160,6 +205,8 @@ export interface Service {
   duration: number; // in minutes
   price: number;
   isActive: boolean;
+  requiredVaccinations: VaccinationType[];
+  requiredDocuments: DocumentType[];
 }
 
 export interface Location {
@@ -186,6 +233,9 @@ export interface Reservation {
   notes?: string;
   employeeNotes?: string;
   totalPrice: number;
+  packageId?: string;
+  usePackageCredits: boolean;
+  creditsUsed?: number;
   createdAt: Date;
   updatedAt: Date;
   // Populated fields
@@ -194,6 +244,7 @@ export interface Reservation {
   service?: Service;
   location?: Location;
   staff?: User;
+  package?: Package;
 }
 
 export interface AddOn {
@@ -310,6 +361,68 @@ export interface CampaignStats {
   delivered: number;
   opened: number;
   clicked: number;
+}
+
+// ============================================
+// CHECK-IN/CHECK-OUT TYPES
+// ============================================
+
+export interface ValidationResult {
+  isValid: boolean;
+  canOverride: boolean;
+  alerts: ValidationAlert[];
+}
+
+export interface ValidationAlert {
+  id: string;
+  type: 'vaccination' | 'document' | 'flag' | 'payment' | 'package';
+  severity: FlagSeverity;
+  title: string;
+  message: string;
+  blocksCheckIn: boolean;
+  details?: VaccinationDetail | DocumentDetail | FlagDetail | PaymentDetail;
+  suggestedAction?: SuggestedAction;
+}
+
+export interface VaccinationDetail {
+  vaccinationType: VaccinationType;
+  vaccineName: string;
+  expiredAt?: Date;
+  daysOverdue?: number;
+}
+
+export interface DocumentDetail {
+  documentType: DocumentType;
+  documentName: string;
+  status: DocumentStatus;
+}
+
+export interface FlagDetail {
+  flagType: FlagType;
+  message: string;
+}
+
+export interface PaymentDetail {
+  balance: number;
+  invoiceId?: string;
+}
+
+export interface CheckInData {
+  reservationId: string;
+  notes?: string;
+  overrideAlerts: string[];
+  overrideReason?: string;
+  overrideBy?: string;
+}
+
+export interface CheckOutData {
+  reservationId: string;
+  notes?: string;
+  usePackageCredits: boolean;
+  packageId?: string;
+  creditsToUse?: number;
+  generateInvoice: boolean;
+  paymentMethod?: 'cash' | 'card' | 'package' | 'invoice';
 }
 
 // ============================================
