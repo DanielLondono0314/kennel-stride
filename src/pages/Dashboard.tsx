@@ -6,15 +6,20 @@ import { OpsTabs, OpsTab } from "@/components/dashboard/OpsTabs";
 import { OpsTable } from "@/components/dashboard/OpsTable";
 import { NoticesList } from "@/components/dashboard/NoticesList";
 import { QuickFilters } from "@/components/dashboard/QuickFilters";
+import { CheckInModal } from "@/components/checkin/CheckInModal";
+import { CheckOutModal } from "@/components/checkin/CheckOutModal";
 import { Button } from "@/components/ui/button";
 import {
   getPopulatedReservations,
   mockNotices,
 } from "@/data/mockData";
 import {
+  Reservation,
   ReservationStatus,
   ServiceType,
   FlagType,
+  CheckInData,
+  CheckOutData,
 } from "@/types";
 import {
   Users,
@@ -32,6 +37,11 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState<ServiceType | "all">("all");
   const [flagFilter, setFlagFilter] = useState<FlagType | "all">("all");
+  
+  // Check-in/out modal state
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false);
+  const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   const reservations = useMemo(() => getPopulatedReservations(), []);
 
@@ -150,14 +160,44 @@ export default function Dashboard() {
   }, [activeTab, reservations, searchQuery, serviceFilter, flagFilter]);
 
   const handleCheckIn = (reservationId: string) => {
-    toast.success("Check-in completado", {
-      description: "La mascota ha sido registrada correctamente.",
-    });
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (reservation) {
+      setSelectedReservation(reservation);
+      setCheckInModalOpen(true);
+    }
   };
 
   const handleCheckOut = (reservationId: string) => {
+    const reservation = reservations.find(r => r.id === reservationId);
+    if (reservation) {
+      setSelectedReservation(reservation);
+      setCheckOutModalOpen(true);
+    }
+  };
+
+  const handleCheckInConfirm = (data: CheckInData) => {
+    console.log("Check-in data:", data);
+    setCheckInModalOpen(false);
+    setSelectedReservation(null);
+    toast.success("Check-in completado", {
+      description: `${selectedReservation?.dog?.name} ha sido registrado correctamente.`,
+    });
+  };
+
+  const handleCheckOutConfirm = (data: CheckOutData) => {
+    console.log("Check-out data:", data);
+    setCheckOutModalOpen(false);
+    setSelectedReservation(null);
+    
+    const paymentMethodLabels: Record<string, string> = {
+      package: "con paquete",
+      cash: "en efectivo",
+      card: "con tarjeta",
+      invoice: "a factura",
+    };
+    
     toast.success("Check-out completado", {
-      description: "La mascota ha sido marcada para recoger.",
+      description: `${selectedReservation?.dog?.name} ha salido. Pago ${paymentMethodLabels[data.paymentMethod || 'cash']}.`,
     });
   };
 
@@ -266,6 +306,22 @@ export default function Dashboard() {
           />
         </>
       )}
+
+      {/* Check-in Modal */}
+      <CheckInModal
+        reservation={selectedReservation}
+        open={checkInModalOpen}
+        onOpenChange={setCheckInModalOpen}
+        onConfirm={handleCheckInConfirm}
+      />
+
+      {/* Check-out Modal */}
+      <CheckOutModal
+        reservation={selectedReservation}
+        open={checkOutModalOpen}
+        onOpenChange={setCheckOutModalOpen}
+        onConfirm={handleCheckOutConfirm}
+      />
     </div>
   );
 }
