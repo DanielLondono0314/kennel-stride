@@ -19,14 +19,15 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [customerList, setCustomerList] = useState<Customer[]>(mockCustomers);
 
   const customers = useMemo(() => {
-    return mockCustomers.map((customer) => ({
+    return customerList.map((customer) => ({
       ...customer,
       dogs: mockDogs.filter((d) => d.customerId === customer.id),
       packages: mockPackages.filter((p) => p.customerId === customer.id),
     }));
-  }, []);
+  }, [customerList]);
 
   const filteredCustomers = useMemo(() => {
     if (!searchQuery) return customers;
@@ -39,6 +40,30 @@ export default function CustomersPage() {
   const handleNewCustomer = () => { setEditingCustomer(null); setModalOpen(true); };
   const handleEditCustomer = (customer: Customer) => { setEditingCustomer(customer); setModalOpen(true); };
   const handleSave = (data: Partial<Customer>) => {
+    if (data.id) {
+      setCustomerList((prev) =>
+        prev.map((c) => (c.id === data.id ? { ...c, ...data, updatedAt: new Date() } as Customer : c))
+      );
+    } else {
+      const newCustomer: Customer = {
+        id: `cust_${Date.now()}`,
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        emergencyContactName: data.emergencyContactName,
+        emergencyContactPhone: data.emergencyContactPhone,
+        notes: data.notes,
+        balance: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setCustomerList((prev) => [newCustomer, ...prev]);
+    }
     setModalOpen(false);
     toast.success(data.id ? "Cliente actualizado" : "Cliente creado", { description: `${data.firstName} ${data.lastName} guardado correctamente.` });
   };
