@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,6 +12,16 @@ import { CheckOutModal } from "@/components/checkin/CheckOutModal";
 import { ReservationModal } from "@/components/calendar/ReservationModal";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   getPopulatedReservations,
   mockNotices,
 } from "@/data/mockData";
@@ -22,6 +32,7 @@ import {
   FlagType,
   CheckInData,
   CheckOutData,
+  Notice,
 } from "@/types";
 import {
   Users,
@@ -45,8 +56,19 @@ export default function Dashboard() {
   const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  
+  // Cancel confirmation
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
 
-  const reservations = useMemo(() => getPopulatedReservations(), []);
+  // Mutable state for reservations and notices
+  const [reservations, setReservations] = useState<Reservation[]>(() => getPopulatedReservations());
+  const [notices, setNotices] = useState<Notice[]>(() => [...mockNotices]);
+
+  // Helper to update a reservation's status
+  const updateReservationStatus = useCallback((id: string, status: ReservationStatus, extra?: Partial<Reservation>) => {
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, status, ...extra, updatedAt: new Date() } : r));
+  }, []);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -69,15 +91,15 @@ export default function Dashboard() {
   }, [reservations]);
 
   const tabCounts = useMemo(() => ({
-    notices: mockNotices.filter((n) => !n.isRead).length,
+    notices: notices.filter((n) => !n.isRead).length,
     expected: reservations.filter((r) => r.status === ReservationStatus.SCHEDULED).length,
     goingHome: reservations.filter((r) => r.status === ReservationStatus.READY || r.status === ReservationStatus.CHECKED_IN).length,
     checkedIn: reservations.filter((r) => r.status === ReservationStatus.CHECKED_IN || r.status === ReservationStatus.IN_PROGRESS).length,
     requested: reservations.filter((r) => r.status === ReservationStatus.REQUESTED).length,
-  }), [reservations]);
+  }), [reservations, notices]);
 
   const filteredReservations = useMemo(() => {
-    let filtered = reservations;
+    let filtered = reservations.filter(r => r.status !== ReservationStatus.CANCELLED && r.status !== ReservationStatus.COMPLETED);
     switch (activeTab) {
       case "expected": filtered = filtered.filter((r) => r.status === ReservationStatus.SCHEDULED); break;
       case "going-home": filtered = filtered.filter((r) => r.status === ReservationStatus.READY || r.status === ReservationStatus.CHECKED_IN); break;
@@ -104,12 +126,14 @@ export default function Dashboard() {
   };
 
   const handleCheckInConfirm = (data: CheckInData) => {
+    updateReservationStatus(data.reservationId, ReservationStatus.CHECKED_IN, { checkInTime: new Date() });
     setCheckInModalOpen(false);
     toast.success("Check-in completado", { description: `${selectedReservation?.dog?.name} ha sido registrado correctamente.` });
     setSelectedReservation(null);
   };
 
   const handleCheckOutConfirm = (data: CheckOutData) => {
+    updateReservationStatus(data.reservationId, ReservationStatus.PICKED_UP, { checkOutTime: new Date() });
     setCheckOutModalOpen(false);
     const labels: Record<string, string> = { package: "con paquete", cash: "en efectivo", card: "con tarjeta", invoice: "a factura" };
     toast.success("Check-out completado", { description: `${selectedReservation?.dog?.name} ha salido. Pago ${labels[data.paymentMethod || 'cash']}.` });
@@ -121,22 +145,59 @@ export default function Dashboard() {
     if (reservation) { setSelectedReservation(reservation); setReservationModalOpen(true); }
   };
 
+  const handleApprove = (reservationId: string) => {
+    updateReservationStatus(reservationId, ReservationStatus.SCHEDULED);
+    const res = reservations.find(r => r.id === reservationId);
+    toast.success("Reserva aprobada", { description: `La reserva de ${res?.dog?.name || 'perro'} ha sido programada.` });
+    // Remove related notice
+    setNotices(prev => prev.filter(n => !(n.entityType === 'reservation' && n.entityId === reservationId)));
+  };
+
+  const handleCancelRequest = (reservationId: string) => {
+    setCancelTargetId(reservationId);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelConfirm = () => {
+    if (cancelTargetId) {
+      updateReservationStatus(cancelTargetId, ReservationStatus.CANCELLED);
+      const res = reservations.find(r => r.id === cancelTargetId);
+      toast.success("Reserva cancelada", { description: `La reserva de ${res?.dog?.name || 'perro'} ha sido cancelada.` });
+    }
+    setCancelDialogOpen(false);
+    setCancelTargetId(null);
+  };
+
+  const handleDismissNotice = (noticeId: string) => {
+    setNotices(prev => prev.filter(n => n.id !== noticeId));
+    toast.info("Aviso eliminado");
+  };
+
+  const handleMarkNoticeRead = (noticeId: string) => {
+    setNotices(prev => prev.map(n => n.id === noticeId ? { ...n, isRead: true } : n));
+  };
+
   const handleNoticeAction = (action: string, params?: Record<string, string>) => {
     switch (action) {
       case "navigate":
         if (params?.path) navigate(params.path);
         break;
       case "approve":
-        toast.success("Reserva aprobada correctamente");
+        if (params?.reservationId) handleApprove(params.reservationId);
         break;
       case "reject":
-        toast.info("Reserva rechazada");
+        if (params?.reservationId) {
+          updateReservationStatus(params.reservationId, ReservationStatus.CANCELLED);
+          setNotices(prev => prev.filter(n => !(n.entityType === 'reservation' && n.entityId === params.reservationId)));
+          toast.info("Reserva rechazada");
+        }
         break;
       case "contact":
         toast.info("Abriendo contacto del cliente...");
         break;
       case "sendReminder":
         toast.success("Recordatorio enviado al cliente");
+        // Mark notice as read
         break;
       default:
         toast.info(`Acción: ${action}`);
@@ -144,6 +205,9 @@ export default function Dashboard() {
   };
 
   const handleReservationSave = (data: Partial<Reservation>) => {
+    if (data.id) {
+      setReservations(prev => prev.map(r => r.id === data.id ? { ...r, ...data, updatedAt: new Date() } : r));
+    }
     setReservationModalOpen(false);
     setSelectedReservation(null);
     toast.success(data.id ? "Reserva actualizada" : "Reserva creada", { description: "Los cambios se han guardado correctamente." });
@@ -182,18 +246,43 @@ export default function Dashboard() {
 
       {activeTab === "notices" ? (
         <div className="max-w-3xl">
-          <NoticesList notices={mockNotices} onAction={handleNoticeAction} />
+          <NoticesList notices={notices} onAction={handleNoticeAction} onDismiss={handleDismissNotice} onMarkRead={handleMarkNoticeRead} />
         </div>
       ) : (
         <>
           <QuickFilters searchQuery={searchQuery} onSearchChange={setSearchQuery} serviceFilter={serviceFilter} onServiceChange={setServiceFilter} flagFilter={flagFilter} onFlagChange={setFlagFilter} onClearFilters={clearFilters} />
-          <OpsTable reservations={filteredReservations} onCheckIn={handleCheckIn} onCheckOut={handleCheckOut} onView={handleView} />
+          <OpsTable
+            reservations={filteredReservations}
+            onCheckIn={handleCheckIn}
+            onCheckOut={handleCheckOut}
+            onView={handleView}
+            onApprove={handleApprove}
+            onCancel={handleCancelRequest}
+          />
         </>
       )}
 
       <CheckInModal reservation={selectedReservation} open={checkInModalOpen} onOpenChange={setCheckInModalOpen} onConfirm={handleCheckInConfirm} />
       <CheckOutModal reservation={selectedReservation} open={checkOutModalOpen} onOpenChange={setCheckOutModalOpen} onConfirm={handleCheckOutConfirm} />
       <ReservationModal reservation={selectedReservation} open={reservationModalOpen} onOpenChange={setReservationModalOpen} onSave={handleReservationSave} />
+      
+      {/* Cancel confirmation dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar esta reserva?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La reserva será marcada como cancelada y el cliente será notificado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, mantener</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sí, cancelar reserva
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
