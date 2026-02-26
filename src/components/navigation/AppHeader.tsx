@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, Bell, HelpCircle, LogOut, User, Settings } from "lucide-react";
+import { toast } from "sonner";
 
 interface AppHeaderProps {
   userName?: string;
@@ -22,6 +24,8 @@ export function AppHeader({
   userRole = "Admin",
   noticeCount = 0 
 }: AppHeaderProps) {
+  const navigate = useNavigate();
+  
   const initials = userName
     .split(" ")
     .map((n) => n[0])
@@ -43,13 +47,11 @@ export function AppHeader({
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        {/* Help */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
+        <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={() => toast.info("Centro de ayuda (próximamente)")}>
           <HelpCircle className="h-5 w-5" />
         </Button>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative text-muted-foreground">
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground" onClick={() => navigate("/")}>
           <Bell className="h-5 w-5" />
           {noticeCount > 0 && (
             <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium px-1">
@@ -58,7 +60,6 @@ export function AppHeader({
           )}
         </Button>
 
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 pl-2 pr-3">
@@ -76,16 +77,19 @@ export function AppHeader({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <User className="mr-2 h-4 w-4" />
               Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => toast.info("Sesión cerrada (demo)")}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar sesión
             </DropdownMenuItem>

@@ -4,11 +4,13 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, AlertCircle, Info, ChevronRight } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, ChevronRight, X, CheckCheck } from "lucide-react";
 
 interface NoticesListProps {
   notices: Notice[];
   onAction?: (action: string, params?: Record<string, string>) => void;
+  onDismiss?: (noticeId: string) => void;
+  onMarkRead?: (noticeId: string) => void;
 }
 
 const severityConfig: Record<
@@ -32,7 +34,7 @@ const severityConfig: Record<
   },
 };
 
-export function NoticesList({ notices, onAction }: NoticesListProps) {
+export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: NoticesListProps) {
   if (notices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -77,12 +79,36 @@ export function NoticesList({ notices, onAction }: NoticesListProps) {
                       {notice.message}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDistanceToNow(notice.createdAt, {
-                      addSuffix: true,
-                      locale: es,
-                    })}
-                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap mr-1">
+                      {formatDistanceToNow(notice.createdAt, {
+                        addSuffix: true,
+                        locale: es,
+                      })}
+                    </span>
+                    {!notice.isRead && onMarkRead && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => onMarkRead(notice.id)}
+                        title="Marcar como leído"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {onDismiss && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => onDismiss(notice.id)}
+                        title="Eliminar aviso"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {notice.suggestedActions.length > 0 && (
                   <div className="flex items-center gap-2 mt-3">

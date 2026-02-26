@@ -36,6 +36,8 @@ import {
   Phone,
   MapPin,
   Clock,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 interface OpsTableProps {
@@ -43,6 +45,8 @@ interface OpsTableProps {
   onCheckIn?: (reservationId: string) => void;
   onCheckOut?: (reservationId: string) => void;
   onView?: (reservationId: string) => void;
+  onApprove?: (reservationId: string) => void;
+  onCancel?: (reservationId: string) => void;
 }
 
 const serviceTypeLabels: Record<ServiceType, string> = {
@@ -53,17 +57,14 @@ const serviceTypeLabels: Record<ServiceType, string> = {
   [ServiceType.EVALUATION]: "Evaluación",
 };
 
-export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTableProps) {
+export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprove, onCancel }: OpsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -71,16 +72,22 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
   const getPrimaryAction = (status: ReservationStatus) => {
     switch (status) {
       case ReservationStatus.SCHEDULED:
-        return { label: "Check-in", icon: LogIn, action: "checkin" };
+        return { label: "Check-in", icon: LogIn, action: "checkin" as const };
       case ReservationStatus.CHECKED_IN:
       case ReservationStatus.IN_PROGRESS:
       case ReservationStatus.READY:
-        return { label: "Check-out", icon: LogOut, action: "checkout" };
+        return { label: "Check-out", icon: LogOut, action: "checkout" as const };
       case ReservationStatus.REQUESTED:
-        return { label: "Aprobar", icon: LogIn, action: "approve" };
+        return { label: "Aprobar", icon: CheckCircle, action: "approve" as const };
       default:
         return null;
     }
+  };
+
+  const handlePrimaryAction = (action: string, id: string) => {
+    if (action === "checkin") onCheckIn?.(id);
+    else if (action === "checkout") onCheckOut?.(id);
+    else if (action === "approve") onApprove?.(id);
   };
 
   return (
@@ -115,11 +122,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
                 >
                   <TableCell>
                     <Button variant="ghost" size="icon" className="h-6 w-6">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
                   <TableCell>
@@ -173,8 +176,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
                           className="action-button-primary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (primaryAction.action === "checkin") onCheckIn?.(reservation.id);
-                            if (primaryAction.action === "checkout") onCheckOut?.(reservation.id);
+                            handlePrimaryAction(primaryAction.action, reservation.id);
                           }}
                         >
                           <primaryAction.icon className="h-3.5 w-3.5" />
@@ -200,7 +202,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onView?.(reservation.id)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar reserva
                           </DropdownMenuItem>
@@ -213,7 +215,11 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
                             Ver factura
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => onCancel?.(reservation.id)}
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
                             Cancelar reserva
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -222,62 +228,35 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView }: OpsTab
                   </TableCell>
                 </TableRow>
                 {isExpanded && (
-                  <TableRow className="bg-muted/20 hover:bg-muted/20">
+                  <TableRow key={`${reservation.id}-expanded`} className="bg-muted/20 hover:bg-muted/20">
                     <TableCell colSpan={8} className="py-4">
                       <div className="pl-12 animate-fade-in">
                         <div className="grid grid-cols-4 gap-6">
                           <div className="space-y-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Información del perro
-                            </h4>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Información del perro</h4>
                             <div className="space-y-1 text-sm">
-                              <p>
-                                <span className="text-muted-foreground">Raza:</span>{" "}
-                                {reservation.dog?.breed}
-                              </p>
-                              <p>
-                                <span className="text-muted-foreground">Peso:</span>{" "}
-                                {reservation.dog?.weight} kg
-                              </p>
-                              <p>
-                                <span className="text-muted-foreground">Género:</span>{" "}
-                                {reservation.dog?.gender === "male" ? "Macho" : "Hembra"}
-                              </p>
+                              <p><span className="text-muted-foreground">Raza:</span> {reservation.dog?.breed}</p>
+                              <p><span className="text-muted-foreground">Peso:</span> {reservation.dog?.weight} kg</p>
+                              <p><span className="text-muted-foreground">Género:</span> {reservation.dog?.gender === "male" ? "Macho" : "Hembra"}</p>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Contacto
-                            </h4>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contacto</h4>
                             <div className="space-y-1 text-sm">
-                              <p className="flex items-center gap-2">
-                                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                {reservation.customer?.phone}
-                              </p>
-                              <p className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                {reservation.customer?.city}, {reservation.customer?.state}
-                              </p>
+                              <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{reservation.customer?.phone}</p>
+                              <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-muted-foreground" />{reservation.customer?.city}, {reservation.customer?.state}</p>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Servicio
-                            </h4>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servicio</h4>
                             <div className="space-y-1 text-sm">
                               <p>{reservation.service?.name}</p>
-                              <p className="text-muted-foreground">
-                                ${reservation.totalPrice.toFixed(2)}
-                              </p>
+                              <p className="text-muted-foreground">${reservation.totalPrice.toFixed(2)}</p>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Notas
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              {reservation.notes || "Sin notas"}
-                            </p>
+                            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notas</h4>
+                            <p className="text-sm text-muted-foreground">{reservation.notes || "Sin notas"}</p>
                           </div>
                         </div>
                       </div>
