@@ -10,6 +10,7 @@ import DogsPage from "./pages/DogsPage";
 import RequestsPage from "./pages/RequestsPage";
 import CalendarPage from "./pages/CalendarPage";
 import SettingsPage from "./pages/SettingsPage";
+import ReportCardsPage from "./pages/ReportCardsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +29,7 @@ const App = () => (
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/notices" element={<ComingSoon title="Avisos" />} />
-            <Route path="/report-cards" element={<ComingSoon title="Report Cards" />} />
+            <Route path="/report-cards" element={<ReportCardsPage />} />
             <Route path="/packages" element={<ComingSoon title="Paquetes" />} />
             <Route path="/invoices" element={<ComingSoon title="Facturación" />} />
             <Route path="/reports" element={<ComingSoon title="Reportes" />} />
