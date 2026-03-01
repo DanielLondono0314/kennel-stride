@@ -98,6 +98,80 @@ export type Database = {
         }
         Relationships: []
       }
+      report_cards: {
+        Row: {
+          appetite: number
+          areas_to_improve: string | null
+          created_at: string
+          dog_id: string
+          dog_name: string
+          energy_level: number
+          highlights: string | null
+          id: string
+          is_sent: boolean
+          notes: string | null
+          obedience: number
+          overall_score: number
+          photos: string[] | null
+          sent_at: string | null
+          service_type: string
+          session_date: string
+          socialization: number
+          trainer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          appetite?: number
+          areas_to_improve?: string | null
+          created_at?: string
+          dog_id: string
+          dog_name: string
+          energy_level?: number
+          highlights?: string | null
+          id?: string
+          is_sent?: boolean
+          notes?: string | null
+          obedience?: number
+          overall_score?: number
+          photos?: string[] | null
+          sent_at?: string | null
+          service_type?: string
+          session_date?: string
+          socialization?: number
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appetite?: number
+          areas_to_improve?: string | null
+          created_at?: string
+          dog_id?: string
+          dog_name?: string
+          energy_level?: number
+          highlights?: string | null
+          id?: string
+          is_sent?: boolean
+          notes?: string | null
+          obedience?: number
+          overall_score?: number
+          photos?: string[] | null
+          sent_at?: string | null
+          service_type?: string
+          session_date?: string
+          socialization?: number
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cards_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_members: {
         Row: {
           created_at: string
