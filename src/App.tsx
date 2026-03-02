@@ -11,6 +11,9 @@ import RequestsPage from "./pages/RequestsPage";
 import CalendarPage from "./pages/CalendarPage";
 import SettingsPage from "./pages/SettingsPage";
 import ReportCardsPage from "./pages/ReportCardsPage";
+import PackagesPage from "./pages/PackagesPage";
+import InvoicesPage from "./pages/InvoicesPage";
+import NoticesPage from "./pages/NoticesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,10 +31,10 @@ const App = () => (
             <Route path="/dogs" element={<DogsPage />} />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/notices" element={<ComingSoon title="Avisos" />} />
+            <Route path="/notices" element={<NoticesPage />} />
             <Route path="/report-cards" element={<ReportCardsPage />} />
-            <Route path="/packages" element={<ComingSoon title="Paquetes" />} />
-            <Route path="/invoices" element={<ComingSoon title="Facturación" />} />
+            <Route path="/packages" element={<PackagesPage />} />
+            <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/reports" element={<ComingSoon title="Reportes" />} />
             <Route path="/campaigns" element={<ComingSoon title="Campañas" />} />
             <Route path="/settings" element={<SettingsPage />} />

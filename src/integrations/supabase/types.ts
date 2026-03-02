@@ -65,6 +65,276 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          balance: number
+          city: string | null
+          created_at: string
+          email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string
+          state: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+          user_id: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          balance?: number
+          city?: string | null
+          created_at?: string
+          email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string
+          state?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          balance?: number
+          city?: string | null
+          created_at?: string
+          email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string
+          state?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          customer_id: string
+          discount: number
+          due_date: string
+          id: string
+          invoice_number: string
+          notes: string | null
+          paid_at: string | null
+          payment_method: string | null
+          reservation_id: string | null
+          status: string
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          discount?: number
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reservation_id?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          discount?: number
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reservation_id?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notices: {
+        Row: {
+          auto_generated: boolean
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          message: string
+          severity: string
+          suggested_actions: Json
+          title: string
+        }
+        Insert: {
+          auto_generated?: boolean
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message: string
+          severity?: string
+          suggested_actions?: Json
+          title: string
+        }
+        Update: {
+          auto_generated?: boolean
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message?: string
+          severity?: string
+          suggested_actions?: Json
+          title?: string
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          created_at: string
+          customer_id: string
+          expires_at: string
+          id: string
+          name: string
+          notes: string | null
+          price: number
+          purchase_date: string
+          remaining_credits: number
+          service_type: string
+          status: string
+          stripe_payment_id: string | null
+          stripe_product_id: string | null
+          total_credits: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          expires_at: string
+          id?: string
+          name: string
+          notes?: string | null
+          price?: number
+          purchase_date?: string
+          remaining_credits?: number
+          service_type?: string
+          status?: string
+          stripe_payment_id?: string | null
+          stripe_product_id?: string | null
+          total_credits?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          expires_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          price?: number
+          purchase_date?: string
+          remaining_credits?: number
+          service_type?: string
+          status?: string
+          stripe_payment_id?: string | null
+          stripe_product_id?: string | null
+          total_credits?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -242,6 +512,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_expiring_packages: { Args: never; Returns: undefined }
+      check_overdue_invoices: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
