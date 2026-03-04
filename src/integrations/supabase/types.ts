@@ -125,6 +125,110 @@ export type Database = {
         }
         Relationships: []
       }
+      facility_units: {
+        Row: {
+          assigned_dog_id: string | null
+          assigned_dog_name: string | null
+          assignment_end: string | null
+          assignment_start: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          position_index: number
+          status: string
+          unit_type: string
+          updated_at: string
+          zone_id: string
+        }
+        Insert: {
+          assigned_dog_id?: string | null
+          assigned_dog_name?: string | null
+          assignment_end?: string | null
+          assignment_start?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          position_index?: number
+          status?: string
+          unit_type?: string
+          updated_at?: string
+          zone_id: string
+        }
+        Update: {
+          assigned_dog_id?: string | null
+          assigned_dog_name?: string | null
+          assignment_end?: string | null
+          assignment_start?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          position_index?: number
+          status?: string
+          unit_type?: string
+          updated_at?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_units_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "facility_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facility_zones: {
+        Row: {
+          capacity: number
+          color: string
+          created_at: string
+          height: number
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          width: number
+          x: number
+          y: number
+          zone_type: string
+        }
+        Insert: {
+          capacity?: number
+          color?: string
+          created_at?: string
+          height?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          width?: number
+          x?: number
+          y?: number
+          zone_type?: string
+        }
+        Update: {
+          capacity?: number
+          color?: string
+          created_at?: string
+          height?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          width?: number
+          x?: number
+          y?: number
+          zone_type?: string
+        }
+        Relationships: []
+      }
       invoice_items: {
         Row: {
           created_at: string
