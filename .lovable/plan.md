@@ -1,88 +1,74 @@
 
-
-# Mapa Arquitectonico del Centro Canino — Constructor Interactivo
+# Modulo de Report Cards
 
 ## Resumen
-Un editor visual tipo "playground" donde el usuario arrastra y coloca zonas del centro canino sobre un canvas 2D. Cada zona contiene elementos individuales (perreras, mesas de limpieza, comederos, etc.) que se pueden añadir, mover y redimensionar. Las perreras son asignables: se les asigna un perro y un periodo de permanencia.
+Crear un sistema completo de Report Cards donde los entrenadores registran el progreso de cada perro con metricas, notas y fotos. Los report cards se persisten en Lovable Cloud y se pueden consultar por perro, entrenador o fecha.
 
 ## Base de datos
 
-### Tabla `facility_zones`
+### Tabla `report_cards`
 | Columna | Tipo | Descripcion |
 |---------|------|-------------|
-| id | uuid PK | Identificador |
-| name | text | Nombre de la zona (ej: "Zona de Perreras A") |
-| zone_type | text | Tipo: kennels, cleaning, feeding, training, grooming, play_yard, reception, storage |
-| x | numeric | Posicion X en el canvas |
-| y | numeric | Posicion Y en el canvas |
-| width | numeric | Ancho en el canvas |
-| height | numeric | Alto en el canvas |
-| color | text | Color de la zona |
-| capacity | integer | Capacidad maxima |
-| is_active | boolean | Si esta activa |
-| sort_order | integer | Orden de renderizado |
+| id | uuid (PK) | Identificador |
+| dog_id | text | ID del perro (referencia mock por ahora) |
+| dog_name | text | Nombre del perro (desnormalizado para consultas rapidas) |
+| trainer_id | uuid (FK staff_members) | Entrenador que creo el report |
+| service_type | text | Tipo de servicio (daycare, training, etc.) |
+| session_date | date | Fecha de la sesion |
+| overall_score | integer | Puntuacion general 1-5 |
+| energy_level | integer | Nivel de energia 1-5 |
+| socialization | integer | Socializacion 1-5 |
+| obedience | integer | Obediencia 1-5 |
+| appetite | integer | Apetito 1-5 |
+| notes | text | Observaciones generales |
+| highlights | text | Logros destacados |
+| areas_to_improve | text | Areas de mejora |
+| photos | text[] | URLs de fotos (array) |
+| is_sent | boolean | Si ya se envio al dueno |
+| sent_at | timestamptz | Cuando se envio |
 | created_at / updated_at | timestamptz | Timestamps |
 
-### Tabla `facility_units`
-| Columna | Tipo | Descripcion |
-|---------|------|-------------|
-| id | uuid PK | Identificador |
-| zone_id | uuid FK | Zona padre |
-| name | text | Nombre (ej: "Perrera 01") |
-| unit_type | text | Tipo: kennel, grooming_table, feeding_station, wash_station |
-| x | numeric | Posicion relativa dentro de la zona |
-| y | numeric | Posicion relativa |
-| width / height | numeric | Dimensiones |
-| status | text | available, occupied, maintenance, reserved |
-| assigned_dog_id | text | ID del perro asignado (mock) |
-| assigned_dog_name | text | Nombre desnormalizado |
-| assignment_start | timestamptz | Inicio del periodo |
-| assignment_end | timestamptz | Fin del periodo |
-| created_at / updated_at | timestamptz | Timestamps |
+RLS: Lectura y escritura anonima (demo) + override para admins autenticados (mismo patron que staff_members).
 
-RLS: Mismo patron anon demo que las demas tablas.
+### Storage bucket `report-card-photos`
+Bucket publico para las fotos adjuntas a los report cards.
 
 ## Interfaz de usuario
 
-### Pagina `/facility` — Editor del Centro
-1. **Toolbar lateral izquierda**: Paleta de zonas arrastrables (Perreras, Limpieza, Comidas, Entrenamiento, Grooming, Patio, Recepcion, Almacen). Cada tipo con icono y color distintivo.
+### Pagina principal (`/report-cards`)
+- **Vista de lista/grid** con cards que muestran: nombre del perro, fecha, puntuacion general (estrellas), entrenador, tipo de servicio, estado (borrador/enviado)
+- **Filtros**: busqueda por nombre de perro, filtro por entrenador, filtro por tipo de servicio, rango de fechas
+- **Boton "Nuevo Report Card"** que abre el modal de creacion
 
-2. **Canvas central**: Area de grid donde se colocan las zonas. Cada zona es un rectangulo coloreado con titulo y contenido interior. Las zonas se pueden:
-   - Arrastrar para reposicionar (drag con mouse/touch)
-   - Redimensionar con handles en esquinas
-   - Eliminar con boton X
-   - Editar nombre/propiedades con doble click
+### Modal de creacion/edicion
+- Selector de perro (de los mock dogs existentes)
+- Selector de entrenador (de staff_members en DB)
+- Selector de tipo de servicio
+- Fecha de sesion (date picker)
+- **5 metricas con sliders visuales** (1-5 estrellas): Puntuacion general, Energia, Socializacion, Obediencia, Apetito
+- Campos de texto: Notas, Logros destacados, Areas de mejora
+- Subida de fotos (hasta 4 fotos por report card)
+- Botones: Guardar borrador / Enviar al dueno
 
-3. **Dentro de cada zona tipo "kennels"**: Grid de perreras individuales representadas como celdas. Cada perrera muestra:
-   - Numero/nombre
-   - Estado (color: verde=disponible, rojo=ocupada, amarillo=mantenimiento)
-   - Si esta ocupada: nombre del perro + dias restantes
-
-4. **Modal de asignacion de perrera**: Al hacer click en una perrera:
-   - Selector de perro (de mockDogs)
-   - Date picker para periodo de inicio y fin
-   - Notas opcionales
-   - Boton liberar perrera
-
-5. **Panel derecho**: Resumen del centro mostrando ocupacion por zona, perreras disponibles vs ocupadas, y alertas de perreras que estan por vencer su periodo.
-
-### Navegacion
-- Nuevo enlace en sidebar seccion "Operaciones": icono `Map` label "Instalaciones"
-- Ruta `/facility` en App.tsx
-
-## Implementacion tecnica
-
-El editor usara **posicionamiento CSS absoluto dentro de un contenedor relativo** con drag nativo (no requiere libreria externa pesada). Se implementara con `onMouseDown/onMouseMove/onMouseUp` handlers para drag-and-drop y resize. No se necesita React Three Fiber — es un canvas 2D con divs posicionados.
+### Vista de detalle (modal)
+- Perfil del perro con avatar y datos
+- Las 5 metricas presentadas como barras de progreso o estrellas
+- Notas completas
+- Galeria de fotos
+- Historial: mini-grafico de progreso del perro (ultimos 5 report cards)
 
 ## Archivos a crear/editar
-1. **Migracion SQL**: tablas `facility_zones` y `facility_units` + RLS
-2. **`src/pages/FacilityPage.tsx`**: Pagina principal con toolbar, canvas y panel resumen
-3. **`src/components/facility/FacilityCanvas.tsx`**: Canvas con zonas arrastrables
-4. **`src/components/facility/ZoneBlock.tsx`**: Componente de zona individual
-5. **`src/components/facility/KennelGrid.tsx`**: Grid de perreras dentro de una zona
-6. **`src/components/facility/KennelAssignmentModal.tsx`**: Modal para asignar perro a perrera
-7. **`src/components/facility/FacilityToolbar.tsx`**: Paleta de zonas para agregar
-8. **`src/components/facility/FacilitySummary.tsx`**: Panel resumen de ocupacion
-9. **`src/components/navigation/AppSidebar.tsx`**: Agregar enlace "Instalaciones"
-10. **`src/App.tsx`**: Agregar ruta `/facility`
+1. **Migracion SQL**: tabla `report_cards` + bucket `report-card-photos` + RLS
+2. **`src/pages/ReportCardsPage.tsx`**: Pagina principal con lista, filtros y modales
+3. **`src/components/report-cards/ReportCardModal.tsx`**: Formulario de creacion/edicion
+4. **`src/components/report-cards/ReportCardDetail.tsx`**: Vista de detalle con metricas y fotos
+5. **`src/components/report-cards/StarRating.tsx`**: Componente reutilizable de estrellas interactivas
+6. **`src/App.tsx`**: Reemplazar el ComingSoon por la pagina funcional
 
+## Detalles tecnicos
+- Consultas a Lovable Cloud via `supabase` client para CRUD de report cards
+- Upload de fotos al bucket `report-card-photos` con el Storage API
+- Perros tomados de `mockDogs` (datos locales) ya que aun no hay tabla de perros en DB
+- Entrenadores cargados de `staff_members` en DB
+- Tipos TypeScript existentes (`ReportCard`, `ReportMetric` en `src/types/index.ts`) se usaran como referencia pero la estructura de DB sera ligeramente distinta (metricas como columnas individuales en lugar de array JSON)
+- Toast notifications con sonner para feedback de acciones

@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Bell,
   ClipboardList,
+  Map,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -62,6 +63,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
         <AppNavLink to="/" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
         <AppNavLink to="/requests" icon={ClipboardList} label="Solicitudes" collapsed={collapsed} badge={requestCount} />
         <AppNavLink to="/calendar" icon={CalendarDays} label="Calendario" collapsed={collapsed} />
+        <AppNavLink to="/facility" icon={Map} label="Instalaciones" collapsed={collapsed} />
         <AppNavLink to="/notices" icon={Bell} label="Avisos" collapsed={collapsed} badge={noticeCount} />
 
         {/* CRM */}
