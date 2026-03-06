@@ -65,6 +65,63 @@ export type Database = {
         }
         Relationships: []
       }
+      campaigns: {
+        Row: {
+          channel: string
+          created_at: string
+          description: string
+          id: string
+          message_template: string
+          name: string
+          scheduled_at: string | null
+          segment_filters: Json
+          segment_type: string
+          sent_at: string | null
+          stats_clicked: number
+          stats_delivered: number
+          stats_opened: number
+          stats_sent: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          description?: string
+          id?: string
+          message_template?: string
+          name: string
+          scheduled_at?: string | null
+          segment_filters?: Json
+          segment_type?: string
+          sent_at?: string | null
+          stats_clicked?: number
+          stats_delivered?: number
+          stats_opened?: number
+          stats_sent?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          description?: string
+          id?: string
+          message_template?: string
+          name?: string
+          scheduled_at?: string | null
+          segment_filters?: Json
+          segment_type?: string
+          sent_at?: string | null
+          stats_clicked?: number
+          stats_delivered?: number
+          stats_opened?: number
+          stats_sent?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null

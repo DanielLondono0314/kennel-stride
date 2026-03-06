@@ -1,72 +1,74 @@
 
-
-# Modulos de Reportes y Campanas
+# Modulo de Report Cards
 
 ## Resumen
-Crear dos modulos completos con persistencia en Lovable Cloud: **Reportes** (analytics financieros y operativos del centro) y **Campanas** (marketing segmentado para clientes).
+Crear un sistema completo de Report Cards donde los entrenadores registran el progreso de cada perro con metricas, notas y fotos. Los report cards se persisten en Lovable Cloud y se pueden consultar por perro, entrenador o fecha.
 
 ## Base de datos
 
-### No se necesita tabla para Reportes
-Los reportes son vistas analiticas que consultan datos existentes: `invoices`, `packages`, `customers`, `facility_units`, `report_cards`, `notices`. Se calculan KPIs en tiempo real con queries agregados.
-
-### Tabla `campaigns`
+### Tabla `report_cards`
 | Columna | Tipo | Descripcion |
 |---------|------|-------------|
-| id | uuid PK | Identificador |
-| name | text | Nombre de la campana |
-| description | text | Descripcion |
-| segment_type | text | inactive, new, vip, all, custom |
-| segment_filters | jsonb | Filtros de segmentacion |
-| message_template | text | Plantilla del mensaje |
-| channel | text | email, sms, whatsapp |
-| scheduled_at | timestamptz | Fecha programada |
-| sent_at | timestamptz | Fecha de envio |
-| status | text | draft, scheduled, sent, cancelled |
-| stats_sent | integer | Enviados |
-| stats_delivered | integer | Entregados |
-| stats_opened | integer | Abiertos |
-| stats_clicked | integer | Clicks |
+| id | uuid (PK) | Identificador |
+| dog_id | text | ID del perro (referencia mock por ahora) |
+| dog_name | text | Nombre del perro (desnormalizado para consultas rapidas) |
+| trainer_id | uuid (FK staff_members) | Entrenador que creo el report |
+| service_type | text | Tipo de servicio (daycare, training, etc.) |
+| session_date | date | Fecha de la sesion |
+| overall_score | integer | Puntuacion general 1-5 |
+| energy_level | integer | Nivel de energia 1-5 |
+| socialization | integer | Socializacion 1-5 |
+| obedience | integer | Obediencia 1-5 |
+| appetite | integer | Apetito 1-5 |
+| notes | text | Observaciones generales |
+| highlights | text | Logros destacados |
+| areas_to_improve | text | Areas de mejora |
+| photos | text[] | URLs de fotos (array) |
+| is_sent | boolean | Si ya se envio al dueno |
+| sent_at | timestamptz | Cuando se envio |
 | created_at / updated_at | timestamptz | Timestamps |
 
-RLS: Mismo patron anon demo.
+RLS: Lectura y escritura anonima (demo) + override para admins autenticados (mismo patron que staff_members).
 
-## Modulo de Reportes (`/reports`)
+### Storage bucket `report-card-photos`
+Bucket publico para las fotos adjuntas a los report cards.
 
-### Pagina `ReportsPage.tsx`
-Dashboard analitico con tabs:
+## Interfaz de usuario
 
-1. **Resumen General**: KPIs principales (ingresos totales, facturas cobradas vs pendientes, clientes activos, ocupacion de perreras)
-2. **Financiero**: Grafico de ingresos por periodo (recharts BarChart), desglose por tipo de servicio (PieChart), facturas pendientes vs cobradas
-3. **Operaciones**: Ocupacion de perreras por zona, report cards generados, paquetes activos vs expirados
-4. **Clientes**: Top clientes por gasto, clientes nuevos por mes, distribucion de servicios
+### Pagina principal (`/report-cards`)
+- **Vista de lista/grid** con cards que muestran: nombre del perro, fecha, puntuacion general (estrellas), entrenador, tipo de servicio, estado (borrador/enviado)
+- **Filtros**: busqueda por nombre de perro, filtro por entrenador, filtro por tipo de servicio, rango de fechas
+- **Boton "Nuevo Report Card"** que abre el modal de creacion
 
-Filtros de rango de fecha (ultimo mes, trimestre, ano, personalizado).
+### Modal de creacion/edicion
+- Selector de perro (de los mock dogs existentes)
+- Selector de entrenador (de staff_members en DB)
+- Selector de tipo de servicio
+- Fecha de sesion (date picker)
+- **5 metricas con sliders visuales** (1-5 estrellas): Puntuacion general, Energia, Socializacion, Obediencia, Apetito
+- Campos de texto: Notas, Logros destacados, Areas de mejora
+- Subida de fotos (hasta 4 fotos por report card)
+- Botones: Guardar borrador / Enviar al dueno
 
-Usa `recharts` (ya instalado) para graficos.
-
-## Modulo de Campanas (`/campaigns`)
-
-### Pagina `CampaignsPage.tsx`
-- Lista de campanas con status badges (Borrador, Programada, Enviada, Cancelada)
-- KPIs: total campanas, enviadas este mes, tasa de apertura promedio
-- Modal de creacion/edicion con:
-  - Nombre, descripcion
-  - Segmento target (Todos, Nuevos, Inactivos 30+ dias, VIP, Personalizado)
-  - Canal (Email, SMS, WhatsApp)
-  - Plantilla de mensaje con variables ({nombre}, {perro})
-  - Programar o enviar ahora (por ahora solo marca como "enviada", sin envio real)
-- Vista de detalle con estadisticas de la campana (metricas simuladas por ahora)
+### Vista de detalle (modal)
+- Perfil del perro con avatar y datos
+- Las 5 metricas presentadas como barras de progreso o estrellas
+- Notas completas
+- Galeria de fotos
+- Historial: mini-grafico de progreso del perro (ultimos 5 report cards)
 
 ## Archivos a crear/editar
-1. **Migracion SQL**: tabla `campaigns` + RLS
-2. **`src/pages/ReportsPage.tsx`**: Dashboard analitico con graficos recharts
-3. **`src/pages/CampaignsPage.tsx`**: CRUD de campanas con segmentacion
-4. **`src/App.tsx`**: Reemplazar ComingSoon por las paginas funcionales
+1. **Migracion SQL**: tabla `report_cards` + bucket `report-card-photos` + RLS
+2. **`src/pages/ReportCardsPage.tsx`**: Pagina principal con lista, filtros y modales
+3. **`src/components/report-cards/ReportCardModal.tsx`**: Formulario de creacion/edicion
+4. **`src/components/report-cards/ReportCardDetail.tsx`**: Vista de detalle con metricas y fotos
+5. **`src/components/report-cards/StarRating.tsx`**: Componente reutilizable de estrellas interactivas
+6. **`src/App.tsx`**: Reemplazar el ComingSoon por la pagina funcional
 
 ## Detalles tecnicos
-- Reportes: queries directos a tablas existentes con funciones de agregacion via supabase client
-- Campanas: CRUD completo contra tabla `campaigns`
-- Graficos con recharts (BarChart, PieChart, LineChart)
-- Patron de UI consistente con PackagesPage/InvoicesPage (KPI cards + tabla + modales)
-
+- Consultas a Lovable Cloud via `supabase` client para CRUD de report cards
+- Upload de fotos al bucket `report-card-photos` con el Storage API
+- Perros tomados de `mockDogs` (datos locales) ya que aun no hay tabla de perros en DB
+- Entrenadores cargados de `staff_members` en DB
+- Tipos TypeScript existentes (`ReportCard`, `ReportMetric` en `src/types/index.ts`) se usaran como referencia pero la estructura de DB sera ligeramente distinta (metricas como columnas individuales en lugar de array JSON)
+- Toast notifications con sonner para feedback de acciones
