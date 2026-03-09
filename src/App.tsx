@@ -17,6 +17,7 @@ import NoticesPage from "./pages/NoticesPage";
 import FacilityPage from "./pages/FacilityPage";
 import ReportsPage from "./pages/ReportsPage";
 import CampaignsPage from "./pages/CampaignsPage";
+import ClinicPage from "./pages/ClinicPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
