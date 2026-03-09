@@ -182,6 +182,105 @@ export type Database = {
         }
         Relationships: []
       }
+      deworming_records: {
+        Row: {
+          created_at: string
+          date_administered: string
+          dog_id: string
+          dog_name: string
+          id: string
+          next_dose_date: string | null
+          notes: string | null
+          product_name: string
+          product_type: string
+          veterinarian: string | null
+          weight_at_time: number | null
+        }
+        Insert: {
+          created_at?: string
+          date_administered?: string
+          dog_id: string
+          dog_name: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          product_name: string
+          product_type?: string
+          veterinarian?: string | null
+          weight_at_time?: number | null
+        }
+        Update: {
+          created_at?: string
+          date_administered?: string
+          dog_id?: string
+          dog_name?: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          product_name?: string
+          product_type?: string
+          veterinarian?: string | null
+          weight_at_time?: number | null
+        }
+        Relationships: []
+      }
+      dog_temperament: {
+        Row: {
+          aggression_level: number
+          anxiety_level: number
+          behavioral_alerts: string | null
+          created_at: string
+          dog_id: string
+          dog_name: string
+          energy_level: number
+          general_notes: string | null
+          id: string
+          last_evaluation_date: string | null
+          noise_sensitivity: number
+          prey_drive: number
+          sociability_dogs: number
+          sociability_people: number
+          trainability: number
+          updated_at: string
+        }
+        Insert: {
+          aggression_level?: number
+          anxiety_level?: number
+          behavioral_alerts?: string | null
+          created_at?: string
+          dog_id: string
+          dog_name: string
+          energy_level?: number
+          general_notes?: string | null
+          id?: string
+          last_evaluation_date?: string | null
+          noise_sensitivity?: number
+          prey_drive?: number
+          sociability_dogs?: number
+          sociability_people?: number
+          trainability?: number
+          updated_at?: string
+        }
+        Update: {
+          aggression_level?: number
+          anxiety_level?: number
+          behavioral_alerts?: string | null
+          created_at?: string
+          dog_id?: string
+          dog_name?: string
+          energy_level?: number
+          general_notes?: string | null
+          id?: string
+          last_evaluation_date?: string | null
+          noise_sensitivity?: number
+          prey_drive?: number
+          sociability_dogs?: number
+          sociability_people?: number
+          trainability?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       facility_units: {
         Row: {
           assigned_dog_id: string | null
@@ -391,6 +490,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      medical_conditions: {
+        Row: {
+          condition_name: string
+          condition_type: string
+          created_at: string
+          diagnosed_date: string | null
+          dog_id: string
+          dog_name: string
+          id: string
+          notes: string | null
+          resolved_date: string | null
+          severity: string
+          status: string
+          treatment: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition_name: string
+          condition_type?: string
+          created_at?: string
+          diagnosed_date?: string | null
+          dog_id: string
+          dog_name: string
+          id?: string
+          notes?: string | null
+          resolved_date?: string | null
+          severity?: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition_name?: string
+          condition_type?: string
+          created_at?: string
+          diagnosed_date?: string | null
+          dog_id?: string
+          dog_name?: string
+          id?: string
+          notes?: string | null
+          resolved_date?: string | null
+          severity?: string
+          status?: string
+          treatment?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      medical_history: {
+        Row: {
+          blood_pressure: string | null
+          body_condition_score: number | null
+          created_at: string
+          diagnosis: string | null
+          dog_id: string
+          dog_name: string
+          heart_rate: number | null
+          id: string
+          next_appointment: string | null
+          notes: string | null
+          prescription: string | null
+          reason: string | null
+          record_date: string
+          record_type: string
+          respiratory_rate: number | null
+          temperature: number | null
+          treatment: string | null
+          updated_at: string
+          veterinarian: string | null
+          weight: number | null
+        }
+        Insert: {
+          blood_pressure?: string | null
+          body_condition_score?: number | null
+          created_at?: string
+          diagnosis?: string | null
+          dog_id: string
+          dog_name: string
+          heart_rate?: number | null
+          id?: string
+          next_appointment?: string | null
+          notes?: string | null
+          prescription?: string | null
+          reason?: string | null
+          record_date?: string
+          record_type?: string
+          respiratory_rate?: number | null
+          temperature?: number | null
+          treatment?: string | null
+          updated_at?: string
+          veterinarian?: string | null
+          weight?: number | null
+        }
+        Update: {
+          blood_pressure?: string | null
+          body_condition_score?: number | null
+          created_at?: string
+          diagnosis?: string | null
+          dog_id?: string
+          dog_name?: string
+          heart_rate?: number | null
+          id?: string
+          next_appointment?: string | null
+          notes?: string | null
+          prescription?: string | null
+          reason?: string | null
+          record_date?: string
+          record_type?: string
+          respiratory_rate?: number | null
+          temperature?: number | null
+          treatment?: string | null
+          updated_at?: string
+          veterinarian?: string | null
+          weight?: number | null
+        }
+        Relationships: []
       }
       notices: {
         Row: {
@@ -665,6 +881,51 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vaccination_schedule: {
+        Row: {
+          batch_number: string | null
+          created_at: string
+          date_administered: string
+          dog_id: string
+          dog_name: string
+          id: string
+          next_dose_date: string | null
+          notes: string | null
+          status: string
+          vaccine_name: string
+          vaccine_type: string
+          veterinarian: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          created_at?: string
+          date_administered?: string
+          dog_id: string
+          dog_name: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          status?: string
+          vaccine_name: string
+          vaccine_type?: string
+          veterinarian?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          created_at?: string
+          date_administered?: string
+          dog_id?: string
+          dog_name?: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          status?: string
+          vaccine_name?: string
+          vaccine_type?: string
+          veterinarian?: string | null
         }
         Relationships: []
       }

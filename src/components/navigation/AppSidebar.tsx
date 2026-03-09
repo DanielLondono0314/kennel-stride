@@ -18,6 +18,7 @@ import {
   Bell,
   ClipboardList,
   Map,
+  Stethoscope,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -75,6 +76,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
         <AppNavLink to="/customers" icon={Users} label="Clientes" collapsed={collapsed} />
         <AppNavLink to="/dogs" icon={Dog} label="Perros" collapsed={collapsed} />
         <AppNavLink to="/report-cards" icon={FileText} label="Report Cards" collapsed={collapsed} />
+        <AppNavLink to="/clinic" icon={Stethoscope} label="Clínica" collapsed={collapsed} />
 
         {/* Finanzas */}
         {!collapsed && (
