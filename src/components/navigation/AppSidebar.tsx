@@ -18,6 +18,7 @@ import {
   Bell,
   ClipboardList,
   Map,
+  Stethoscope,
 } from "lucide-react";
 
 interface AppSidebarProps {
