@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { mockDogs, mockCustomers } from "@/data/mockData";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { DogModal } from "@/components/dogs/DogModal";
 import { FlagIndicators } from "@/components/shared/FlagIndicators";
 import { Input } from "@/components/ui/input";
@@ -12,44 +12,117 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2 } from "lucide-react";
 import { differenceInYears, differenceInMonths } from "date-fns";
-import { Dog } from "@/types";
 import { toast } from "sonner";
+
+interface DbDog {
+  id: string;
+  customer_id: string;
+  name: string;
+  breed: string;
+  birth_date: string | null;
+  weight: number | null;
+  color: string | null;
+  gender: string;
+  is_neutered: boolean;
+  microchip_number: string | null;
+  notes: string | null;
+  behavior_notes: string | null;
+  medical_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  customers?: { id: string; first_name: string; last_name: string } | null;
+}
 
 export default function DogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingDog, setEditingDog] = useState<Dog | null>(null);
+  const [editingDog, setEditingDog] = useState<DbDog | null>(null);
+  const [dogs, setDogs] = useState<DbDog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const dogs = useMemo(() => {
-    return mockDogs.map((dog) => ({
-      ...dog,
-      owner: mockCustomers.find((c) => c.id === dog.customerId),
-    }));
-  }, []);
+  const fetchDogs = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("dogs")
+      .select("*, customers(id, first_name, last_name)")
+      .order("name");
+    if (!error && data) setDogs(data as any);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDogs(); }, []);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
     return dogs.filter(
-      (d) => d.name.toLowerCase().includes(query) || d.breed.toLowerCase().includes(query) || d.owner?.firstName.toLowerCase().includes(query) || d.owner?.lastName.toLowerCase().includes(query)
+      (d) => d.name.toLowerCase().includes(q) || d.breed.toLowerCase().includes(q) ||
+        d.customers?.first_name.toLowerCase().includes(q) || d.customers?.last_name.toLowerCase().includes(q)
     );
   }, [dogs, searchQuery]);
 
-  const getAge = (birthDate?: Date) => {
+  const getAge = (birthDate?: string | null) => {
     if (!birthDate) return "—";
-    const years = differenceInYears(new Date(), birthDate);
+    const bd = new Date(birthDate);
+    const years = differenceInYears(new Date(), bd);
     if (years > 0) return `${years} año${years > 1 ? "s" : ""}`;
-    const months = differenceInMonths(new Date(), birthDate);
+    const months = differenceInMonths(new Date(), bd);
     return `${months} mes${months > 1 ? "es" : ""}`;
   };
 
   const handleNewDog = () => { setEditingDog(null); setModalOpen(true); };
-  const handleEditDog = (dog: Dog) => { setEditingDog(dog); setModalOpen(true); };
-  const handleSave = (data: Partial<Dog>) => {
-    setModalOpen(false);
-    toast.success(data.id ? "Perro actualizado" : "Perro registrado", { description: `${data.name} guardado correctamente.` });
+  const handleEditDog = (dog: DbDog) => { setEditingDog(dog); setModalOpen(true); };
+
+  const handleSave = async (data: any) => {
+    const payload = {
+      customer_id: data.customer_id,
+      name: data.name,
+      breed: data.breed,
+      birth_date: data.birth_date || null,
+      weight: data.weight ? parseFloat(data.weight) : null,
+      color: data.color || null,
+      gender: data.gender,
+      is_neutered: data.is_neutered,
+      microchip_number: data.microchip_number || null,
+      notes: data.notes || "",
+      behavior_notes: data.behavior_notes || "",
+      medical_notes: data.medical_notes || "",
+      updated_at: new Date().toISOString(),
+    };
+
+    let error;
+    if (data.id) {
+      ({ error } = await supabase.from("dogs").update(payload).eq("id", data.id));
+    } else {
+      ({ error } = await supabase.from("dogs").insert(payload));
+    }
+
+    if (error) {
+      toast.error("Error al guardar perro");
+    } else {
+      toast.success(data.id ? "Perro actualizado" : "Perro registrado");
+      setModalOpen(false);
+      fetchDogs();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("dogs").delete().eq("id", deleteId);
+    if (error) {
+      toast.error("Error al eliminar");
+    } else {
+      toast.success("Perro eliminado");
+      fetchDogs();
+    }
+    setDeleteId(null);
   };
 
   return (
@@ -79,12 +152,15 @@ export default function DogsPage() {
               <TableHead>Raza</TableHead>
               <TableHead>Edad</TableHead>
               <TableHead>Peso</TableHead>
-              <TableHead>Alertas</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDogs.map((dog) => (
+            {loading ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+            ) : filteredDogs.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
+            ) : filteredDogs.map((dog) => (
               <TableRow key={dog.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -95,15 +171,15 @@ export default function DogsPage() {
                       <p className="font-medium">{dog.name}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
-                        {dog.isNeutered && <Badge variant="secondary" className="text-[10px] px-1.5">{dog.gender === "male" ? "Castrado" : "Esterilizada"}</Badge>}
+                        {dog.is_neutered && <Badge variant="secondary" className="text-[10px] px-1.5">{dog.gender === "male" ? "Castrado" : "Esterilizada"}</Badge>}
                       </div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell><span className="text-sm">{dog.owner?.firstName} {dog.owner?.lastName}</span></TableCell>
+                <TableCell><span className="text-sm">{dog.customers?.first_name} {dog.customers?.last_name}</span></TableCell>
                 <TableCell><span className="text-sm text-muted-foreground">{dog.breed}</span></TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1.5 text-sm"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{getAge(dog.birthDate)}</div>
+                  <div className="flex items-center gap-1.5 text-sm"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{getAge(dog.birth_date)}</div>
                 </TableCell>
                 <TableCell>
                   {dog.weight ? (
@@ -112,18 +188,14 @@ export default function DogsPage() {
                     <span className="text-sm text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell><FlagIndicators flags={dog.flags} /></TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast.info("Perfil del perro (próximamente)")}>Ver perfil</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast.info("Nueva reserva (próximamente)")}>Nueva reserva</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast.info("Report card (próximamente)")}>Crear report card</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toast.info("Historial (próximamente)")}>Ver historial</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -134,6 +206,19 @@ export default function DogsPage() {
       </div>
 
       <DogModal dog={editingDog} open={modalOpen} onOpenChange={setModalOpen} onSave={handleSave} />
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar perro?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminarán también los registros médicos asociados.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

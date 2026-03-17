@@ -1,22 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { mockDogs, mockCustomers } from "@/data/mockData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Search, Plus, Stethoscope, Syringe, Bug, AlertTriangle,
-  Brain, FileText, Calendar, Weight, Thermometer, Heart,
-  ChevronRight, Dog as DogIcon,
+  Search, Stethoscope, Syringe, Bug, AlertTriangle,
+  Brain, FileText, ChevronRight,
 } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
 import { VaccinationTab } from "@/components/clinic/VaccinationTab";
@@ -24,15 +15,35 @@ import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 
+interface DbDog {
+  id: string;
+  customer_id: string;
+  name: string;
+  breed: string;
+  birth_date: string | null;
+  weight: number | null;
+  gender: string;
+  is_neutered: boolean;
+  customers?: { first_name: string; last_name: string } | null;
+}
+
 export default function ClinicPage() {
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dogs, setDogs] = useState<DbDog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const dogs = useMemo(() => {
-    return mockDogs.map((dog) => ({
-      ...dog,
-      owner: mockCustomers.find((c) => c.id === dog.customerId),
-    }));
+  useEffect(() => {
+    const fetchDogs = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("dogs")
+        .select("id, customer_id, name, breed, birth_date, weight, gender, is_neutered, customers(first_name, last_name)")
+        .order("name");
+      if (data) setDogs(data as any);
+      setLoading(false);
+    };
+    fetchDogs();
   }, []);
 
   const filteredDogs = useMemo(() => {
@@ -42,8 +53,8 @@ export default function ClinicPage() {
       (d) =>
         d.name.toLowerCase().includes(q) ||
         d.breed.toLowerCase().includes(q) ||
-        d.owner?.firstName.toLowerCase().includes(q) ||
-        d.owner?.lastName.toLowerCase().includes(q)
+        d.customers?.first_name.toLowerCase().includes(q) ||
+        d.customers?.last_name.toLowerCase().includes(q)
     );
   }, [dogs, searchQuery]);
 
@@ -60,16 +71,15 @@ export default function ClinicPage() {
           </h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar perro..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder="Buscar perro..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {filteredDogs.map((dog) => (
+          {loading ? (
+            <p className="text-sm text-muted-foreground p-4">Cargando...</p>
+          ) : filteredDogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-4">No hay perros registrados.</p>
+          ) : filteredDogs.map((dog) => (
             <button
               key={dog.id}
               onClick={() => setSelectedDogId(dog.id)}
@@ -86,7 +96,7 @@ export default function ClinicPage() {
                 <p className="font-medium text-foreground text-sm truncate">{dog.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{dog.breed}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  Dueño: {dog.owner?.firstName} {dog.owner?.lastName}
+                  Dueño: {dog.customers?.first_name} {dog.customers?.last_name}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -123,20 +133,9 @@ export default function ClinicPage() {
                   {selectedDog.weight ? `${selectedDog.weight} kg` : "Peso no registrado"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Dueño: {dogs.find((d) => d.id === selectedDogId)?.owner?.firstName}{" "}
-                  {dogs.find((d) => d.id === selectedDogId)?.owner?.lastName}
+                  Dueño: {selectedDog.customers?.first_name} {selectedDog.customers?.last_name}
                 </p>
               </div>
-              {selectedDog.flags.length > 0 && (
-                <div className="ml-auto flex gap-2">
-                  {selectedDog.flags.map((f) => (
-                    <Badge key={f.id} variant="destructive" className="text-xs">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      {f.message}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Tabs */}
