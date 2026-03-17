@@ -281,6 +281,68 @@ export type Database = {
         }
         Relationships: []
       }
+      dogs: {
+        Row: {
+          behavior_notes: string | null
+          birth_date: string | null
+          breed: string
+          color: string | null
+          created_at: string
+          customer_id: string
+          gender: string
+          id: string
+          is_neutered: boolean
+          medical_notes: string | null
+          microchip_number: string | null
+          name: string
+          notes: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          behavior_notes?: string | null
+          birth_date?: string | null
+          breed: string
+          color?: string | null
+          created_at?: string
+          customer_id: string
+          gender?: string
+          id?: string
+          is_neutered?: boolean
+          medical_notes?: string | null
+          microchip_number?: string | null
+          name: string
+          notes?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          behavior_notes?: string | null
+          birth_date?: string | null
+          breed?: string
+          color?: string | null
+          created_at?: string
+          customer_id?: string
+          gender?: string
+          id?: string
+          is_neutered?: boolean
+          medical_notes?: string | null
+          microchip_number?: string | null
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dogs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facility_units: {
         Row: {
           assigned_dog_id: string | null
