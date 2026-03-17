@@ -1,11 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,28 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Dog } from "@/types";
-import { mockCustomers } from "@/data/mockData";
 import { Dog as DogIcon, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 interface DogModalProps {
-  dog?: Dog | null;
+  dog?: any | null;
   preselectedCustomerId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: Partial<Dog>) => void;
+  onSave: (data: any) => void;
 }
 
 export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSave }: DogModalProps) {
   const isEditing = !!dog;
-
+  const [customers, setCustomers] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
@@ -50,19 +40,25 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    supabase.from("customers").select("id, first_name, last_name").order("first_name").then(({ data }) => {
+      if (data) setCustomers(data);
+    });
+  }, []);
+
+  useEffect(() => {
     if (dog) {
-      setCustomerId(dog.customerId);
+      setCustomerId(dog.customer_id);
       setName(dog.name);
       setBreed(dog.breed);
-      setBirthDate(dog.birthDate ? dog.birthDate.toISOString().split("T")[0] : "");
+      setBirthDate(dog.birth_date || "");
       setWeight(dog.weight?.toString() || "");
       setColor(dog.color || "");
-      setGender(dog.gender);
-      setIsNeutered(dog.isNeutered);
-      setMicrochipNumber(dog.microchipNumber || "");
+      setGender(dog.gender as "male" | "female");
+      setIsNeutered(dog.is_neutered);
+      setMicrochipNumber(dog.microchip_number || "");
       setNotes(dog.notes || "");
-      setBehaviorNotes(dog.behaviorNotes || "");
-      setMedicalNotes(dog.medicalNotes || "");
+      setBehaviorNotes(dog.behavior_notes || "");
+      setMedicalNotes(dog.medical_notes || "");
     } else {
       setCustomerId(preselectedCustomerId || "");
       setName(""); setBreed(""); setBirthDate(""); setWeight("");
@@ -77,21 +73,20 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
     onSave({
       id: dog?.id,
-      customerId,
+      customer_id: customerId,
       name,
       breed,
-      birthDate: birthDate ? new Date(birthDate) : undefined,
-      weight: weight ? parseFloat(weight) : undefined,
-      color: color || undefined,
+      birth_date: birthDate || null,
+      weight: weight || null,
+      color: color || null,
       gender,
-      isNeutered,
-      microchipNumber: microchipNumber || undefined,
-      notes: notes || undefined,
-      behaviorNotes: behaviorNotes || undefined,
-      medicalNotes: medicalNotes || undefined,
+      is_neutered: isNeutered,
+      microchip_number: microchipNumber || null,
+      notes,
+      behavior_notes: behaviorNotes,
+      medical_notes: medicalNotes,
     });
     setIsSubmitting(false);
   };
@@ -110,24 +105,18 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Owner */}
           <div className="space-y-2">
             <Label>Dueño *</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar dueño" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Seleccionar dueño" /></SelectTrigger>
               <SelectContent>
-                {mockCustomers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
-                  </SelectItem>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Name & Breed */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nombre *</Label>
@@ -139,14 +128,11 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             </div>
           </div>
 
-          {/* Gender & Neutered */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Género</Label>
               <Select value={gender} onValueChange={(v) => setGender(v as "male" | "female")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">♂ Macho</SelectItem>
                   <SelectItem value="female">♀ Hembra</SelectItem>
@@ -179,7 +165,6 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             <Label>{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
           </div>
 
-          {/* Notes */}
           <div className="space-y-2">
             <Label>Notas generales</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas sobre el perro..." rows={2} />
