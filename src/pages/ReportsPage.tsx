@@ -27,6 +27,7 @@ export default function ReportsPage() {
   const [packages, setPackages] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
   const [reportCards, setReportCards] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
 
   const dateFrom = useMemo(() => {
     const now = new Date();
@@ -41,18 +42,20 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      const [invR, custR, pkgR, unitR, rcR] = await Promise.all([
+      const [invR, custR, pkgR, unitR, rcR, resR] = await Promise.all([
         supabase.from("invoices").select("*"),
         supabase.from("customers").select("*"),
         supabase.from("packages").select("*"),
         supabase.from("facility_units").select("*"),
         supabase.from("report_cards").select("*"),
+        supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id"),
       ]);
       setInvoices(invR.data || []);
       setCustomers(custR.data || []);
       setPackages(pkgR.data || []);
       setUnits(unitR.data || []);
       setReportCards(rcR.data || []);
+      setReservations(resR.data || []);
       setLoading(false);
     };
     fetch();
@@ -63,6 +66,39 @@ export default function ReportsPage() {
     [invoices, dateFrom]
   );
 
+  const filteredReservations = useMemo(
+    () => reservations.filter((r) => new Date(r.start_date) >= dateFrom),
+    [reservations, dateFrom]
+  );
+
+  // Reservations by service type
+  const reservationsByService = useMemo(() => {
+    const serviceLabels: Record<string, string> = {
+      daycare: "Guardería", board_and_train: "Internado",
+      training_session: "Sesión", grooming: "Grooming", evaluation: "Evaluación",
+    };
+    const counts: Record<string, number> = {};
+    filteredReservations.forEach((r) => {
+      const label = serviceLabels[r.service_type] ?? r.service_type;
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredReservations]);
+
+  // Reservations by status
+  const reservationsByStatus = useMemo(() => {
+    const statusLabels: Record<string, string> = {
+      requested: "Solicitadas", scheduled: "Programadas", checked_in: "En curso",
+      completed: "Completadas", cancelled: "Canceladas",
+    };
+    const counts: Record<string, number> = {};
+    filteredReservations.forEach((r) => {
+      const label = statusLabels[r.status] ?? r.status;
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredReservations]);
+
   // KPIs
   const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
   const totalPending = filteredInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
@@ -70,6 +106,9 @@ export default function ReportsPage() {
   const occupiedKennels = units.filter((u) => u.status === "occupied").length;
   const totalKennels = units.length;
   const occupancyRate = totalKennels > 0 ? Math.round((occupiedKennels / totalKennels) * 100) : 0;
+  const totalReservations = filteredReservations.length;
+  const completedReservations = filteredReservations.filter((r) => r.status === "completed").length;
+  const conversionRate = totalReservations > 0 ? Math.round((completedReservations / totalReservations) * 100) : 0;
 
   // Revenue by month chart
   const revenueByMonth = useMemo(() => {
@@ -128,13 +167,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Reportes</h1>
           <p className="text-muted-foreground">Análisis financiero y operativo del centro</p>
         </div>
         <Select value={range} onValueChange={(v) => setRange(v as DateRange)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-44 self-start sm:self-auto">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +186,7 @@ export default function ReportsPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -192,6 +231,28 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+        <Card className="card-kpi">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/20"><Activity className="h-5 w-5 text-accent-foreground" /></div>
+              <div>
+                <p className="text-2xl font-bold">{totalReservations}</p>
+                <p className="text-xs text-muted-foreground">Reservas (período)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="card-kpi">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100"><BarChart3 className="h-5 w-5 text-green-600" /></div>
+              <div>
+                <p className="text-2xl font-bold">{conversionRate}%</p>
+                <p className="text-xs text-muted-foreground">Tasa completadas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="financial" className="space-y-4">
@@ -203,7 +264,7 @@ export default function ReportsPage() {
 
         {/* Financial Tab */}
         <TabsContent value="financial" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Ingresos por Período</CardTitle>
@@ -251,7 +312,7 @@ export default function ReportsPage() {
 
         {/* Operations Tab */}
         <TabsContent value="operations" className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
@@ -277,28 +338,52 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
           </div>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Estado de Paquetes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pkgBreakdown.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Sin paquetes</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie data={pkgBreakdown} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                      {pkgBreakdown.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Reservas por Servicio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reservationsByService.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Sin reservas en el período</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={reservationsByService} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                        {reservationsByService.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Estado de Paquetes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pkgBreakdown.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Sin paquetes</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={pkgBreakdown} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                        {pkgBreakdown.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Clients Tab */}
@@ -323,7 +408,7 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">

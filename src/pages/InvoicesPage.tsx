@@ -236,19 +236,19 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Facturación</h1>
           <p className="text-muted-foreground">Gestión de facturas y pagos</p>
         </div>
-        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nueva Factura
         </Button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -315,7 +315,7 @@ export default function InvoicesPage() {
 
       {/* Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
@@ -406,7 +406,7 @@ export default function InvoicesPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cliente *</Label>
                 <Select value={form.customer_id} onValueChange={(v) => setForm({ ...form, customer_id: v })}>
@@ -431,8 +431,9 @@ export default function InvoicesPage() {
                 <Label>Líneas de Factura</Label>
                 <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3 w-3 mr-1" />Agregar</Button>
               </div>
+              <div className="overflow-x-auto">
               {form.items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_80px_100px_40px] gap-2 items-end">
+                <div key={idx} className="grid grid-cols-[1fr_80px_100px_40px] gap-2 items-end min-w-[400px]">
                   <div>
                     {idx === 0 && <Label className="text-xs">Descripción</Label>}
                     <Input value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Servicio o producto" />
@@ -450,6 +451,7 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
               ))}
+              </div>
               <div className="flex justify-end pt-2">
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Total</p>
@@ -463,13 +465,6 @@ export default function InvoicesPage() {
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Notas adicionales..." rows={2} />
             </div>
 
-            {/* Stripe placeholder */}
-            <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CreditCard className="h-4 w-4" />
-                <span>Cobro con Stripe disponible próximamente</span>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>

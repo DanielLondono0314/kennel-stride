@@ -1,25 +1,20 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Customer } from "@/types";
 import { User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import type { DbCustomer } from "@/pages/CustomersPage";
 
 interface CustomerModalProps {
-  customer?: Customer | null;
+  customer?: DbCustomer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: Partial<Customer>) => void;
+  onSave: (data: Partial<DbCustomer>) => Promise<void>;
 }
 
 export function CustomerModal({ customer, open, onOpenChange, onSave }: CustomerModalProps) {
@@ -40,16 +35,16 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
 
   useEffect(() => {
     if (customer) {
-      setFirstName(customer.firstName);
-      setLastName(customer.lastName);
+      setFirstName(customer.first_name);
+      setLastName(customer.last_name);
       setEmail(customer.email);
       setPhone(customer.phone);
       setAddress(customer.address || "");
       setCity(customer.city || "");
       setState(customer.state || "");
-      setZipCode(customer.zipCode || "");
-      setEmergencyContactName(customer.emergencyContactName || "");
-      setEmergencyContactPhone(customer.emergencyContactPhone || "");
+      setZipCode(customer.zip_code || "");
+      setEmergencyContactName(customer.emergency_contact_name || "");
+      setEmergencyContactPhone(customer.emergency_contact_phone || "");
       setNotes(customer.notes || "");
     } else {
       setFirstName(""); setLastName(""); setEmail(""); setPhone("");
@@ -59,22 +54,24 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   }, [customer, open]);
 
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !email || !phone) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()) {
       toast.error("Completa los campos requeridos");
       return;
     }
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    onSave({
+    await onSave({
       id: customer?.id,
-      firstName, lastName, email, phone,
-      address: address || undefined,
-      city: city || undefined,
-      state: state || undefined,
-      zipCode: zipCode || undefined,
-      emergencyContactName: emergencyContactName || undefined,
-      emergencyContactPhone: emergencyContactPhone || undefined,
-      notes: notes || undefined,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      address: address.trim() || null,
+      city: city.trim() || null,
+      state: state.trim() || null,
+      zip_code: zipCode.trim() || null,
+      emergency_contact_name: emergencyContactName.trim() || null,
+      emergency_contact_phone: emergencyContactPhone.trim() || null,
+      notes: notes.trim() || null,
     });
     setIsSubmitting(false);
   };
@@ -88,12 +85,14 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             {isEditing ? "Editar Cliente" : "Nuevo Cliente"}
           </DialogTitle>
           <DialogDescription>
-            {isEditing ? `Editar información de ${customer?.firstName}` : "Registrar un nuevo cliente"}
+            {isEditing
+              ? `Editar información de ${customer.first_name}`
+              : "Registrar un nuevo cliente"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nombre *</Label>
               <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre" />
@@ -104,7 +103,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Email *</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
@@ -135,7 +134,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Contacto de emergencia</Label>
               <Input value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} placeholder="Nombre" />
@@ -148,14 +147,25 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
 
           <div className="space-y-2">
             <Label>Notas</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas adicionales sobre el cliente..." rows={3} />
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Notas adicionales sobre el cliente..."
+              rows={3}
+            />
           </div>
         </div>
 
         <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancelar
+          </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             {isEditing ? "Guardar cambios" : "Crear cliente"}
           </Button>
         </DialogFooter>

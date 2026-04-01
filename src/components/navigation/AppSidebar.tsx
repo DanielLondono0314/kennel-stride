@@ -19,21 +19,30 @@ import {
   ClipboardList,
   Map,
   Stethoscope,
+  UserCog,
 } from "lucide-react";
 
 interface AppSidebarProps {
   noticeCount?: number;
   requestCount?: number;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProps) {
+export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = false, onMobileClose }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        "flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        // Mobile: fixed overlay when open, hidden otherwise
+        mobileOpen
+          ? "fixed inset-y-0 left-0 z-40 w-72 flex"
+          : "hidden md:flex",
+        // Desktop width (only applies on md+)
+        !mobileOpen && (collapsed ? "md:w-16" : "md:w-64"),
+        mobileOpen && "md:relative md:w-64"
       )}
     >
       {/* Logo */}
@@ -61,11 +70,11 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
             Operaciones
           </p>
         )}
-        <AppNavLink to="/" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-        <AppNavLink to="/requests" icon={ClipboardList} label="Solicitudes" collapsed={collapsed} badge={requestCount} />
-        <AppNavLink to="/calendar" icon={CalendarDays} label="Calendario" collapsed={collapsed} />
-        <AppNavLink to="/facility" icon={Map} label="Instalaciones" collapsed={collapsed} />
-        <AppNavLink to="/notices" icon={Bell} label="Avisos" collapsed={collapsed} badge={noticeCount} />
+        <AppNavLink to="/" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/requests" icon={ClipboardList} label="Solicitudes" collapsed={collapsed} badge={requestCount} onClick={onMobileClose} />
+        <AppNavLink to="/calendar" icon={CalendarDays} label="Calendario" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/facility" icon={Map} label="Instalaciones" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/notices" icon={Bell} label="Avisos" collapsed={collapsed} badge={noticeCount} onClick={onMobileClose} />
 
         {/* CRM */}
         {!collapsed && (
@@ -73,10 +82,11 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
             CRM
           </p>
         )}
-        <AppNavLink to="/customers" icon={Users} label="Clientes" collapsed={collapsed} />
-        <AppNavLink to="/dogs" icon={Dog} label="Perros" collapsed={collapsed} />
-        <AppNavLink to="/report-cards" icon={FileText} label="Report Cards" collapsed={collapsed} />
-        <AppNavLink to="/clinic" icon={Stethoscope} label="Clínica" collapsed={collapsed} />
+        <AppNavLink to="/customers" icon={Users} label="Clientes" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/dogs" icon={Dog} label="Perros" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/staff" icon={UserCog} label="Personal" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/report-cards" icon={FileText} label="Report Cards" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/clinic" icon={Stethoscope} label="Clínica" collapsed={collapsed} onClick={onMobileClose} />
 
         {/* Finanzas */}
         {!collapsed && (
@@ -84,8 +94,8 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
             Finanzas
           </p>
         )}
-        <AppNavLink to="/packages" icon={Package} label="Paquetes" collapsed={collapsed} />
-        <AppNavLink to="/invoices" icon={CreditCard} label="Facturación" collapsed={collapsed} />
+        <AppNavLink to="/packages" icon={Package} label="Paquetes" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/invoices" icon={CreditCard} label="Facturación" collapsed={collapsed} onClick={onMobileClose} />
 
         {/* Analytics */}
         {!collapsed && (
@@ -93,13 +103,13 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0 }: AppSidebarProp
             Analytics
           </p>
         )}
-        <AppNavLink to="/reports" icon={BarChart3} label="Reportes" collapsed={collapsed} />
-        <AppNavLink to="/campaigns" icon={Megaphone} label="Campañas" collapsed={collapsed} />
+        <AppNavLink to="/reports" icon={BarChart3} label="Reportes" collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to="/campaigns" icon={Megaphone} label="Campañas" collapsed={collapsed} onClick={onMobileClose} />
       </nav>
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2">
-        <AppNavLink to="/settings" icon={Settings} label="Configuración" collapsed={collapsed} />
+        <AppNavLink to="/settings" icon={Settings} label="Configuración" collapsed={collapsed} onClick={onMobileClose} />
         <Button
           variant="ghost"
           size="sm"

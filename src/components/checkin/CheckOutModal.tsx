@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,14 +17,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Reservation, CheckOutData, ServiceType } from "@/types";
-import { getAvailablePackageForService } from "@/data/mockData";
-import { format, differenceInMinutes, differenceInHours } from "date-fns";
+import { Reservation } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 import {
   Dog,
   Clock,
@@ -45,10 +45,20 @@ interface CheckOutModalProps {
   reservation: Reservation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (data: CheckOutData) => void;
+  onConfirm: (data: { reservationId: string }) => void;
 }
 
 type PaymentMethod = "package" | "cash" | "card" | "invoice";
+
+interface DbPackage {
+  id: string;
+  name: string;
+  remaining_credits: number;
+  total_credits: number;
+  expires_at: string;
+  service_type: string;
+  status: string;
+}
 
 export function CheckOutModal({
   reservation,
@@ -57,28 +67,49 @@ export function CheckOutModal({
   onConfirm,
 }: CheckOutModalProps) {
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("package");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availablePackage, setAvailablePackage] = useState<DbPackage | null>(null);
+  const [loadingPackage, setLoadingPackage] = useState(false);
 
-  // Check for available package
-  const availablePackage = useMemo(() => {
-    if (!reservation?.customer || !reservation?.service) return null;
-    return getAvailablePackageForService(
-      reservation.customer.id,
-      reservation.service.type
-    );
-  }, [reservation]);
+  // Load available package from Supabase when modal opens
+  useEffect(() => {
+    if (!open || !reservation) {
+      setAvailablePackage(null);
+      return;
+    }
+
+    const fetchPackage = async () => {
+      setLoadingPackage(true);
+      const { data } = await supabase
+        .from("packages")
+        .select("id, name, remaining_credits, total_credits, expires_at, service_type, status")
+        .eq("customer_id", reservation.customer.id)
+        .eq("service_type", reservation.service.type)
+        .eq("status", "active")
+        .gt("remaining_credits", 0)
+        .order("expires_at")
+        .limit(1)
+        .maybeSingle();
+
+      setAvailablePackage(data ?? null);
+      setPaymentMethod(data ? "package" : "cash");
+      setLoadingPackage(false);
+    };
+
+    fetchPackage();
+  }, [open, reservation?.id]);
 
   // Calculate stay duration
   const stayInfo = useMemo(() => {
     if (!reservation?.checkInTime) return null;
-    
+
     const checkIn = reservation.checkInTime;
     const now = new Date();
     const durationMinutes = differenceInMinutes(now, checkIn);
     const hours = Math.floor(durationMinutes / 60);
     const minutes = durationMinutes % 60;
-    
+
     return {
       checkInTime: checkIn,
       duration: `${hours}h ${minutes}m`,
@@ -88,44 +119,129 @@ export function CheckOutModal({
 
   const handleConfirm = async () => {
     if (!reservation) return;
-
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    onConfirm({
-      reservationId: reservation.id,
-      notes: notes || undefined,
-      usePackageCredits: paymentMethod === "package",
-      packageId: paymentMethod === "package" ? availablePackage?.id : undefined,
-      creditsToUse: paymentMethod === "package" ? 1 : undefined,
-      generateInvoice: paymentMethod === "invoice",
-      paymentMethod,
-    });
+    try {
+      const now = new Date().toISOString();
 
-    setIsSubmitting(false);
-    setNotes("");
-    setPaymentMethod("package");
+      // 1. Handle payment
+      if (paymentMethod === "package" && availablePackage) {
+        const newCredits = availablePackage.remaining_credits - 1;
+        const { error } = await supabase
+          .from("packages")
+          .update({
+            remaining_credits: newCredits,
+            status: newCredits === 0 ? "depleted" : "active",
+            updated_at: now,
+          })
+          .eq("id", availablePackage.id);
+
+        if (error) throw error;
+      } else if (paymentMethod === "cash" || paymentMethod === "card") {
+        // Create paid invoice
+        const { data: invoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert({
+            customer_id: reservation.customer.id,
+            reservation_id: reservation.id,
+            status: "paid",
+            subtotal: reservation.totalPrice,
+            discount: 0,
+            tax: 0,
+            total: reservation.totalPrice,
+            payment_method: paymentMethod,
+            paid_at: now,
+            due_date: now,
+            notes: notes || null,
+          })
+          .select("id")
+          .single();
+
+        if (invoiceError) throw invoiceError;
+
+        const { error: itemError } = await supabase
+          .from("invoice_items")
+          .insert({
+            invoice_id: invoice.id,
+            description: reservation.service.name,
+            quantity: 1,
+            unit_price: reservation.totalPrice,
+            total: reservation.totalPrice,
+          });
+
+        if (itemError) throw itemError;
+      } else if (paymentMethod === "invoice") {
+        // Create pending invoice
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+
+        const { data: invoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert({
+            customer_id: reservation.customer.id,
+            reservation_id: reservation.id,
+            status: "pending",
+            subtotal: reservation.totalPrice,
+            discount: 0,
+            tax: 0,
+            total: reservation.totalPrice,
+            due_date: dueDate.toISOString(),
+            notes: notes || null,
+          })
+          .select("id")
+          .single();
+
+        if (invoiceError) throw invoiceError;
+
+        const { error: itemError } = await supabase
+          .from("invoice_items")
+          .insert({
+            invoice_id: invoice.id,
+            description: reservation.service.name,
+            quantity: 1,
+            unit_price: reservation.totalPrice,
+            total: reservation.totalPrice,
+          });
+
+        if (itemError) throw itemError;
+      }
+
+      // 2. Update reservation to completed
+      const { error: resError } = await supabase
+        .from("reservations")
+        .update({
+          status: "completed",
+          check_out_time: now,
+          notes: notes || reservation.notes || "",
+          updated_at: now,
+        })
+        .eq("id", reservation.id);
+
+      if (resError) throw resError;
+
+      toast.success(`Check-out de ${reservation.dog.name} completado`);
+      onConfirm({ reservationId: reservation.id });
+      onOpenChange(false);
+      setNotes("");
+      setPaymentMethod("cash");
+    } catch (err) {
+      console.error("Check-out error:", err);
+      toast.error("Error al procesar el check-out");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
     if (!isSubmitting) {
       onOpenChange(false);
       setNotes("");
-      setPaymentMethod(availablePackage ? "package" : "cash");
     }
   };
 
   if (!reservation) return null;
 
   const { dog, customer, service } = reservation;
-
-  // Set default payment method based on available package
-  const defaultPaymentMethod = availablePackage ? "package" : "cash";
-  if (paymentMethod === "package" && !availablePackage) {
-    setPaymentMethod("cash");
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -235,103 +351,113 @@ export function CheckOutModal({
               <Wallet className="h-4 w-4" />
               Método de Pago
             </Label>
-            
-            <RadioGroup
-              value={paymentMethod}
-              onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-              className="grid gap-3"
-            >
-              {/* Package option */}
-              {availablePackage && (
+
+            {loadingPackage ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Verificando paquetes disponibles...
+              </div>
+            ) : (
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                className="grid gap-3"
+              >
+                {/* Package option */}
+                {availablePackage && (
+                  <label
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      paymentMethod === "package"
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:border-muted-foreground/30"
+                    )}
+                  >
+                    <RadioGroupItem value="package" />
+                    <Package className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">{availablePackage.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {availablePackage.remaining_credits} créditos disponibles
+                        {" · "}
+                        Vence{" "}
+                        {format(new Date(availablePackage.expires_at), "d 'de' MMM", {
+                          locale: es,
+                        })}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="bg-success/10 text-success">
+                      -1 crédito
+                    </Badge>
+                  </label>
+                )}
+
+                {/* Cash option */}
                 <label
                   className={cn(
                     "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                    paymentMethod === "package"
+                    paymentMethod === "cash"
                       ? "border-primary bg-primary/5"
                       : "border-muted hover:border-muted-foreground/30"
                   )}
                 >
-                  <RadioGroupItem value="package" />
-                  <Package className="h-5 w-5 text-primary" />
+                  <RadioGroupItem value="cash" />
+                  <Wallet className="h-5 w-5 text-success" />
                   <div className="flex-1">
-                    <p className="font-medium">{availablePackage.name}</p>
+                    <p className="font-medium">Efectivo</p>
                     <p className="text-sm text-muted-foreground">
-                      {availablePackage.remainingCredits} créditos disponibles
-                      {" · "}
-                      Vence {format(availablePackage.expiresAt, "d 'de' MMM", { locale: es })}
+                      Pago inmediato en efectivo
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-success/10 text-success">
-                    -1 crédito
-                  </Badge>
+                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
                 </label>
-              )}
 
-              {/* Cash option */}
-              <label
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                  paymentMethod === "cash"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted hover:border-muted-foreground/30"
-                )}
-              >
-                <RadioGroupItem value="cash" />
-                <Wallet className="h-5 w-5 text-success" />
-                <div className="flex-1">
-                  <p className="font-medium">Efectivo</p>
-                  <p className="text-sm text-muted-foreground">
-                    Pago inmediato en efectivo
-                  </p>
-                </div>
-                <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
-              </label>
+                {/* Card option */}
+                <label
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                    paymentMethod === "card"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  )}
+                >
+                  <RadioGroupItem value="card" />
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-medium">Tarjeta</p>
+                    <p className="text-sm text-muted-foreground">
+                      Pago con tarjeta de crédito/débito
+                    </p>
+                  </div>
+                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
+                </label>
 
-              {/* Card option */}
-              <label
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                  paymentMethod === "card"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted hover:border-muted-foreground/30"
-                )}
-              >
-                <RadioGroupItem value="card" />
-                <CreditCard className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <p className="font-medium">Tarjeta</p>
-                  <p className="text-sm text-muted-foreground">
-                    Pago con tarjeta de crédito/débito
-                  </p>
-                </div>
-                <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
-              </label>
-
-              {/* Invoice option */}
-              <label
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                  paymentMethod === "invoice"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted hover:border-muted-foreground/30"
-                )}
-              >
-                <RadioGroupItem value="invoice" />
-                <FileText className="h-5 w-5 text-warning" />
-                <div className="flex-1">
-                  <p className="font-medium">Agregar a Factura</p>
-                  <p className="text-sm text-muted-foreground">
-                    Cobrar después con factura
-                    {customer && customer.balance < 0 && (
-                      <span className="text-warning ml-1">
-                        (Saldo actual: ${Math.abs(customer.balance).toFixed(2)})
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
-              </label>
-            </RadioGroup>
+                {/* Invoice option */}
+                <label
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                    paymentMethod === "invoice"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  )}
+                >
+                  <RadioGroupItem value="invoice" />
+                  <FileText className="h-5 w-5 text-warning" />
+                  <div className="flex-1">
+                    <p className="font-medium">Agregar a Factura</p>
+                    <p className="text-sm text-muted-foreground">
+                      Cobrar después con factura
+                      {customer && customer.balance < 0 && (
+                        <span className="text-warning ml-1">
+                          (Saldo actual: ${Math.abs(customer.balance).toFixed(2)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
+                </label>
+              </RadioGroup>
+            )}
           </div>
 
           {/* Notes */}
@@ -354,7 +480,7 @@ export function CheckOutModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isSubmitting}
+            disabled={isSubmitting || loadingPackage}
             className="min-w-[140px] bg-success hover:bg-success/90 text-success-foreground"
           >
             {isSubmitting ? (

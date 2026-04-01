@@ -214,19 +214,19 @@ export default function PackagesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Paquetes</h1>
           <p className="text-muted-foreground">Gestión de paquetes de créditos y servicios</p>
         </div>
-        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nuevo Paquete
         </Button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -307,7 +307,7 @@ export default function PackagesPage() {
 
       {/* Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -452,7 +452,7 @@ export default function PackagesPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Servicio</Label>
                 <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v })}>
@@ -477,7 +477,7 @@ export default function PackagesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Precio ($)</Label>
                 <Input

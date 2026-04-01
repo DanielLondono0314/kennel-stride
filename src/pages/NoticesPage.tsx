@@ -131,7 +131,7 @@ export default function NoticesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             Avisos
@@ -141,26 +141,29 @@ export default function NoticesPage() {
           </h1>
           <p className="text-muted-foreground">Centro de notificaciones y alertas automáticas</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
             <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-            Verificar Alertas
+            <span className="hidden sm:inline">Verificar Alertas</span>
+            <span className="sm:hidden">Verificar</span>
           </Button>
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={markAllRead}>
               <CheckCheck className="h-4 w-4 mr-2" />
-              Marcar Todo Leído
+              <span className="hidden sm:inline">Marcar Todo Leído</span>
+              <span className="sm:hidden">Marcar leídos</span>
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={dismissAll} className="text-muted-foreground">
             <Trash2 className="h-4 w-4 mr-2" />
-            Limpiar Leídos
+            <span className="hidden sm:inline">Limpiar Leídos</span>
+            <span className="sm:hidden">Limpiar</span>
           </Button>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">

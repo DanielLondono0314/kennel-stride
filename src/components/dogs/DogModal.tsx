@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Dog as DogIcon, Loader2, Save } from "lucide-react";
+import { Dog as DogIcon, Loader2, Save, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface DogModalProps {
@@ -37,7 +38,12 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [notes, setNotes] = useState("");
   const [behaviorNotes, setBehaviorNotes] = useState("");
   const [medicalNotes, setMedicalNotes] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase.from("customers").select("id, first_name, last_name").order("first_name").then(({ data }) => {
@@ -59,13 +65,57 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setNotes(dog.notes || "");
       setBehaviorNotes(dog.behavior_notes || "");
       setMedicalNotes(dog.medical_notes || "");
+      setPhotoUrl(dog.photo_url || null);
     } else {
       setCustomerId(preselectedCustomerId || "");
       setName(""); setBreed(""); setBirthDate(""); setWeight("");
       setColor(""); setGender("male"); setIsNeutered(false);
       setMicrochipNumber(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
+      setPhotoUrl(null);
     }
+    setPhotoFile(null);
+    setPhotoPreview(null);
   }, [dog, preselectedCustomerId, open]);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5MB");
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadPhoto = async (dogId: string): Promise<string | null> => {
+    if (!photoFile) return photoUrl;
+
+    setUploadingPhoto(true);
+    const ext = photoFile.name.split(".").pop() ?? "jpg";
+    const path = `${dogId}/photo.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("dog-photos")
+      .upload(path, photoFile, { upsert: true });
+
+    setUploadingPhoto(false);
+
+    if (error) {
+      toast.error("Error al subir la foto");
+      return photoUrl;
+    }
+
+    const { data } = supabase.storage.from("dog-photos").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const handleSubmit = async () => {
     if (!customerId || !name || !breed) {
@@ -73,8 +123,13 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       return;
     }
     setIsSubmitting(true);
+
+    // If creating, save first to get the ID, then upload photo
+    const dogId = dog?.id ?? crypto.randomUUID();
+    const uploadedPhotoUrl = await uploadPhoto(dogId);
+
     onSave({
-      id: dog?.id,
+      id: dogId,
       customer_id: customerId,
       name,
       breed,
@@ -87,9 +142,12 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       notes,
       behavior_notes: behaviorNotes,
       medical_notes: medicalNotes,
+      photo_url: uploadedPhotoUrl,
     });
     setIsSubmitting(false);
   };
+
+  const currentPhoto = photoPreview ?? photoUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,6 +163,53 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Photo upload */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                {currentPhoto ? (
+                  <AvatarImage src={currentPhoto} alt={name || "Perro"} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-accent text-accent-foreground">
+                    <DogIcon className="h-10 w-10" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              {currentPhoto && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="absolute -top-1 -right-1 p-0.5 rounded-full bg-destructive text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Label>Foto del perro</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {currentPhoto ? "Cambiar foto" : "Subir foto"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">JPG, PNG o WebP · máx. 5MB</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Dueño *</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
@@ -181,8 +286,12 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
 
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          <Button onClick={handleSubmit} disabled={isSubmitting || uploadingPhoto}>
+            {isSubmitting || uploadingPhoto ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             {isEditing ? "Guardar cambios" : "Crear perro"}
           </Button>
         </DialogFooter>

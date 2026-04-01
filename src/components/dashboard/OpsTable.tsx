@@ -91,7 +91,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
   };
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
+    <div className="border rounded-lg bg-card overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">

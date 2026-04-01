@@ -75,6 +75,7 @@ export default function CampaignsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [detailCampaign, setDetailCampaign] = useState<CampaignRow | null>(null);
@@ -141,20 +142,29 @@ export default function CampaignsPage() {
   };
 
   const handleSend = async (c: CampaignRow) => {
-    // Simulate sending
-    const simSent = Math.floor(Math.random() * 50) + 20;
-    const { error } = await supabase.from("campaigns").update({
-      status: "sent",
-      sent_at: new Date().toISOString(),
-      stats_sent: simSent,
-      stats_delivered: Math.floor(simSent * 0.95),
-      stats_opened: Math.floor(simSent * 0.4),
-      stats_clicked: Math.floor(simSent * 0.12),
-      updated_at: new Date().toISOString(),
-    }).eq("id", c.id);
-    if (error) toast.error("Error");
-    else {
-      toast.success("Campaña enviada (simulación)");
+    setSending(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-campaign", {
+        body: { campaignId: c.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(`Campaña enviada a ${data.sent} destinatarios`, {
+          description: data.delivered < data.sent
+            ? `${data.delivered} entregados, ${data.failed} fallidos`
+            : "Todos los mensajes entregados",
+        });
+      } else {
+        toast.error(data?.error || "Error al enviar campaña");
+      }
+    } catch (err: any) {
+      toast.error("Error al enviar campaña", {
+        description: err?.message || "Verifica que la Edge Function esté desplegada",
+      });
+    } finally {
+      setSending(null);
       fetchData();
     }
   };
@@ -194,19 +204,19 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Campañas</h1>
           <p className="text-muted-foreground">Marketing y comunicación segmentada</p>
         </div>
-        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nueva Campaña
         </Button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -273,7 +283,7 @@ export default function CampaignsPage() {
 
       {/* Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
@@ -333,8 +343,16 @@ export default function CampaignsPage() {
                                 <DropdownMenuItem onClick={() => openEdit(c)}>
                                   <Edit className="h-4 w-4 mr-2" />Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleSend(c)}>
-                                  <Send className="h-4 w-4 mr-2" />Enviar Ahora
+                                <DropdownMenuItem
+                                  onClick={() => handleSend(c)}
+                                  disabled={sending === c.id}
+                                >
+                                  {sending === c.id ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Send className="h-4 w-4 mr-2" />
+                                  )}
+                                  {sending === c.id ? "Enviando..." : "Enviar Ahora"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => handleCancel(c)} className="text-destructive">
@@ -381,7 +399,7 @@ export default function CampaignsPage() {
               <Label>Descripción</Label>
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descripción breve" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Segmento</Label>
                 <Select value={form.segment_type} onValueChange={(v) => setForm({ ...form, segment_type: v })}>

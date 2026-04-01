@@ -4,9 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Search, Stethoscope, Syringe, Bug, AlertTriangle,
-  Brain, FileText, ChevronRight,
+  Brain, FileText, ChevronRight, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
@@ -62,8 +63,8 @@ export default function ClinicPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Dog list sidebar */}
-      <div className="w-80 border-r border-border bg-card flex flex-col">
+      {/* Dog list sidebar — hidden on mobile when a dog is selected */}
+      <div className={`w-full md:w-80 border-r border-border bg-card flex flex-col ${selectedDogId ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b border-border">
           <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <Stethoscope className="h-5 w-5 text-primary" />
@@ -105,8 +106,8 @@ export default function ClinicPage() {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Main content — hidden on mobile when no dog selected */}
+      <div className={`flex-1 overflow-y-auto ${!selectedDogId ? "hidden md:flex md:flex-col" : "flex flex-col"}`}>
         {!selectedDog ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-20 h-20 mb-4 rounded-2xl bg-muted flex items-center justify-center">
@@ -118,7 +119,17 @@ export default function ClinicPage() {
             </p>
           </div>
         ) : (
-          <div className="p-6">
+          <div className="p-4 md:p-6">
+            {/* Back button — mobile only */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-4 md:hidden -ml-1"
+              onClick={() => setSelectedDogId("")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Volver a la lista
+            </Button>
             {/* Dog header */}
             <div className="flex items-center gap-4 mb-6">
               <Avatar className="h-16 w-16">

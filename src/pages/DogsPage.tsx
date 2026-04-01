@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -19,6 +19,7 @@ import {
 import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2 } from "lucide-react";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface DbDog {
   id: string;
@@ -34,12 +35,14 @@ interface DbDog {
   notes: string | null;
   behavior_notes: string | null;
   medical_notes: string | null;
+  photo_url: string | null;
   created_at: string;
   updated_at: string;
   customers?: { id: string; first_name: string; last_name: string } | null;
 }
 
 export default function DogsPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
@@ -94,14 +97,15 @@ export default function DogsPage() {
       notes: data.notes || "",
       behavior_notes: data.behavior_notes || "",
       medical_notes: data.medical_notes || "",
+      photo_url: data.photo_url ?? null,
       updated_at: new Date().toISOString(),
     };
 
     let error;
-    if (data.id) {
+    if (data.id && editingDog) {
       ({ error } = await supabase.from("dogs").update(payload).eq("id", data.id));
     } else {
-      ({ error } = await supabase.from("dogs").insert(payload));
+      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id }));
     }
 
     if (error) {
@@ -127,12 +131,12 @@ export default function DogsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Perros</h1>
           <p className="text-muted-foreground">Administra los perfiles de las mascotas registradas</p>
         </div>
-        <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewDog}>
+        <Button className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto" onClick={handleNewDog}>
           <Plus className="h-4 w-4 mr-2" />
           Nuevo perro
         </Button>
@@ -143,7 +147,7 @@ export default function DogsPage() {
         <Input type="search" placeholder="Buscar por nombre, raza o dueño..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
       </div>
 
-      <div className="border rounded-lg bg-card">
+      <div className="border rounded-lg bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -161,10 +165,11 @@ export default function DogsPage() {
             ) : filteredDogs.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
             ) : filteredDogs.map((dog) => (
-              <TableRow key={dog.id}>
+              <TableRow key={dog.id} className="cursor-pointer" onClick={() => navigate(`/dogs/${dog.id}`)}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border-2 border-background shadow">
+                      {dog.photo_url && <AvatarImage src={dog.photo_url} alt={dog.name} className="object-cover" />}
                       <AvatarFallback className="bg-accent text-accent-foreground"><DogIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
                     <div>
@@ -188,7 +193,7 @@ export default function DogsPage() {
                     <span className="text-sm text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>

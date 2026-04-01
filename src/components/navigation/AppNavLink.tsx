@@ -13,15 +13,17 @@ interface AppNavLinkProps {
   label: string;
   collapsed?: boolean;
   badge?: number;
+  onClick?: () => void;
 }
 
-export function AppNavLink({ to, icon: Icon, label, collapsed, badge }: AppNavLinkProps) {
+export function AppNavLink({ to, icon: Icon, label, collapsed, badge, onClick }: AppNavLinkProps) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   const linkContent = (
     <RouterNavLink
       to={to}
+      onClick={onClick}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
         "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",

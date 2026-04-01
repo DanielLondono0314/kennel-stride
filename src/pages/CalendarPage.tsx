@@ -1,36 +1,27 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarHeader, CalendarView } from "@/components/calendar/CalendarHeader";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
-import { ReservationModal } from "@/components/calendar/ReservationModal";
-import { getPopulatedReservations } from "@/data/mockData";
-import { Reservation, ReservationStatus } from "@/types";
+import { Reservation } from "@/types";
 import { toast } from "sonner";
 import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  isWithinInterval,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval,
 } from "date-fns";
+import { fetchReservationsRange, mapDbToReservation } from "@/hooks/useReservations";
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>("week");
-  
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
+  const [allReservations, setAllReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [selectedSlotDate, setSelectedSlotDate] = useState<Date | null>(null);
 
-  // Get all reservations
-  const allReservations = useMemo(() => getPopulatedReservations(), []);
-
-  // Filter reservations for current view range
-  const visibleReservations = useMemo(() => {
+  // Fetch range whenever date or view changes
+  useEffect(() => {
     let start: Date;
     let end: Date;
-
     if (view === "week") {
       start = startOfWeek(currentDate, { weekStartsOn: 1 });
       end = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -38,54 +29,58 @@ export default function CalendarPage() {
       start = startOfMonth(currentDate);
       end = endOfMonth(currentDate);
     }
+    // Add a buffer month on each side so navigation feels instant
+    const bufferedStart = new Date(start);
+    bufferedStart.setMonth(bufferedStart.getMonth() - 1);
+    const bufferedEnd = new Date(end);
+    bufferedEnd.setMonth(bufferedEnd.getMonth() + 1);
 
-    return allReservations.filter((r) => {
-      const reservationDate = new Date(r.startDate);
-      return isWithinInterval(reservationDate, { start, end });
+    setLoading(true);
+    fetchReservationsRange(bufferedStart, bufferedEnd).then((rows) => {
+      setAllReservations(rows.map(mapDbToReservation));
+      setLoading(false);
     });
+  }, [view, currentDate.getFullYear(), currentDate.getMonth()]);
+
+  const visibleReservations = useMemo(() => {
+    let start: Date;
+    let end: Date;
+    if (view === "week") {
+      start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      end = endOfWeek(currentDate, { weekStartsOn: 1 });
+    } else {
+      start = startOfMonth(currentDate);
+      end = endOfMonth(currentDate);
+    }
+    return allReservations.filter((r) =>
+      isWithinInterval(new Date(r.startDate), { start, end })
+    );
   }, [allReservations, currentDate, view]);
 
   const handleNewReservation = () => {
     setSelectedReservation(null);
     setSelectedSlotDate(new Date());
-    setModalOpen(true);
+    toast.info("Para crear reservas, usa el módulo de Solicitudes");
   };
 
   const handleSelectReservation = (reservation: Reservation) => {
     setSelectedReservation(reservation);
     setSelectedSlotDate(null);
-    setModalOpen(true);
   };
 
   const handleSelectSlot = (date: Date) => {
     setSelectedReservation(null);
     setSelectedSlotDate(date);
-    setModalOpen(true);
+    toast.info("Para crear reservas, usa el módulo de Solicitudes");
   };
 
   const handleSelectDay = (date: Date) => {
-    // Switch to week view centered on selected day
     setCurrentDate(date);
     setView("week");
   };
 
-  const handleSaveReservation = (data: Partial<Reservation>) => {
-    setModalOpen(false);
-    
-    if (selectedReservation) {
-      toast.success("Reserva actualizada", {
-        description: "Los cambios han sido guardados correctamente.",
-      });
-    } else {
-      toast.success("Reserva creada", {
-        description: "La nueva reserva ha sido programada.",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header with navigation and controls */}
       <CalendarHeader
         currentDate={currentDate}
         view={view}
@@ -95,8 +90,11 @@ export default function CalendarPage() {
         reservationCount={visibleReservations.length}
       />
 
-      {/* Calendar View */}
-      {view === "week" ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-muted-foreground">
+          Cargando calendario...
+        </div>
+      ) : view === "week" ? (
         <WeekView
           currentDate={currentDate}
           reservations={visibleReservations}
@@ -111,15 +109,6 @@ export default function CalendarPage() {
           onSelectDay={handleSelectDay}
         />
       )}
-
-      {/* Reservation Modal */}
-      <ReservationModal
-        reservation={selectedReservation}
-        initialDate={selectedSlotDate}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        onSave={handleSaveReservation}
-      />
     </div>
   );
 }
