@@ -296,7 +296,6 @@ export type Database = {
           microchip_number: string | null
           name: string
           notes: string | null
-          photo_url: string | null
           updated_at: string
           weight: number | null
         }
@@ -314,7 +313,6 @@ export type Database = {
           microchip_number?: string | null
           name: string
           notes?: string | null
-          photo_url?: string | null
           updated_at?: string
           weight?: number | null
         }
@@ -332,7 +330,6 @@ export type Database = {
           microchip_number?: string | null
           name?: string
           notes?: string | null
-          photo_url?: string | null
           updated_at?: string
           weight?: number | null
         }
@@ -878,88 +875,6 @@ export type Database = {
           {
             foreignKeyName: "report_cards_trainer_id_fkey"
             columns: ["trainer_id"]
-            isOneToOne: false
-            referencedRelation: "staff_members"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reservations: {
-        Row: {
-          check_in_time: string | null
-          check_out_time: string | null
-          created_at: string
-          customer_id: string
-          dog_id: string
-          end_date: string
-          id: string
-          location_id: string | null
-          notes: string | null
-          rejection_reason: string | null
-          service_name: string
-          service_type: string
-          staff_id: string | null
-          start_date: string
-          status: string
-          total_price: number
-          updated_at: string
-        }
-        Insert: {
-          check_in_time?: string | null
-          check_out_time?: string | null
-          created_at?: string
-          customer_id: string
-          dog_id: string
-          end_date: string
-          id?: string
-          location_id?: string | null
-          notes?: string | null
-          rejection_reason?: string | null
-          service_name?: string
-          service_type?: string
-          staff_id?: string | null
-          start_date: string
-          status?: string
-          total_price?: number
-          updated_at?: string
-        }
-        Update: {
-          check_in_time?: string | null
-          check_out_time?: string | null
-          created_at?: string
-          customer_id?: string
-          dog_id?: string
-          end_date?: string
-          id?: string
-          location_id?: string | null
-          notes?: string | null
-          rejection_reason?: string | null
-          service_name?: string
-          service_type?: string
-          staff_id?: string | null
-          start_date?: string
-          status?: string
-          total_price?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reservations_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reservations_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reservations_staff_id_fkey"
-            columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff_members"
             referencedColumns: ["id"]
