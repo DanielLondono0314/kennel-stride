@@ -30,7 +30,6 @@ interface DbDog {
   weight: number | null;
   is_neutered: boolean;
   color: string | null;
-  photo_url: string | null;
 }
 
 interface DbReservation {

@@ -110,7 +110,6 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
           lastName: row.staff_members.last_name,
           email: "",
           role: "trainer" as any,
-          isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         }
