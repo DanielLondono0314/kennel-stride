@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import {
   CommandDialog,
   CommandEmpty,
@@ -37,6 +39,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const navigate = useNavigate();
+  const { organization } = useOrganization();
+  const orgNavigate = useOrgNavigate();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +52,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       setLoading(false);
       return;
     }
+    if (!organization) return;
 
     setLoading(true);
     const pattern = `%${q.trim()}%`;
@@ -56,16 +61,19 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       supabase
         .from("customers")
         .select("id, first_name, last_name, email, phone")
+        .eq("organization_id", organization!.id)
         .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`)
         .limit(5),
       supabase
         .from("dogs")
         .select("id, name, breed, customers(first_name, last_name)")
+        .eq("organization_id", organization!.id)
         .or(`name.ilike.${pattern},breed.ilike.${pattern}`)
         .limit(5),
       supabase
         .from("reservations")
         .select("id, service_name, status, start_date, dogs(name), customers(first_name, last_name)")
+        .eq("organization_id", organization!.id)
         .or(`service_name.ilike.${pattern}`)
         .order("start_date", { ascending: false })
         .limit(5),
@@ -127,7 +135,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   }, [open]);
 
   const handleSelect = (href: string) => {
-    navigate(href);
+    orgNavigate(href);
     onOpenChange(false);
   };
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, ReservationStatus, ServiceType } from "@/types";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
-// Raw row returned by Supabase with joined tables
 export interface DbReservationRow {
   id: string;
   customer_id: string;
@@ -22,33 +22,18 @@ export interface DbReservationRow {
   created_at: string;
   updated_at: string;
   customers: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    phone: string;
-    email: string;
-    city: string | null;
-    state: string | null;
-    balance: number;
+    id: string; first_name: string; last_name: string;
+    phone: string; email: string; city: string | null;
+    state: string | null; balance: number;
   } | null;
   dogs: {
-    id: string;
-    name: string;
-    breed: string;
-    weight: number | null;
-    gender: string;
-    color: string | null;
-    behavior_notes: string | null;
-    medical_notes: string | null;
+    id: string; name: string; breed: string; weight: number | null;
+    gender: string; color: string | null;
+    behavior_notes: string | null; medical_notes: string | null;
   } | null;
-  staff_members: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  } | null;
+  staff_members: { id: string; first_name: string; last_name: string; } | null;
 }
 
-// Maps a DB row to the frontend Reservation type (for use in existing components)
 export function mapDbToReservation(row: DbReservationRow): Reservation {
   return {
     id: row.id,
@@ -128,27 +113,30 @@ const RESERVATION_SELECT = `
 `;
 
 interface UseReservationsOptions {
-  date?: Date; // filter by this calendar date (start_date = same day)
+  date?: Date;
   status?: ReservationStatus | ReservationStatus[];
   autoRefresh?: boolean;
 }
 
 export function useReservations(options: UseReservationsOptions = {}) {
+  const { organization } = useOrganization();
   const [rows, setRows] = useState<DbReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
+    if (!organization) return;
     setLoading(true);
     let query = supabase
       .from("reservations")
       .select(RESERVATION_SELECT)
+      .eq("organization_id", organization.id)
       .order("start_date", { ascending: true });
 
     if (options.date) {
       const d = options.date;
       const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
-      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
+      const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
       query = query.gte("start_date", dayStart).lt("start_date", dayEnd);
     }
 
@@ -158,33 +146,24 @@ export function useReservations(options: UseReservationsOptions = {}) {
     }
 
     const { data, error } = await query;
-    if (error) {
-      setError(error.message);
-    } else {
-      setRows((data ?? []) as DbReservationRow[]);
-    }
+    if (error) setError(error.message);
+    else setRows((data ?? []) as DbReservationRow[]);
     setLoading(false);
-  }, [options.date?.toDateString(), JSON.stringify(options.status)]);
+  }, [organization?.id, options.date?.toDateString(), JSON.stringify(options.status)]);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  useEffect(() => { fetch(); }, [fetch]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!options.autoRefresh) return;
     const channel = supabase
       .channel("reservations-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, () => {
-        fetch();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetch, options.autoRefresh]);
 
   const reservations = rows.map(mapDbToReservation);
 
-  // Status update helpers
   const updateStatus = async (id: string, status: ReservationStatus, extra?: Record<string, unknown>) => {
     const { error } = await supabase
       .from("reservations")
@@ -194,26 +173,23 @@ export function useReservations(options: UseReservationsOptions = {}) {
     return { error };
   };
 
-  const checkIn = (id: string) =>
-    updateStatus(id, ReservationStatus.CHECKED_IN, { check_in_time: new Date().toISOString() });
-
-  const checkOut = (id: string) =>
-    updateStatus(id, ReservationStatus.COMPLETED, { check_out_time: new Date().toISOString() });
-
-  const approve = (id: string) =>
-    updateStatus(id, ReservationStatus.SCHEDULED);
-
-  const cancel = (id: string, reason?: string) =>
-    updateStatus(id, ReservationStatus.CANCELLED, reason ? { rejection_reason: reason } : {});
+  const checkIn  = (id: string) => updateStatus(id, ReservationStatus.CHECKED_IN, { check_in_time: new Date().toISOString() });
+  const checkOut = (id: string) => updateStatus(id, ReservationStatus.COMPLETED, { check_out_time: new Date().toISOString() });
+  const approve  = (id: string) => updateStatus(id, ReservationStatus.SCHEDULED);
+  const cancel   = (id: string, reason?: string) => updateStatus(id, ReservationStatus.CANCELLED, reason ? { rejection_reason: reason } : {});
 
   return { reservations, rows, loading, error, refetch: fetch, updateStatus, checkIn, checkOut, approve, cancel };
 }
 
-// Fetch all reservations for a date range (used in CalendarPage)
-export async function fetchReservationsRange(start: Date, end: Date): Promise<DbReservationRow[]> {
+export async function fetchReservationsRange(
+  start: Date,
+  end: Date,
+  organizationId: string
+): Promise<DbReservationRow[]> {
   const { data, error } = await supabase
     .from("reservations")
     .select(RESERVATION_SELECT)
+    .eq("organization_id", organizationId)
     .gte("start_date", start.toISOString())
     .lte("end_date", end.toISOString())
     .order("start_date", { ascending: true });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { StaffManagementTab } from "@/components/settings/StaffManagementTab";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, UserCheck, GraduationCap, Shield } from "lucide-react";
@@ -12,10 +13,12 @@ interface StaffStats {
 }
 
 export default function StaffPage() {
+  const { organization } = useOrganization();
   const [stats, setStats] = useState<StaffStats>({ total: 0, active: 0, trainers: 0, admins: 0 });
 
   useEffect(() => {
-    supabase.from("staff_members").select("role, is_active").then(({ data }) => {
+    if (!organization) return;
+    supabase.from("staff_members").select("role, is_active").eq("organization_id", organization!.id).then(({ data }) => {
       if (!data) return;
       setStats({
         total: data.length,
@@ -24,7 +27,7 @@ export default function StaffPage() {
         admins: data.filter((s) => s.role === "admin" || s.role === "manager").length,
       });
     });
-  }, []);
+  }, [organization]);
 
   return (
     <div className="space-y-6 animate-fade-in">

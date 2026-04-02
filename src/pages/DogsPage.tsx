@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { DogModal } from "@/components/dogs/DogModal";
 import { FlagIndicators } from "@/components/shared/FlagIndicators";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,8 @@ interface DbDog {
 
 export default function DogsPage() {
   const navigate = useNavigate();
+  const { organization } = useOrganization();
+  const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
@@ -56,6 +60,7 @@ export default function DogsPage() {
   const PAGE_SIZE = 50;
 
   const fetchDogs = async (reset = true) => {
+    if (!organization) return;
     const currentPage = reset ? 0 : page;
     if (reset) {
       setLoading(true);
@@ -70,6 +75,7 @@ export default function DogsPage() {
     const { data, error } = await supabase
       .from("dogs")
       .select("*, customers(id, first_name, last_name)")
+      .eq("organization_id", organization!.id)
       .order("name")
       .range(from, to);
 
@@ -127,7 +133,7 @@ export default function DogsPage() {
     if (data.id && editingDog) {
       ({ error } = await supabase.from("dogs").update(payload).eq("id", data.id));
     } else {
-      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id }));
+      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id, organization_id: organization!.id }));
     }
 
     if (error) {
@@ -187,7 +193,7 @@ export default function DogsPage() {
             ) : filteredDogs.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
             ) : filteredDogs.map((dog) => (
-              <TableRow key={dog.id} className="cursor-pointer" onClick={() => navigate(`/dogs/${dog.id}`)}>
+              <TableRow key={dog.id} className="cursor-pointer" onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border-2 border-background shadow">

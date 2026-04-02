@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useReservations } from "@/hooks/useReservations";
 import { Reservation, ReservationStatus, ServiceType, FlagSeverity } from "@/types";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -59,6 +60,7 @@ interface StaffMember {
 }
 
 export default function RequestsPage() {
+  const { organization } = useOrganization();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
@@ -80,12 +82,14 @@ export default function RequestsPage() {
   const { reservations, loading, refetch } = useReservations({ autoRefresh: true });
 
   useEffect(() => {
+    if (!organization) return;
     supabase
       .from("staff_members")
       .select("id, first_name, last_name, role")
       .eq("is_active", true)
+      .eq("organization_id", organization!.id)
       .then(({ data }) => { if (data) setStaffList(data); });
-  }, []);
+  }, [organization]);
 
   const trainers = useMemo(
     () => staffList.filter((s) => s.role === "trainer" || s.role === "admin"),

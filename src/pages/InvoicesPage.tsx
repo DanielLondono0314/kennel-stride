@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,7 @@ const paymentMethodLabels: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
+  const { organization } = useOrganization();
   const [invoices, setInvoices] = useState<(InvoiceRow & { customer?: CustomerRow })[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,10 +98,11 @@ export default function InvoicesPage() {
   });
 
   const fetchData = async () => {
+    if (!organization) return;
     setLoading(true);
     const [invRes, custRes] = await Promise.all([
-      supabase.from("invoices").select("*").order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, first_name, last_name, email"),
+      supabase.from("invoices").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false }),
+      supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id),
     ]);
     const custs = (custRes.data || []) as CustomerRow[];
     setCustomers(custs);
@@ -160,6 +163,7 @@ export default function InvoicesPage() {
       status: "pending",
       due_date: form.due_date,
       notes: form.notes,
+      organization_id: organization!.id,
     }).select().single();
 
     if (error || !inv) {

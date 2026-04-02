@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { CalendarHeader, CalendarView } from "@/components/calendar/CalendarHeader";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
@@ -10,6 +11,7 @@ import {
 import { fetchReservationsRange, mapDbToReservation } from "@/hooks/useReservations";
 
 export default function CalendarPage() {
+  const { organization } = useOrganization();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>("week");
   const [allReservations, setAllReservations] = useState<Reservation[]>([]);
@@ -32,8 +34,9 @@ export default function CalendarPage() {
     const bufferedEnd = new Date(end);
     bufferedEnd.setMonth(bufferedEnd.getMonth() + 1);
 
+    if (!organization) return;
     setLoading(true);
-    fetchReservationsRange(bufferedStart, bufferedEnd).then((rows) => {
+    fetchReservationsRange(bufferedStart, bufferedEnd, organization!.id).then((rows) => {
       setAllReservations(rows.map(mapDbToReservation));
       setLoading(false);
     });
@@ -41,7 +44,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchRange();
-  }, [view, currentDate.getFullYear(), currentDate.getMonth()]);
+  }, [view, currentDate.getFullYear(), currentDate.getMonth(), organization]);
 
   const visibleReservations = useMemo(() => {
     let start: Date;

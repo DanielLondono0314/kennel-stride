@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +42,8 @@ export interface DbCustomer {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
+  const { organization } = useOrganization();
+  const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
@@ -53,6 +57,7 @@ export default function CustomersPage() {
   const PAGE_SIZE = 50;
 
   const fetchCustomers = async (reset = true) => {
+    if (!organization) return;
     const currentPage = reset ? 0 : page;
     if (reset) {
       setLoading(true);
@@ -67,6 +72,7 @@ export default function CustomersPage() {
     const { data, error } = await supabase
       .from("customers")
       .select("*, dogs(id)")
+      .eq("organization_id", organization!.id)
       .order("first_name")
       .range(from, to);
 
@@ -117,7 +123,7 @@ export default function CustomersPage() {
     if (data.id) {
       ({ error } = await supabase.from("customers").update(payload).eq("id", data.id));
     } else {
-      ({ error } = await supabase.from("customers").insert(payload));
+      ({ error } = await supabase.from("customers").insert({ ...payload, organization_id: organization!.id }));
     }
 
     if (error) {
@@ -201,7 +207,7 @@ export default function CustomersPage() {
                 <TableRow
                   key={customer.id}
                   className="cursor-pointer"
-                  onClick={() => navigate(`/customers/${customer.id}`)}
+                  onClick={() => orgNavigate(`/customers/${customer.id}`)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -260,7 +266,7 @@ export default function CustomersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/customers/${customer.id}`)}>
+                        <DropdownMenuItem onClick={() => orgNavigate(`/customers/${customer.id}`)}>
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Ver perfil
                         </DropdownMenuItem>

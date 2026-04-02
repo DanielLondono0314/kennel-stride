@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +68,8 @@ const statusLabels: Record<string, string> = {
 export default function DogProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { organization } = useOrganization();
+  const orgNavigate = useOrgNavigate();
 
   const [dog, setDog] = useState<DbDog | null>(null);
   const [reservations, setReservations] = useState<ReservationRow[]>([]);
@@ -73,21 +77,23 @@ export default function DogProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
 
   const fetchDog = async () => {
-    if (!id) return;
+    if (!id || !organization) return;
     const { data } = await supabase
       .from("dogs")
       .select("*, customers(id, first_name, last_name, phone)")
       .eq("id", id)
+      .eq("organization_id", organization!.id)
       .single();
     if (data) setDog(data as DbDog);
   };
 
   const fetchReservations = async () => {
-    if (!id) return;
+    if (!id || !organization) return;
     const { data } = await supabase
       .from("reservations")
       .select("id, service_name, status, start_date, total_price")
       .eq("dog_id", id)
+      .eq("organization_id", organization!.id)
       .order("start_date", { ascending: false })
       .limit(20);
     if (data) setReservations(data as ReservationRow[]);
@@ -96,7 +102,7 @@ export default function DogProfilePage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchDog(), fetchReservations()]).finally(() => setLoading(false));
-  }, [id]);
+  }, [id, organization]);
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -196,7 +202,7 @@ export default function DogProfilePage() {
               <User className="h-4 w-4" />
               <button
                 className="hover:text-foreground hover:underline transition-colors"
-                onClick={() => navigate(`/customers/${dog.customer_id}`)}
+                onClick={() => orgNavigate(`/customers/${dog.customer_id}`)}
               >
                 {dog.customers.first_name} {dog.customers.last_name}
               </button>

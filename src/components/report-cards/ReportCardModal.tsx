@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,7 @@ const defaultForm: ReportCardFormData = {
 interface DbDog { id: string; name: string; breed: string; }
 
 export function ReportCardModal({ open, onOpenChange, editData, onSaved }: ReportCardModalProps) {
+  const { organization } = useOrganization();
   const [form, setForm] = useState<ReportCardFormData>(defaultForm);
   const [trainers, setTrainers] = useState<StaffMember[]>([]);
   const [dogs, setDogs] = useState<DbDog[]>([]);
@@ -110,18 +112,22 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
   }, [open, editData]);
 
   async function loadTrainers() {
+    if (!organization) return;
     const { data } = await supabase
       .from("staff_members")
       .select("id, first_name, last_name")
       .eq("is_active", true)
+      .eq("organization_id", organization!.id)
       .order("first_name");
     if (data) setTrainers(data);
   }
 
   async function loadDogs() {
+    if (!organization) return;
     const { data } = await supabase
       .from("dogs")
       .select("id, name, breed")
+      .eq("organization_id", organization!.id)
       .order("name");
     if (data) setDogs(data as DbDog[]);
   }
@@ -190,9 +196,9 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
 
     let error;
     if (editData?.id) {
-      ({ error } = await supabase.from("report_cards").update(payload).eq("id", editData.id));
+      ({ error } = await supabase.from("report_cards").update({ ...payload, organization_id: organization!.id }).eq("id", editData.id));
     } else {
-      ({ error } = await supabase.from("report_cards").insert(payload));
+      ({ error } = await supabase.from("report_cards").insert({ ...payload, organization_id: organization!.id }));
     }
 
     setSaving(false);

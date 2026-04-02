@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
@@ -16,6 +17,7 @@ interface ReportCardDetailProps {
 }
 
 export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }: ReportCardDetailProps) {
+  const { organization } = useOrganization();
   const [history, setHistory] = useState<any[]>([]);
   const [dogInfo, setDogInfo] = useState<{ breed: string; weight: number | null; gender: string; customer_name: string } | null>(null);
 
@@ -26,6 +28,7 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
         .from("dogs")
         .select("breed, weight, gender, customers(first_name, last_name)")
         .eq("id", reportCard.dog_id)
+        .eq("organization_id", organization!.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
@@ -42,10 +45,12 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
   }, [open, reportCard?.dog_id]);
 
   async function loadHistory(dogId: string) {
+    if (!organization) return;
     const { data } = await supabase
       .from("report_cards")
       .select("session_date, overall_score, energy_level, socialization, obedience, appetite")
       .eq("dog_id", dogId)
+      .eq("organization_id", organization!.id)
       .order("session_date", { ascending: true })
       .limit(10);
     if (data) setHistory(data);

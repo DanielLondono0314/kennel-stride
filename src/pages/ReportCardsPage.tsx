@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const SERVICE_ICONS: Record<string, string> = {
 };
 
 export default function ReportCardsPage() {
+  const { organization } = useOrganization();
   const [reportCards, setReportCards] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,13 +64,14 @@ export default function ReportCardsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [organization]);
 
   async function loadData() {
+    if (!organization) return;
     setLoading(true);
     const [rcRes, trRes] = await Promise.all([
-      supabase.from("report_cards").select("*").order("session_date", { ascending: false }),
-      supabase.from("staff_members").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
+      supabase.from("report_cards").select("*").eq("organization_id", organization!.id).order("session_date", { ascending: false }),
+      supabase.from("staff_members").select("id, first_name, last_name").eq("is_active", true).eq("organization_id", organization!.id).order("first_name"),
     ]);
     if (rcRes.data) setReportCards(rcRes.data);
     if (trRes.data) setTrainers(trRes.data);

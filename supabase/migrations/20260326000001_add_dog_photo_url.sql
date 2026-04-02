@@ -12,25 +12,23 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Allow authenticated users to upload dog photos
-CREATE POLICY IF NOT EXISTS "Authenticated users can upload dog photos"
-ON storage.objects FOR INSERT
-TO authenticated
+DROP POLICY IF EXISTS "Authenticated users can upload dog photos" ON storage.objects;
+DROP POLICY IF EXISTS "Public read dog photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update dog photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete dog photos" ON storage.objects;
+
+CREATE POLICY "Authenticated users can upload dog photos"
+ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'dog-photos');
 
--- Allow public read of dog photos
-CREATE POLICY IF NOT EXISTS "Public read dog photos"
-ON storage.objects FOR SELECT
-TO public
+CREATE POLICY "Public read dog photos"
+ON storage.objects FOR SELECT TO public
 USING (bucket_id = 'dog-photos');
 
--- Allow authenticated users to update/delete their uploads
-CREATE POLICY IF NOT EXISTS "Authenticated users can update dog photos"
-ON storage.objects FOR UPDATE
-TO authenticated
+CREATE POLICY "Authenticated users can update dog photos"
+ON storage.objects FOR UPDATE TO authenticated
 USING (bucket_id = 'dog-photos');
 
-CREATE POLICY IF NOT EXISTS "Authenticated users can delete dog photos"
-ON storage.objects FOR DELETE
-TO authenticated
+CREATE POLICY "Authenticated users can delete dog photos"
+ON storage.objects FOR DELETE TO authenticated
 USING (bucket_id = 'dog-photos');

@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +42,8 @@ function mapDbNotice(n: any): Notice {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const orgNavigate = useOrgNavigate();
+  const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useState<OpsTab>("expected");
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState<ServiceType | "all">("all");
@@ -60,14 +64,16 @@ export default function Dashboard() {
   // Notices from Supabase
   const [notices, setNotices] = useState<Notice[]>([]);
   const fetchNotices = useCallback(async () => {
+    if (!organization) return;
     const { data } = await supabase
       .from("notices")
       .select("*")
+      .eq("organization_id", organization.id)
       .eq("is_dismissed", false)
       .order("created_at", { ascending: false })
       .limit(20);
     if (data) setNotices(data.map(mapDbNotice));
-  }, []);
+  }, [organization?.id]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 
@@ -216,7 +222,7 @@ export default function Dashboard() {
   const handleNoticeAction = (action: string, params?: Record<string, string>) => {
     switch (action) {
       case "navigate":
-        if (params?.path) navigate(params.path);
+        if (params?.path) orgNavigate(params.path);
         break;
       case "approve":
         if (params?.reservationId) handleApprove(params.reservationId);
@@ -245,7 +251,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate("/calendar")}>
+          <Button variant="outline" onClick={() => orgNavigate("/calendar")}>
             <Calendar className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Ver calendario</span>
             <span className="sm:hidden">Calendario</span>
@@ -300,7 +306,7 @@ export default function Dashboard() {
               reservations={filteredReservations}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
-              onView={(id) => navigate(`/requests?id=${id}`)}
+              onView={(id) => orgNavigate(`/requests?id=${id}`)}
               onApprove={handleApprove}
               onCancel={handleCancelRequest}
             />

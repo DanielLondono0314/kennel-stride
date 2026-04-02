@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { FacilityToolbar, ZoneTypeConfig, ZONE_TYPES } from "@/components/facility/FacilityToolbar";
 import { ZoneBlock } from "@/components/facility/ZoneBlock";
@@ -36,6 +37,7 @@ interface FacilityUnit {
 }
 
 export default function FacilityPage() {
+  const { organization } = useOrganization();
   const [zones, setZones] = useState<FacilityZone[]>([]);
   const [units, setUnits] = useState<FacilityUnit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<FacilityUnit | null>(null);
@@ -44,18 +46,20 @@ export default function FacilityPage() {
 
   // Load data
   const fetchData = useCallback(async () => {
+    if (!organization) return;
     const [zRes, uRes] = await Promise.all([
-      supabase.from("facility_zones").select("*").order("sort_order"),
-      supabase.from("facility_units").select("*").order("position_index"),
+      supabase.from("facility_zones").select("*").eq("organization_id", organization!.id).order("sort_order"),
+      supabase.from("facility_units").select("*").eq("organization_id", organization!.id).order("position_index"),
     ]);
     if (zRes.data) setZones(zRes.data);
     if (uRes.data) setUnits(uRes.data);
-  }, []);
+  }, [organization]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Add zone
   const handleAddZone = async (zt: ZoneTypeConfig) => {
+    if (!organization) return;
     const count = zones.filter((z) => z.zone_type === zt.type).length;
     const newZone = {
       name: `${zt.label} ${String.fromCharCode(65 + count)}`,
@@ -67,6 +71,7 @@ export default function FacilityPage() {
       color: zt.color,
       capacity: zt.defaultCapacity,
       sort_order: zones.length,
+      organization_id: organization!.id,
     };
 
     const { data, error } = await supabase.from("facility_zones").insert(newZone).select().single();
@@ -80,6 +85,7 @@ export default function FacilityPage() {
         unit_type: "kennel",
         position_index: i,
         status: "available",
+        organization_id: organization!.id,
       }));
       await supabase.from("facility_units").insert(unitInserts);
     }

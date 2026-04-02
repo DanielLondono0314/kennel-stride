@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ const COLORS = [
 ];
 
 export default function ReportsPage() {
+  const { organization } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<DateRange>("30d");
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -41,14 +43,15 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const fetch = async () => {
+      if (!organization) return;
       setLoading(true);
       const [invR, custR, pkgR, unitR, rcR, resR] = await Promise.all([
-        supabase.from("invoices").select("*"),
-        supabase.from("customers").select("*"),
-        supabase.from("packages").select("*"),
-        supabase.from("facility_units").select("*"),
-        supabase.from("report_cards").select("*"),
-        supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id"),
+        supabase.from("invoices").select("*").eq("organization_id", organization!.id),
+        supabase.from("customers").select("*").eq("organization_id", organization!.id),
+        supabase.from("packages").select("*").eq("organization_id", organization!.id),
+        supabase.from("facility_units").select("*").eq("organization_id", organization!.id),
+        supabase.from("report_cards").select("*").eq("organization_id", organization!.id),
+        supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", organization!.id),
       ]);
       setInvoices(invR.data || []);
       setCustomers(custR.data || []);
@@ -59,7 +62,7 @@ export default function ReportsPage() {
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [organization]);
 
   const filteredInvoices = useMemo(
     () => invoices.filter((i) => new Date(i.created_at) >= dateFrom),

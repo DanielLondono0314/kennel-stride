@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ interface DbDog {
 }
 
 export default function ClinicPage() {
+  const { organization } = useOrganization();
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [dogs, setDogs] = useState<DbDog[]>([]);
@@ -36,16 +38,18 @@ export default function ClinicPage() {
 
   useEffect(() => {
     const fetchDogs = async () => {
+      if (!organization) return;
       setLoading(true);
       const { data } = await supabase
         .from("dogs")
         .select("id, customer_id, name, breed, birth_date, weight, gender, is_neutered, customers(first_name, last_name)")
+        .eq("organization_id", organization!.id)
         .order("name");
       if (data) setDogs(data as any);
       setLoading(false);
     };
     fetchDogs();
-  }, []);
+  }, [organization]);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;

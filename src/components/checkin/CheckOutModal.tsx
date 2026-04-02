@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,7 @@ export function CheckOutModal({
   onOpenChange,
   onConfirm,
 }: CheckOutModalProps) {
+  const { organization } = useOrganization();
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,12 +83,14 @@ export function CheckOutModal({
 
     const fetchPackage = async () => {
       setLoadingPackage(true);
+      if (!organization) { setLoadingPackage(false); return; }
       const { data } = await supabase
         .from("packages")
         .select("id, name, remaining_credits, total_credits, expires_at, service_type, status")
         .eq("customer_id", reservation.customer.id)
         .eq("service_type", reservation.service.type)
         .eq("status", "active")
+        .eq("organization_id", organization!.id)
         .gt("remaining_credits", 0)
         .order("expires_at")
         .limit(1)
@@ -153,6 +157,7 @@ export function CheckOutModal({
             paid_at: now,
             due_date: now,
             notes: notes || null,
+            organization_id: organization!.id,
           })
           .select("id")
           .single();
@@ -187,6 +192,7 @@ export function CheckOutModal({
             total: reservation.totalPrice,
             due_date: dueDate.toISOString(),
             notes: notes || null,
+            organization_id: organization!.id,
           })
           .select("id")
           .single();

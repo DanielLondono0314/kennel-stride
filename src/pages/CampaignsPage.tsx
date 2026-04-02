@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -69,6 +70,7 @@ const defaultForm = {
 };
 
 export default function CampaignsPage() {
+  const { organization } = useOrganization();
   const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -81,8 +83,9 @@ export default function CampaignsPage() {
   const [detailCampaign, setDetailCampaign] = useState<CampaignRow | null>(null);
 
   const fetchData = async () => {
+    if (!organization) return;
     setLoading(true);
-    const { data } = await supabase.from("campaigns").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("campaigns").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false });
     setCampaigns((data || []) as CampaignRow[]);
     setLoading(false);
   };
@@ -131,7 +134,7 @@ export default function CampaignsPage() {
       if (error) toast.error("Error al actualizar");
       else toast.success("Campaña actualizada");
     } else {
-      const { error } = await supabase.from("campaigns").insert(payload);
+      const { error } = await supabase.from("campaigns").insert({ ...payload, organization_id: organization!.id });
       if (error) toast.error("Error al crear campaña");
       else toast.success("Campaña creada");
     }

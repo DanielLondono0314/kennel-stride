@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 export default function PackagesPage() {
+  const { organization } = useOrganization();
   const [packages, setPackages] = useState<(PackageRow & { customer?: CustomerRow })[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,10 +90,11 @@ export default function PackagesPage() {
   });
 
   const fetchData = async () => {
+    if (!organization) return;
     setLoading(true);
     const [pkgRes, custRes] = await Promise.all([
-      supabase.from("packages").select("*").order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, first_name, last_name, email, phone"),
+      supabase.from("packages").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false }),
+      supabase.from("customers").select("id, first_name, last_name, email, phone").eq("organization_id", organization!.id),
     ]);
     
     const custs = (custRes.data || []) as CustomerRow[];
@@ -165,6 +168,7 @@ export default function PackagesPage() {
         price: form.price,
         expires_at: form.expires_at,
         notes: form.notes,
+        organization_id: organization!.id,
       });
       
       if (error) toast.error("Error al crear paquete");

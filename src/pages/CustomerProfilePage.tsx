@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { format, differenceInYears, differenceInMonths } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -94,6 +96,8 @@ function getAge(birthDate?: string | null) {
 export default function CustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { organization } = useOrganization();
+  const orgNavigate = useOrgNavigate();
 
   const [customer, setCustomer] = useState<DbCustomer | null>(null);
   const [dogs, setDogs] = useState<DbDog[]>([]);
@@ -104,27 +108,30 @@ export default function CustomerProfilePage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const fetchAll = async () => {
-    if (!id) return;
+    if (!id || !organization) return;
     setLoading(true);
 
     const [custRes, dogsRes, reservRes, pkgRes, invRes] = await Promise.all([
-      supabase.from("customers").select("*").eq("id", id).single(),
-      supabase.from("dogs").select("*").eq("customer_id", id).order("name"),
+      supabase.from("customers").select("*").eq("id", id).eq("organization_id", organization!.id).single(),
+      supabase.from("dogs").select("*").eq("customer_id", id).eq("organization_id", organization!.id).order("name"),
       supabase
         .from("reservations")
         .select("id, service_name, service_type, status, start_date, end_date, total_price, dogs(name)")
         .eq("customer_id", id)
+        .eq("organization_id", organization!.id)
         .order("start_date", { ascending: false })
         .limit(20),
       supabase
         .from("packages")
         .select("id, name, service_type, total_credits, remaining_credits, status, expires_at, price")
         .eq("customer_id", id)
+        .eq("organization_id", organization!.id)
         .order("created_at", { ascending: false }),
       supabase
         .from("invoices")
         .select("id, invoice_number, total, status, due_date, paid_at")
         .eq("customer_id", id)
+        .eq("organization_id", organization!.id)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
@@ -138,7 +145,7 @@ export default function CustomerProfilePage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, [id]);
+  useEffect(() => { fetchAll(); }, [id, organization]);
 
   const handleSave = async (data: Partial<DbCustomer>) => {
     const payload = {
@@ -294,7 +301,7 @@ export default function CustomerProfilePage() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
               <Dog className="h-10 w-10" />
               <p>Sin mascotas registradas</p>
-              <Button size="sm" variant="outline" onClick={() => navigate("/dogs")}>
+              <Button size="sm" variant="outline" onClick={() => orgNavigate("/dogs")}>
                 Registrar mascota
               </Button>
             </div>

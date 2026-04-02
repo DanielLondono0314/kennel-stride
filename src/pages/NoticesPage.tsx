@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ const severityConfig: Record<string, { icon: typeof AlertTriangle; className: st
 
 export default function NoticesPage() {
   const navigate = useNavigate();
+  const { organization } = useOrganization();
   const [notices, setNotices] = useState<NoticeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -45,12 +47,13 @@ export default function NoticesPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotices = useCallback(async () => {
+    if (!organization) return;
     setLoading(true);
-    let query = supabase.from("notices").select("*").eq("is_dismissed", false).order("created_at", { ascending: false });
+    let query = supabase.from("notices").select("*").eq("is_dismissed", false).eq("organization_id", organization!.id).order("created_at", { ascending: false });
     const { data } = await query;
     setNotices((data || []) as NoticeRow[]);
     setLoading(false);
-  }, []);
+  }, [organization]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -52,6 +53,7 @@ export function NewReservationModal({
   initialDate,
   onSaved,
 }: NewReservationModalProps) {
+  const { organization } = useOrganization();
   const [saving, setSaving] = useState(false);
 
   // Form fields
@@ -72,10 +74,11 @@ export function NewReservationModal({
 
   useEffect(() => {
     if (!open) return;
+    if (!organization) return;
     setLoadingData(true);
     Promise.all([
-      supabase.from("customers").select("id, first_name, last_name, email").order("first_name"),
-      supabase.from("dogs").select("id, name, breed, customer_id").order("name"),
+      supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id).order("first_name"),
+      supabase.from("dogs").select("id, name, breed, customer_id").eq("organization_id", organization!.id).order("name"),
     ]).then(([custRes, dogsRes]) => {
       if (custRes.data) setCustomers(custRes.data);
       if (dogsRes.data) setDogs(dogsRes.data);
@@ -108,6 +111,7 @@ export function NewReservationModal({
   }, [customerId, filteredDogs.length]);
 
   const handleSave = async () => {
+    if (!organization) return;
     if (!customerId || !dogId || !serviceType || !startDate || !endDate) {
       toast.error("Completa todos los campos requeridos");
       return;
@@ -129,6 +133,7 @@ export function NewReservationModal({
       total_price: totalPrice ? parseFloat(totalPrice) : 0,
       notes: notes || "",
       status: "requested",
+      organization_id: organization!.id,
     }).select("id").single();
 
     if (error) {
@@ -148,6 +153,7 @@ export function NewReservationModal({
         entity_type: "reservation",
         entity_id: reservation.id,
         auto_generated: true,
+        organization_id: organization!.id,
       });
     }
 
