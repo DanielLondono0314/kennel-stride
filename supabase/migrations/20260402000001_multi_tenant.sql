@@ -285,6 +285,8 @@ CREATE POLICY "Org members full access dog_temperament"
   WITH CHECK (organization_id IN (SELECT public.get_user_org_ids()));
 
 -- business_profile: authenticated can read (still used by settings)
+DROP POLICY IF EXISTS "Authenticated can read business" ON public.business_profile;
+DROP POLICY IF EXISTS "Authenticated can write business" ON public.business_profile;
 CREATE POLICY "Authenticated can read business"
   ON public.business_profile FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authenticated can write business"
