@@ -66,7 +66,7 @@ export default function OnboardingPage() {
       .single();
 
     if (orgError) {
-      toast.error("Error al crear el centro");
+      toast.error(`Error al crear el centro: ${orgError.message}`);
       setLoading(false);
       return;
     }
