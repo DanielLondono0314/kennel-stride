@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ export function CheckInModal({
   onOpenChange,
   onConfirm,
 }: CheckInModalProps) {
+  const { user } = useAuth();
   const [notes, setNotes] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [selectedOverrides, setSelectedOverrides] = useState<Set<string>>(new Set());
@@ -78,16 +80,13 @@ export function CheckInModal({
     if (!reservation) return;
 
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     onConfirm({
       reservationId: reservation.id,
       notes: notes || undefined,
       overrideAlerts: Array.from(selectedOverrides),
       overrideReason: overrideReason || undefined,
-      overrideBy: "current_user_id", // Would come from auth context
+      overrideBy: user?.id,
     });
 
     setIsSubmitting(false);

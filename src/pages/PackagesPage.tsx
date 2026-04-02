@@ -508,13 +508,6 @@ export default function PackagesPage() {
               />
             </div>
 
-            {/* Stripe placeholder */}
-            <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CreditCard className="h-4 w-4" />
-                <span>Integración con Stripe disponible próximamente para cobros automáticos</span>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>

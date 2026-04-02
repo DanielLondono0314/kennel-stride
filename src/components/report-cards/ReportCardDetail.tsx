@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./StarRating";
 import { supabase } from "@/integrations/supabase/client";
-import { mockDogs, mockCustomers } from "@/data/mockData";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -18,13 +17,27 @@ interface ReportCardDetailProps {
 
 export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }: ReportCardDetailProps) {
   const [history, setHistory] = useState<any[]>([]);
-
-  const dog = mockDogs.find((d) => d.id === reportCard?.dog_id);
-  const customer = dog ? mockCustomers.find((c) => c.id === dog.customerId) : null;
+  const [dogInfo, setDogInfo] = useState<{ breed: string; weight: number | null; gender: string; customer_name: string } | null>(null);
 
   useEffect(() => {
     if (open && reportCard?.dog_id) {
       loadHistory(reportCard.dog_id);
+      supabase
+        .from("dogs")
+        .select("breed, weight, gender, customers(first_name, last_name)")
+        .eq("id", reportCard.dog_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            const owner = data.customers as any;
+            setDogInfo({
+              breed: data.breed,
+              weight: data.weight,
+              gender: data.gender,
+              customer_name: owner ? `${owner.first_name} ${owner.last_name}` : "",
+            });
+          }
+        });
     }
   }, [open, reportCard?.dog_id]);
 
@@ -81,14 +94,14 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg">{reportCard.dog_name}</h3>
-            {dog && (
+            {dogInfo && (
               <p className="text-sm text-muted-foreground">
-                {dog.breed} · {dog.weight}kg · {dog.gender === "male" ? "Macho" : "Hembra"}
+                {dogInfo.breed}{dogInfo.weight ? ` · ${dogInfo.weight}kg` : ""} · {dogInfo.gender === "male" ? "Macho" : "Hembra"}
               </p>
             )}
-            {customer && (
+            {dogInfo?.customer_name && (
               <p className="text-sm text-muted-foreground">
-                Dueño: {customer.firstName} {customer.lastName}
+                Dueño: {dogInfo.customer_name}
               </p>
             )}
             <div className="flex items-center gap-2 mt-1 flex-wrap">

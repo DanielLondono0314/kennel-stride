@@ -11,10 +11,7 @@ import {
   FlagType,
   FlagSeverity,
 } from '@/types';
-import {
-  vaccinationNames,
-  documentNames,
-} from '@/data/mockData';
+import { vaccinationNames, documentNames } from '@/lib/constants';
 import { differenceInDays } from 'date-fns';
 
 /**

@@ -48,19 +48,41 @@ export default function DogsPage() {
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
   const [dogs, setDogs] = useState<DbDog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchDogs = async () => {
-    setLoading(true);
+  const PAGE_SIZE = 50;
+
+  const fetchDogs = async (reset = true) => {
+    const currentPage = reset ? 0 : page;
+    if (reset) {
+      setLoading(true);
+      setPage(0);
+    } else {
+      setLoadingMore(true);
+    }
+
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const { data, error } = await supabase
       .from("dogs")
       .select("*, customers(id, first_name, last_name)")
-      .order("name");
-    if (!error && data) setDogs(data as any);
+      .order("name")
+      .range(from, to);
+
+    if (!error && data) {
+      setDogs((prev) => reset ? data as any : [...prev, ...(data as any)]);
+      setHasMore(data.length === PAGE_SIZE);
+      if (!reset) setPage(currentPage + 1);
+    }
     setLoading(false);
+    setLoadingMore(false);
   };
 
-  useEffect(() => { fetchDogs(); }, []);
+  useEffect(() => { fetchDogs(true); }, []);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;
@@ -113,7 +135,7 @@ export default function DogsPage() {
     } else {
       toast.success(data.id ? "Perro actualizado" : "Perro registrado");
       setModalOpen(false);
-      fetchDogs();
+      fetchDogs(true);
     }
   };
 
@@ -124,7 +146,7 @@ export default function DogsPage() {
       toast.error("Error al eliminar");
     } else {
       toast.success("Perro eliminado");
-      fetchDogs();
+      fetchDogs(true);
     }
     setDeleteId(null);
   };
@@ -209,6 +231,14 @@ export default function DogsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {hasMore && !searchQuery && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={() => fetchDogs(false)} disabled={loadingMore}>
+            {loadingMore ? "Cargando..." : "Cargar más"}
+          </Button>
+        </div>
+      )}
 
       <DogModal dog={editingDog} open={modalOpen} onOpenChange={setModalOpen} onSave={handleSave} />
 

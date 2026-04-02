@@ -45,27 +45,45 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
   const [customers, setCustomers] = useState<DbCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    // Fetch customers + dog count via aggregation
+  const PAGE_SIZE = 50;
+
+  const fetchCustomers = async (reset = true) => {
+    const currentPage = reset ? 0 : page;
+    if (reset) {
+      setLoading(true);
+      setPage(0);
+    } else {
+      setLoadingMore(true);
+    }
+
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const { data, error } = await supabase
       .from("customers")
       .select("*, dogs(id)")
-      .order("first_name");
+      .order("first_name")
+      .range(from, to);
 
     if (!error && data) {
       const mapped = data.map((c: any) => ({
         ...c,
         dog_count: c.dogs?.length ?? 0,
       }));
-      setCustomers(mapped);
+      setCustomers((prev) => reset ? mapped : [...prev, ...mapped]);
+      setHasMore(data.length === PAGE_SIZE);
+      if (!reset) setPage(currentPage + 1);
     }
     setLoading(false);
+    setLoadingMore(false);
   };
 
-  useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => { fetchCustomers(true); }, []);
 
   const filtered = useMemo(() => {
     if (!searchQuery) return customers;
@@ -107,7 +125,7 @@ export default function CustomersPage() {
     } else {
       toast.success(data.id ? "Cliente actualizado" : "Cliente registrado");
       setModalOpen(false);
-      fetchCustomers();
+      fetchCustomers(true);
     }
   };
 
@@ -118,7 +136,7 @@ export default function CustomersPage() {
       toast.error("Error al eliminar cliente");
     } else {
       toast.success("Cliente eliminado");
-      fetchCustomers();
+      fetchCustomers(true);
     }
     setDeleteId(null);
   };
@@ -265,6 +283,14 @@ export default function CustomersPage() {
           </TableBody>
         </Table>
       </div>
+
+      {hasMore && !searchQuery && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={() => fetchCustomers(false)} disabled={loadingMore}>
+            {loadingMore ? "Cargando..." : "Cargar más"}
+          </Button>
+        </div>
+      )}
 
       <CustomerModal
         customer={editingCustomer}

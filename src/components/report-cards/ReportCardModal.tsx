@@ -9,7 +9,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StarRating } from "./StarRating";
 import { supabase } from "@/integrations/supabase/client";
-import { mockDogs } from "@/data/mockData";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -73,15 +72,19 @@ const defaultForm: ReportCardFormData = {
   is_sent: false,
 };
 
+interface DbDog { id: string; name: string; breed: string; }
+
 export function ReportCardModal({ open, onOpenChange, editData, onSaved }: ReportCardModalProps) {
   const [form, setForm] = useState<ReportCardFormData>(defaultForm);
   const [trainers, setTrainers] = useState<StaffMember[]>([]);
+  const [dogs, setDogs] = useState<DbDog[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
       loadTrainers();
+      loadDogs();
       if (editData) {
         setForm({
           dog_id: editData.dog_id,
@@ -115,8 +118,16 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
     if (data) setTrainers(data);
   }
 
+  async function loadDogs() {
+    const { data } = await supabase
+      .from("dogs")
+      .select("id, name, breed")
+      .order("name");
+    if (data) setDogs(data as DbDog[]);
+  }
+
   function handleDogChange(dogId: string) {
-    const dog = mockDogs.find((d) => d.id === dogId);
+    const dog = dogs.find((d) => d.id === dogId);
     setForm((f) => ({ ...f, dog_id: dogId, dog_name: dog?.name || "" }));
   }
 
@@ -219,7 +230,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
               <Select value={form.dog_id} onValueChange={handleDogChange}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
-                  {mockDogs.map((d) => (
+                  {dogs.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
                       {d.name} ({d.breed})
                     </SelectItem>

@@ -155,8 +155,7 @@ export function ValidationAlerts({
                       size="sm"
                       className="h-auto p-0 mt-2 text-xs"
                       onClick={() => {
-                        // Handle action - for now just log
-                        console.log('Action:', alert.suggestedAction);
+                        // TODO: route to relevant page based on action type
                       }}
                     >
                       {alert.suggestedAction.label}
