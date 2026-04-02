@@ -305,7 +305,7 @@ export default function CustomerProfilePage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        {dog.photo_url && <AvatarImage src={dog.photo_url} alt={dog.name} className="object-cover" />}
+                        <AvatarFallback className="bg-accent/20">
                         <AvatarFallback className="bg-accent/20">
                           <Dog className="h-6 w-6 text-accent-foreground" />
                         </AvatarFallback>
