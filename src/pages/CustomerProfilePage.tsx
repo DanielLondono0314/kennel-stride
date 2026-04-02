@@ -306,7 +306,6 @@ export default function CustomerProfilePage() {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-accent/20">
-                        <AvatarFallback className="bg-accent/20">
                           <Dog className="h-6 w-6 text-accent-foreground" />
                         </AvatarFallback>
                       </Avatar>

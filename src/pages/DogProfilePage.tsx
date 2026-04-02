@@ -168,10 +168,8 @@ export default function DogProfilePage() {
       <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
         <Avatar className="h-24 w-24 border-4 border-background shadow-lg shrink-0">
           <AvatarFallback className="bg-accent text-accent-foreground text-3xl">
-            <AvatarFallback className="bg-accent text-accent-foreground text-3xl">
-              <Dog className="h-12 w-12" />
-            </AvatarFallback>
-          )}
+            <Dog className="h-12 w-12" />
+          </AvatarFallback>
         </Avatar>
 
         <div className="flex-1 min-w-0">
