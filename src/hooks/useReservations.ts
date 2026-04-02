@@ -96,7 +96,14 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
     endDate: new Date(row.end_date),
     checkInTime: row.check_in_time ? new Date(row.check_in_time) : undefined,
     checkOutTime: row.check_out_time ? new Date(row.check_out_time) : undefined,
-    assignedStaff: row.staff_members
+    staffId: row.staff_id ?? undefined,
+    customerId: row.customer_id,
+    dogId: row.dog_id,
+    serviceId: `svc-${row.service_type}`,
+    usePackageCredits: false,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    staff: row.staff_members
       ? {
           id: row.staff_members.id,
           firstName: row.staff_members.first_name,
