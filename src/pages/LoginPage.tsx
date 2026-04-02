@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,14 +56,15 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/" },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + "/",
     });
-    if (error) {
-      toast.error(error.message);
+    if (result.error) {
+      toast.error(result.error instanceof Error ? result.error.message : String(result.error));
       setGoogleLoading(false);
     }
+    if (result.redirected) return;
+    setGoogleLoading(false);
   };
 
   return (
