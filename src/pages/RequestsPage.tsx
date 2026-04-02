@@ -150,7 +150,7 @@ export default function RequestsPage() {
   const openDetail = (r: Reservation) => { setSelectedRequest(r); setDetailModalOpen(true); };
   const openApprove = (r: Reservation) => {
     setSelectedRequest(r);
-    setAssignedTrainer(r.assignedStaff?.id || "");
+    setAssignedTrainer(r.staff?.id || "");
     setApproveNotes("");
     setApproveModalOpen(true);
   };
@@ -524,10 +524,10 @@ export default function RequestsPage() {
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         {format(selectedRequest.startDate, "HH:mm")} – {format(selectedRequest.endDate, "HH:mm")}
                       </p>
-                      {selectedRequest.assignedStaff && (
+                      {selectedRequest.staff && (
                         <p className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-muted-foreground" />
-                          {selectedRequest.assignedStaff.firstName} {selectedRequest.assignedStaff.lastName}
+                          {selectedRequest.staff.firstName} {selectedRequest.staff.lastName}
                         </p>
                       )}
                     </CardContent>

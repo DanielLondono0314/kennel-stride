@@ -35,8 +35,6 @@ function mapDbNotice(n: any): Notice {
     entityId: n.entity_id ?? undefined,
     suggestedActions: n.suggested_actions ?? undefined,
     createdAt: new Date(n.created_at),
-    expiresAt: n.expires_at ? new Date(n.expires_at) : undefined,
-    dismissedAt: n.is_dismissed ? new Date(n.created_at) : undefined,
   };
 }
 
