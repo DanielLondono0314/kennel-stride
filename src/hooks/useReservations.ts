@@ -112,6 +112,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
           role: "trainer" as any,
           isActive: true,
           createdAt: new Date(),
+          updatedAt: new Date(),
         }
       : undefined,
     notes: row.notes ?? undefined,
