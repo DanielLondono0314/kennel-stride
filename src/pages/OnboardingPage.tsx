@@ -52,31 +52,14 @@ export default function OnboardingPage() {
     if (!slugAvailable) { toast.error("El slug ya está en uso"); return; }
 
     setLoading(true);
-    // Create organization
     const { data: org, error: orgError } = await (supabase as any)
-      .from("organizations")
-      .insert({
-        name: centerName,
-        slug,
-        owner_id: user.id,
-        subscription_status: "trialing",
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .select("id, slug")
-      .single();
+      .rpc("create_organization", { p_name: centerName, p_slug: slug });
 
     if (orgError) {
       toast.error(`Error al crear el centro: ${orgError.message}`);
       setLoading(false);
       return;
     }
-
-    // Add user as admin member
-    await (supabase as any).from("organization_members").insert({
-      organization_id: org.id,
-      user_id: user.id,
-      role: "admin",
-    });
 
     toast.success("¡Centro creado!");
     navigate(`/${org.slug}/dashboard`);
