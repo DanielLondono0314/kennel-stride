@@ -18,6 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2 } from "lucide-react";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
@@ -175,7 +176,8 @@ export default function DogsPage() {
         <Input type="search" placeholder="Buscar por nombre, raza o dueño..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
       </div>
 
-      <div className="border rounded-lg bg-card overflow-x-auto">
+      {/* Desktop table */}
+      <div className="hidden md:block border rounded-lg bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -236,6 +238,74 @@ export default function DogsPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <p className="text-center text-muted-foreground py-8">Cargando...</p>
+        ) : filteredDogs.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No se encontraron perros</p>
+        ) : filteredDogs.map((dog) => (
+          <Card
+            key={dog.id}
+            className="cursor-pointer"
+            onClick={() => orgNavigate(`/dogs/${dog.id}`)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-12 w-12 border-2 border-background shadow shrink-0">
+                    {dog.photo_url && <AvatarImage src={dog.photo_url} alt={dog.name} className="object-cover" />}
+                    <AvatarFallback className="bg-accent text-accent-foreground"><DogIcon className="h-5 w-5" /></AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{dog.name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                      <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
+                      {dog.is_neutered && <Badge variant="secondary" className="text-[10px] px-1.5">{dog.gender === "male" ? "Castrado" : "Esterilizada"}</Badge>}
+                    </div>
+                  </div>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Dueño</p>
+                  <p className="truncate">{dog.customers?.first_name} {dog.customers?.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Raza</p>
+                  <p className="truncate text-muted-foreground">{dog.breed}</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{getAge(dog.birth_date)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {dog.weight ? (
+                    <>
+                      <Scale className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{dog.weight} kg</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Sin peso</span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {hasMore && !searchQuery && (

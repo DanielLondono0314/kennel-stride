@@ -15,6 +15,7 @@ const LoginPage            = lazy(() => import("./pages/LoginPage"));
 const RegisterPage         = lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage   = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage    = lazy(() => import("./pages/ResetPasswordPage"));
+const JoinPage             = lazy(() => import("./pages/JoinPage"));
 const OnboardingPage   = lazy(() => import("./pages/OnboardingPage"));
 const BillingPage      = lazy(() => import("./pages/BillingPage"));
 
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/join" element={<JoinPage />} />
 
                 {/* Auth required, no org needed */}
                 <Route element={<ProtectedRoute />}>

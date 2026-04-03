@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { toast } from "sonner";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invite = searchParams.get("invite");
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -40,8 +42,8 @@ export default function RegisterPage() {
       setLoading(false);
       return;
     }
-    toast.success("Cuenta creada", { description: "Ahora configura tu centro." });
-    navigate("/onboarding");
+    toast.success("Cuenta creada", { description: invite ? "Uniéndote al equipo..." : "Ahora configura tu centro." });
+    navigate(invite ? `/join?token=${invite}` : "/onboarding");
   };
 
   return (

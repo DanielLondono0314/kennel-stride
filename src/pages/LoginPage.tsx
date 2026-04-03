@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,9 +19,20 @@ async function getFirstOrgSlug(userId: string): Promise<string | null> {
   return (data?.organizations as any)?.slug ?? null;
 }
 
+async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeof useNavigate>) {
+  const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
+  if (error) {
+    toast.error("Error al aceptar la invitación: " + error.message);
+    return null;
+  }
+  return (data as { slug: string; role: string }) ?? null;
+}
+
 export default function LoginPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invite = searchParams.get("invite");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,9 +41,17 @@ export default function LoginPage() {
   // Redirect already-logged-in users
   useEffect(() => {
     if (!session) return;
-    getFirstOrgSlug(session.user.id).then((slug) => {
+    (async () => {
+      if (invite) {
+        const result = await acceptInviteAndNavigate(invite, navigate);
+        if (result) {
+          navigate(`/${result.slug}/dashboard`, { replace: true });
+          return;
+        }
+      }
+      const slug = await getFirstOrgSlug(session.user.id);
       navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
-    });
+    })();
   }, [session]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -44,6 +63,14 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
+    if (invite) {
+      const result = await acceptInviteAndNavigate(invite, navigate);
+      if (result) {
+        navigate(`/${result.slug}/dashboard`, { replace: true });
+        setLoading(false);
+        return;
+      }
+    }
     const slug = await getFirstOrgSlug(data.user.id);
     navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
     setLoading(false);
@@ -51,8 +78,11 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
+    const redirectUri = invite
+      ? `${window.location.origin}/login?invite=${invite}`
+      : window.location.origin + "/login";
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/login",
+      redirect_uri: redirectUri,
     });
     if (result.error) {
       toast.error(result.error instanceof Error ? result.error.message : String(result.error));
