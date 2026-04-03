@@ -73,7 +73,7 @@ const paymentMethodLabels: Record<string, string> = {
   card: "Tarjeta",
   package: "Paquete",
   invoice: "Factura",
-  stripe: "Stripe",
+  lemon_squeezy: "LemonSqueezy",
 };
 
 export default function InvoicesPage() {

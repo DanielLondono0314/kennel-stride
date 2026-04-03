@@ -137,7 +137,7 @@ export type Database = {
           notes: string | null
           phone: string
           state: string | null
-          stripe_customer_id: string | null
+          ls_customer_id: string | null
           updated_at: string
           user_id: string | null
           zip_code: string | null
@@ -156,7 +156,7 @@ export type Database = {
           notes?: string | null
           phone?: string
           state?: string | null
-          stripe_customer_id?: string | null
+          ls_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
           zip_code?: string | null
@@ -175,7 +175,7 @@ export type Database = {
           notes?: string | null
           phone?: string
           state?: string | null
-          stripe_customer_id?: string | null
+          ls_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
           zip_code?: string | null
@@ -498,8 +498,8 @@ export type Database = {
           payment_method: string | null
           reservation_id: string | null
           status: string
-          stripe_invoice_id: string | null
-          stripe_payment_intent_id: string | null
+          ls_order_id: string | null
+          ls_payment_id: string | null
           subtotal: number
           tax: number
           total: number
@@ -517,8 +517,8 @@ export type Database = {
           payment_method?: string | null
           reservation_id?: string | null
           status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
+          ls_order_id?: string | null
+          ls_payment_id?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -536,8 +536,8 @@ export type Database = {
           payment_method?: string | null
           reservation_id?: string | null
           status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
+          ls_order_id?: string | null
+          ls_payment_id?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -725,8 +725,8 @@ export type Database = {
           remaining_credits: number
           service_type: string
           status: string
-          stripe_payment_id: string | null
-          stripe_product_id: string | null
+          ls_order_id: string | null
+          ls_variant_id: string | null
           total_credits: number
           updated_at: string
         }
@@ -742,8 +742,8 @@ export type Database = {
           remaining_credits?: number
           service_type?: string
           status?: string
-          stripe_payment_id?: string | null
-          stripe_product_id?: string | null
+          ls_order_id?: string | null
+          ls_variant_id?: string | null
           total_credits?: number
           updated_at?: string
         }
@@ -759,8 +759,8 @@ export type Database = {
           remaining_credits?: number
           service_type?: string
           status?: string
-          stripe_payment_id?: string | null
-          stripe_product_id?: string | null
+          ls_order_id?: string | null
+          ls_variant_id?: string | null
           total_credits?: number
           updated_at?: string
         }

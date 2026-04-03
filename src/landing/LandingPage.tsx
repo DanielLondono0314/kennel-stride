@@ -56,7 +56,7 @@ const FEATURES = [
   {
     Icon: CreditCard,
     title: 'Facturación y Cobros',
-    body: 'Facturas automáticas, paquetes de sesiones y cobros con Stripe. Compatible con facturación recurrente para suscripciones de adiestramiento.',
+    body: 'Facturas automáticas, paquetes de sesiones y cobros con LemonSqueezy. Compatible con facturación recurrente para suscripciones de adiestramiento.',
     bg: c.blueLight, ic: c.blue,
   },
   {

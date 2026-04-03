@@ -38,8 +38,8 @@ interface PackageRow {
   purchase_date: string;
   expires_at: string;
   status: string;
-  stripe_payment_id: string | null;
-  stripe_product_id: string | null;
+  ls_order_id: string | null;
+  ls_variant_id: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -346,8 +346,8 @@ export default function PackagesPage() {
                     <TableRow key={pkg.id}>
                       <TableCell>
                         <div className="font-medium">{pkg.name}</div>
-                        {pkg.stripe_payment_id && (
-                          <span className="text-xs text-muted-foreground">Stripe ✓</span>
+                        {pkg.ls_order_id && (
+                          <span className="text-xs text-muted-foreground">LemonSqueezy ✓</span>
                         )}
                       </TableCell>
                       <TableCell>
