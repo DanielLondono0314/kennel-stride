@@ -203,8 +203,8 @@ const FAQS = [
 ];
 
 const TRUST_NAMES = [
-  'Paw Palace Group', 'Summit Dog Training', 'K9 Resorts',
-  'Barkly Stays', 'Happy Hound Hotels', 'ProPaw Academy',
+  'ColinaCanineCenter', 'DanielYTuPerro', 'Entrecaninitos :v',
+  'Kaelis', 'Pedro', 'ValanzDugz',
 ];
 
 const NAV_LINKS = [
@@ -647,7 +647,7 @@ function Hero() {
                 className="mb-8"
                 style={{ fontSize: 18, color: c.muted, lineHeight: 1.72, maxWidth: 480 }}
               >
-                KennelOps da a los centros de pensión y escuelas de adiestramiento
+                KennelOps da a los centros y escuelas de adiestramiento
                 una sola plataforma para gestionar reservas, historiales médicos,
                 facturación y personal — para que nada se pierda por el camino.
               </p>
@@ -790,7 +790,7 @@ function Features() {
             Todo lo que necesita tu centro.<br />Nada más.
           </h2>
           <p style={{ fontSize: 17, color: c.muted, maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>
-            Diseñado desde cero para centros de pensión y adiestramiento canino —
+            Diseñado desde cero para centros de adiestramiento canino —
             no adaptado de una herramienta de agenda genérica.
           </p>
         </Reveal>
