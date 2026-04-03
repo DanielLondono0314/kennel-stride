@@ -647,7 +647,7 @@ function Hero() {
                 className="mb-8"
                 style={{ fontSize: 18, color: c.muted, lineHeight: 1.72, maxWidth: 480 }}
               >
-                KennelOps da a los centros de pensión y escuelas de adiestramiento
+                KennelOps da a los centros y escuelas de adiestramiento
                 una sola plataforma para gestionar reservas, historiales médicos,
                 facturación y personal — para que nada se pierda por el camino.
               </p>
