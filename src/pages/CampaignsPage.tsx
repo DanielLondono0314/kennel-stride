@@ -90,7 +90,7 @@ export default function CampaignsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [organization?.id]);
 
   const openCreate = () => {
     setEditId(null);

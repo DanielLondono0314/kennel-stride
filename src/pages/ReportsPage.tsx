@@ -62,7 +62,7 @@ export default function ReportsPage() {
       setLoading(false);
     };
     fetch();
-  }, [organization]);
+  }, [organization?.id]);
 
   const filteredInvoices = useMemo(
     () => invoices.filter((i) => new Date(i.created_at) >= dateFrom),

@@ -53,7 +53,7 @@ export default function NoticesPage() {
     const { data } = await query;
     setNotices((data || []) as NoticeRow[]);
     setLoading(false);
-  }, [organization]);
+  }, [organization?.id]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 
@@ -85,7 +85,12 @@ export default function NoticesPage() {
   };
 
   const markAllRead = async () => {
-    await supabase.from("notices").update({ is_read: true }).eq("is_read", false);
+    if (!organization) return;
+    await supabase
+      .from("notices")
+      .update({ is_read: true })
+      .eq("organization_id", organization.id)
+      .eq("is_read", false);
     setNotices((prev) => prev.map((n) => ({ ...n, is_read: true })));
     toast.success("Todos marcados como leídos");
   };

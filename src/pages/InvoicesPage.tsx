@@ -115,7 +115,7 @@ export default function InvoicesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [organization?.id]);
 
   const openCreate = () => {
     setForm({
@@ -181,8 +181,13 @@ export default function InvoicesPage() {
       total: it.quantity * it.unit_price,
     }));
 
-    await supabase.from("invoice_items").insert(itemsToInsert);
-    
+    const { error: itemsError } = await supabase.from("invoice_items").insert(itemsToInsert);
+    if (itemsError) {
+      toast.error("Error al guardar los items de la factura");
+      setSaving(false);
+      return;
+    }
+
     toast.success("Factura creada");
     setSaving(false);
     setModalOpen(false);

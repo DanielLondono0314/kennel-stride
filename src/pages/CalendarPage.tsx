@@ -44,7 +44,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchRange();
-  }, [view, currentDate.getFullYear(), currentDate.getMonth(), organization]);
+  }, [view, currentDate.getFullYear(), currentDate.getMonth(), organization?.id]);
 
   const visibleReservations = useMemo(() => {
     let start: Date;

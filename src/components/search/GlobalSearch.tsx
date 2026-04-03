@@ -116,7 +116,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
 
     setResults(mapped);
     setLoading(false);
-  }, []);
+  }, [organization?.id]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

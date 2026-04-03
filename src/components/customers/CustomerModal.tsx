@@ -32,6 +32,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (customer) {
@@ -51,10 +52,18 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setAddress(""); setCity(""); setState(""); setZipCode("");
       setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
     }
+    setErrors({});
   }, [customer, open]);
 
   const handleSubmit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()) {
+    const newErrors: Record<string, boolean> = {
+      firstName: !firstName.trim(),
+      lastName: !lastName.trim(),
+      email: !email.trim(),
+      phone: !phone.trim(),
+    };
+    setErrors(newErrors);
+    if (Object.values(newErrors).some(Boolean)) {
       toast.error("Completa los campos requeridos");
       return;
     }
@@ -95,22 +104,26 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nombre *</Label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre" />
+              <Input value={firstName} onChange={(e) => { setFirstName(e.target.value); setErrors((p) => ({ ...p, firstName: false })); }} placeholder="Nombre" className={errors.firstName ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.firstName && <p className="text-xs text-destructive">Campo requerido</p>}
             </div>
             <div className="space-y-2">
               <Label>Apellido *</Label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" />
+              <Input value={lastName} onChange={(e) => { setLastName(e.target.value); setErrors((p) => ({ ...p, lastName: false })); }} placeholder="Apellido" className={errors.lastName ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.lastName && <p className="text-xs text-destructive">Campo requerido</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Email *</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+              <Input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: false })); }} placeholder="correo@ejemplo.com" className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.email && <p className="text-xs text-destructive">Campo requerido</p>}
             </div>
             <div className="space-y-2">
               <Label>Teléfono *</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555-0000" />
+              <Input value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: false })); }} placeholder="+1 555-0000" className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.phone && <p className="text-xs text-destructive">Campo requerido</p>}
             </div>
           </div>
 

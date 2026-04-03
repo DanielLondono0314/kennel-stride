@@ -5,7 +5,7 @@ import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationCo
 
 function OrgGuardInner() {
   const { session, loading: authLoading } = useAuth();
-  const { organization, loading: orgLoading, isSubscriptionActive } = useOrganization();
+  const { organization, loading: orgLoading, notFound, isSubscriptionActive } = useOrganization();
 
   if (authLoading || orgLoading) {
     return (
@@ -16,6 +16,8 @@ function OrgGuardInner() {
   }
 
   if (!session) return <Navigate to="/login" replace />;
+  // Org slug exists in URL but does not exist in DB — send to onboarding, not login
+  if (notFound) return <Navigate to="/onboarding" replace />;
   if (!organization) return <Navigate to="/login" replace />;
   if (!isSubscriptionActive) return <Navigate to="/billing" replace />;
 

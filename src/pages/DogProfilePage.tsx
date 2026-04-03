@@ -102,7 +102,7 @@ export default function DogProfilePage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchDog(), fetchReservations()]).finally(() => setLoading(false));
-  }, [id, organization]);
+  }, [id, organization?.id]);
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -154,7 +154,7 @@ export default function DogProfilePage() {
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <Dog className="h-12 w-12 mb-4 opacity-50" />
         <p>Perro no encontrado</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/dogs")}>Volver</Button>
+        <Button variant="outline" className="mt-4" onClick={() => orgNavigate("/dogs")}>Volver</Button>
       </div>
     );
   }
@@ -165,7 +165,7 @@ export default function DogProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back */}
-      <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => navigate("/dogs")}>
+      <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => orgNavigate("/dogs")}>
         <ArrowLeft className="h-4 w-4" />
         Volver a Perros
       </Button>

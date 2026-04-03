@@ -108,7 +108,7 @@ export default function PackagesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [organization?.id]);
 
   const openCreate = () => {
     setEditingPkg(null);

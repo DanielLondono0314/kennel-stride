@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
@@ -11,7 +11,7 @@ export function useAppCounts() {
   const { organization } = useOrganization();
   const [counts, setCounts] = useState<AppCounts>({ unreadNotices: 0, pendingRequests: 0 });
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     if (!organization) return;
     const [noticesRes, requestsRes] = await Promise.all([
       supabase
@@ -30,7 +30,7 @@ export function useAppCounts() {
       unreadNotices: noticesRes.count ?? 0,
       pendingRequests: requestsRes.count ?? 0,
     });
-  };
+  }, [organization?.id]);
 
   useEffect(() => {
     fetch();
@@ -40,7 +40,7 @@ export function useAppCounts() {
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, fetch)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [organization?.id]);
+  }, [fetch]);
 
   return counts;
 }

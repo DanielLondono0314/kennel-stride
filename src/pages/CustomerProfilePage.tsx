@@ -145,7 +145,7 @@ export default function CustomerProfilePage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchAll(); }, [id, organization]);
+  useEffect(() => { fetchAll(); }, [id, organization?.id]);
 
   const handleSave = async (data: Partial<DbCustomer>) => {
     const payload = {
@@ -184,7 +184,7 @@ export default function CustomerProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
         <p className="text-muted-foreground">Cliente no encontrado</p>
-        <Button variant="outline" onClick={() => navigate("/customers")}>
+        <Button variant="outline" onClick={() => orgNavigate("/customers")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver a Clientes
         </Button>
@@ -202,7 +202,7 @@ export default function CustomerProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back button */}
-      <Button variant="ghost" size="sm" onClick={() => navigate("/customers")} className="-ml-2">
+      <Button variant="ghost" size="sm" onClick={() => orgNavigate("/customers")} className="-ml-2">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Clientes
       </Button>

@@ -1,0 +1,69 @@
+# AGENTE 1: QA LEAD
+Rol: Supervisor general
+Tarea: 
+1. Revisa cada reporte de los otros agentes
+2. Identifica patrones de errores
+3. Prioriza fixes
+4. Crea reporte ejecutivo
+
+---
+
+# AGENTE 2: FUNCTIONAL TESTER
+Rol: Prueba cada feature
+Tareas:
+- [ ] Prueba login/signup
+- [ ] Prueba crear elemento
+- [ ] Prueba editar elemento
+- [ ] Prueba eliminar elemento
+- [ ] Prueba filtros y búsqueda
+- [ ] Prueba integración con Supabase
+- [ ] Revisa que todos los datos se guarden correctamente
+
+---
+
+# AGENTE 3: UI/UX TESTER
+Rol: Valida experiencia de usuario
+Tareas:
+- [ ] Prueba en mobile (375px)
+- [ ] Prueba en tablet (768px)
+- [ ] Prueba en desktop (1920px)
+- [ ] Verifica accesibilidad (WCAG)
+- [ ] Revisa navegación
+- [ ] Valida mensajes de error
+
+---
+
+# AGENTE 4: BUG HUNTER
+Rol: Intenta romper la app
+Tareas:
+- [ ] Ingresa SQL injection en campos
+- [ ] Ingresa caracteres especiales
+- [ ] Deja campos vacíos
+- [ ] Intenta acceso sin autenticación
+- [ ] Recarga la página en momentos críticos
+- [ ] Cierra DevTools con errores
+- [ ] Prueba con conexión lenta
+
+---
+
+# AGENTE 5: PERFORMANCE TESTER
+Rol: Mide rendimiento
+Tareas:
+- [ ] Mide tiempo de carga (< 3s ideal)
+- [ ] Revisa Network tab (DevTools)
+- [ ] Busca memory leaks
+- [ ] Revisa Console por warnings
+- [ ] Mide FPS en animaciones
+```
+
+---
+
+## 📊 **Paso 5: Crea un script de testing automatizado**
+
+Pídele a Claude Code:
+```
+Crea un archivo `tests/run-all-tests.sh` que:
+1. Ejecute npm test
+2. Haga screenshpts de errores
+3. Genere un reporte HTML
+4. Copile todo en `reports/qa-report.html`

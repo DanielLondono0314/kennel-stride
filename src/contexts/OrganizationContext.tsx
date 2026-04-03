@@ -22,6 +22,8 @@ export interface Organization {
 interface OrganizationContextType {
   organization: Organization | null;
   loading: boolean;
+  /** True when the DB query completed but the slug was not found */
+  notFound: boolean;
   isSubscriptionActive: boolean;
   refetch: () => void;
 }
@@ -29,6 +31,7 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType>({
   organization: null,
   loading: true,
+  notFound: false,
   isSubscriptionActive: false,
   refetch: () => {},
 });
@@ -38,6 +41,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!user || !orgSlug) {
@@ -49,12 +53,19 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
   async function load() {
     setLoading(true);
+    setNotFound(false);
     const { data } = await (supabase as any)
       .from("organizations")
       .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email")
       .eq("slug", orgSlug)
       .maybeSingle();
-    setOrganization(data ?? null);
+    if (data) {
+      setOrganization(data);
+      setNotFound(false);
+    } else {
+      setOrganization(null);
+      setNotFound(true);
+    }
     setLoading(false);
   }
 
@@ -65,7 +76,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     : false;
 
   return (
-    <OrganizationContext.Provider value={{ organization, loading, isSubscriptionActive, refetch: load }}>
+    <OrganizationContext.Provider value={{ organization, loading, notFound, isSubscriptionActive, refetch: load }}>
       {children}
     </OrganizationContext.Provider>
   );

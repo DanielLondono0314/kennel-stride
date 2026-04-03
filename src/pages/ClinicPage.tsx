@@ -49,7 +49,7 @@ export default function ClinicPage() {
       setLoading(false);
     };
     fetchDogs();
-  }, [organization]);
+  }, [organization?.id]);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;

@@ -6,7 +6,7 @@ import { FacilityToolbar, ZoneTypeConfig, ZONE_TYPES } from "@/components/facili
 import { ZoneBlock } from "@/components/facility/ZoneBlock";
 import { FacilitySummary } from "@/components/facility/FacilitySummary";
 import { KennelAssignmentModal } from "@/components/facility/KennelAssignmentModal";
-import { Map } from "lucide-react";
+import { Map, Loader2 } from "lucide-react";
 
 interface FacilityZone {
   id: string;
@@ -40,6 +40,7 @@ export default function FacilityPage() {
   const { organization } = useOrganization();
   const [zones, setZones] = useState<FacilityZone[]>([]);
   const [units, setUnits] = useState<FacilityUnit[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<FacilityUnit | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
@@ -47,13 +48,15 @@ export default function FacilityPage() {
   // Load data
   const fetchData = useCallback(async () => {
     if (!organization) return;
+    setLoading(true);
     const [zRes, uRes] = await Promise.all([
       supabase.from("facility_zones").select("*").eq("organization_id", organization!.id).order("sort_order"),
       supabase.from("facility_units").select("*").eq("organization_id", organization!.id).order("position_index"),
     ]);
     if (zRes.data) setZones(zRes.data);
     if (uRes.data) setUnits(uRes.data);
-  }, [organization]);
+    setLoading(false);
+  }, [organization?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -87,7 +90,8 @@ export default function FacilityPage() {
         status: "available",
         organization_id: organization!.id,
       }));
-      await supabase.from("facility_units").insert(unitInserts);
+      const { error: unitsError } = await supabase.from("facility_units").insert(unitInserts);
+      if (unitsError) { toast({ title: "Error al crear unidades", description: unitsError.message, variant: "destructive" }); }
     }
 
     fetchData();
@@ -139,7 +143,7 @@ export default function FacilityPage() {
 
   // Release unit
   const handleRelease = async (unitId: string) => {
-    await supabase.from("facility_units").update({
+    const { error } = await supabase.from("facility_units").update({
       status: "available",
       assigned_dog_id: null,
       assigned_dog_name: null,
@@ -147,6 +151,7 @@ export default function FacilityPage() {
       assignment_end: null,
       notes: "",
     }).eq("id", unitId);
+    if (error) { toast({ title: "Error al liberar perrera", description: error.message, variant: "destructive" }); return; }
     setModalOpen(false);
     fetchData();
     toast({ title: "Perrera liberada" });
@@ -154,13 +159,14 @@ export default function FacilityPage() {
 
   // Set maintenance
   const handleSetMaintenance = async (unitId: string) => {
-    await supabase.from("facility_units").update({
+    const { error } = await supabase.from("facility_units").update({
       status: "maintenance",
       assigned_dog_id: null,
       assigned_dog_name: null,
       assignment_start: null,
       assignment_end: null,
     }).eq("id", unitId);
+    if (error) { toast({ title: "Error al cambiar estado", description: error.message, variant: "destructive" }); return; }
     setModalOpen(false);
     fetchData();
     toast({ title: "Perrera en mantenimiento" });
@@ -195,7 +201,11 @@ export default function FacilityPage() {
             }}
           />
 
-          {zones.length === 0 && (
+          {loading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : zones.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center space-y-2">
                 <Map className="h-12 w-12 mx-auto text-muted-foreground/30" />

@@ -324,7 +324,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
             <div className="flex flex-wrap gap-3">
               {form.photos.map((url, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={url} alt="" width={80} height={80} loading="lazy" className="w-full h-full object-cover" />
                   <button type="button" onClick={() => removePhoto(i)} className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5">
                     <X className="h-3 w-3" />
                   </button>

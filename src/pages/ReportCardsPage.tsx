@@ -64,7 +64,7 @@ export default function ReportCardsPage() {
 
   useEffect(() => {
     loadData();
-  }, [organization]);
+  }, [organization?.id]);
 
   async function loadData() {
     if (!organization) return;
@@ -246,7 +246,7 @@ export default function ReportCardsPage() {
                 {rc.photos?.length > 0 && (
                   <div className="flex gap-1 mt-3">
                     {rc.photos.slice(0, 3).map((url: string, i: number) => (
-                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border" />
+                      <img key={i} src={url} alt="" width={40} height={40} loading="lazy" className="w-10 h-10 rounded object-cover border" />
                     ))}
                     {rc.photos.length > 3 && (
                       <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">

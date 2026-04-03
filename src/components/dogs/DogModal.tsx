@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ interface DogModalProps {
 
 export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSave }: DogModalProps) {
   const isEditing = !!dog;
+  const { organization } = useOrganization();
   const [customers, setCustomers] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [name, setName] = useState("");
@@ -46,10 +48,16 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.from("customers").select("id, first_name, last_name").order("first_name").then(({ data }) => {
-      if (data) setCustomers(data);
-    });
-  }, []);
+    if (!organization) return;
+    supabase
+      .from("customers")
+      .select("id, first_name, last_name")
+      .eq("organization_id", organization.id)
+      .order("first_name")
+      .then(({ data }) => {
+        if (data) setCustomers(data);
+      });
+  }, [organization?.id]);
 
   useEffect(() => {
     if (dog) {

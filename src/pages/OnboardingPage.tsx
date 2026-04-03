@@ -49,14 +49,44 @@ export default function OnboardingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!slugAvailable) { toast.error("El slug ya está en uso"); return; }
+    if (!slug.trim()) { toast.error("El URL de acceso no puede estar vacío"); return; }
+    if (checking) { toast.error("Espera mientras se verifica la disponibilidad del URL"); return; }
+    if (!slugAvailable) { toast.error("El slug ya está en uso, elige otro"); return; }
 
     setLoading(true);
+
+    // Re-verify slug availability right before insert to prevent TOCTOU race
+    // (two tabs checking at the same time could both see it as available)
+    const { data: existingOrg } = await (supabase as any)
+      .from("organizations")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (existingOrg) {
+      toast.error("El slug ya fue tomado. Por favor elige otro.");
+      setSlugAvailable(false);
+      setLoading(false);
+      return;
+    }
+
     const { data: org, error: orgError } = await (supabase as any)
       .rpc("create_organization", { p_name: centerName, p_slug: slug });
 
     if (orgError) {
-      toast.error(`Error al crear el centro: ${orgError.message}`);
+      // Handle unique constraint violation from the DB (last line of defence)
+      if (orgError.code === "23505" || orgError.message?.includes("unique") || orgError.message?.includes("duplicate")) {
+        toast.error("El slug ya está en uso. Por favor elige otro nombre.");
+        setSlugAvailable(false);
+      } else {
+        toast.error(`Error al crear el centro: ${orgError.message}`);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (!org?.slug) {
+      toast.error("Error inesperado: no se recibió el slug del centro creado.");
       setLoading(false);
       return;
     }

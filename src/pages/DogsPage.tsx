@@ -88,7 +88,7 @@ export default function DogsPage() {
     setLoadingMore(false);
   };
 
-  useEffect(() => { fetchDogs(true); }, []);
+  useEffect(() => { fetchDogs(true); }, [organization?.id]);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;

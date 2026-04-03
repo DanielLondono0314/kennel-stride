@@ -89,7 +89,7 @@ export default function CustomersPage() {
     setLoadingMore(false);
   };
 
-  useEffect(() => { fetchCustomers(true); }, []);
+  useEffect(() => { fetchCustomers(true); }, [organization?.id]);
 
   const filtered = useMemo(() => {
     if (!searchQuery) return customers;

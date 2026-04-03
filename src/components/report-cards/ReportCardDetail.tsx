@@ -169,7 +169,7 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
             <h4 className="font-semibold mb-2">Fotos</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {reportCard.photos.map((url: string, i: number) => (
-                <img key={i} src={url} alt="" className="rounded-lg w-full aspect-square object-cover border" />
+                <img key={i} src={url} alt="" width={200} height={200} loading="lazy" className="rounded-lg w-full aspect-square object-cover border" />
               ))}
             </div>
           </div>

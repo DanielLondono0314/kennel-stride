@@ -89,7 +89,7 @@ export default function RequestsPage() {
       .eq("is_active", true)
       .eq("organization_id", organization!.id)
       .then(({ data }) => { if (data) setStaffList(data); });
-  }, [organization]);
+  }, [organization?.id]);
 
   const trainers = useMemo(
     () => staffList.filter((s) => s.role === "trainer" || s.role === "admin"),

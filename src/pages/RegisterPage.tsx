@@ -28,7 +28,15 @@ export default function RegisterPage() {
       options: { data: { full_name: name } },
     });
     if (error) {
-      toast.error(error.message);
+      if (
+        error.message.toLowerCase().includes("already registered") ||
+        error.message.toLowerCase().includes("user already exists") ||
+        error.message.toLowerCase().includes("already been registered")
+      ) {
+        toast.error("Este correo ya está registrado. Inicia sesión o usa otro email.");
+      } else {
+        toast.error(error.message);
+      }
       setLoading(false);
       return;
     }
