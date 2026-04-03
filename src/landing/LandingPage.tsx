@@ -203,8 +203,8 @@ const FAQS = [
 ];
 
 const TRUST_NAMES = [
-  'Paw Palace Group', 'Summit Dog Training', 'K9 Resorts',
-  'Barkly Stays', 'Happy Hound Hotels', 'ProPaw Academy',
+  'ColinaCanineCenter', 'DanielYTuPerro', 'Entrecaninitos :v',
+  'Kaelis', 'Pedro', 'ValanzDugz',
 ];
 
 const NAV_LINKS = [
