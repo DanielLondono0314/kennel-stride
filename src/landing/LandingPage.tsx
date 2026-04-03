@@ -790,7 +790,7 @@ function Features() {
             Todo lo que necesita tu centro.<br />Nada más.
           </h2>
           <p style={{ fontSize: 17, color: c.muted, maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>
-            Diseñado desde cero para centros de pensión y adiestramiento canino —
+            Diseñado desde cero para centros de adiestramiento canino —
             no adaptado de una herramienta de agenda genérica.
           </p>
         </Reveal>
