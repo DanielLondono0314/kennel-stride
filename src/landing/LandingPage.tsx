@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Calendar, Users, Stethoscope, CreditCard, Building2,
   BarChart3, Check, ArrowRight, Menu, X, Star,
@@ -36,38 +37,38 @@ const c = {
 const FEATURES = [
   {
     Icon: Calendar,
-    title: 'Reservation Engine',
-    body: 'Drag-and-drop calendar with per-run capacity tracking. Automated confirmations, SMS reminders, and waitlist management baked in — no spreadsheet required.',
+    title: 'Motor de Reservas',
+    body: 'Calendario drag-and-drop con control de capacidad por box. Confirmaciones automáticas, recordatorios por SMS y lista de espera integrados — sin hojas de cálculo.',
     bg: c.blueLight, ic: c.blue,
   },
   {
     Icon: Users,
-    title: 'Clients & Dog Profiles',
-    body: 'Complete pet histories, vaccine records, behavioral flags, and owner preferences in one place. Know every dog before they walk through the door.',
+    title: 'Clientes y Perfiles de Perros',
+    body: 'Historial completo del animal, vacunas, alertas de comportamiento y preferencias del dueño en un solo lugar. Conoce a cada perro antes de que llegue.',
     bg: c.orangeLight, ic: c.orange,
   },
   {
     Icon: Stethoscope,
-    title: 'Clinic & Health Records',
-    body: 'Track medications, vet notes, injury reports, and health alerts. Flag dogs with special needs and attach documentation directly to their profile.',
+    title: 'Clínica e Historial Médico',
+    body: 'Registra medicamentos, notas veterinarias, incidentes y alertas de salud. Señala perros con necesidades especiales y adjunta documentos a su ficha.',
     bg: c.greenLight, ic: c.green,
   },
   {
     Icon: CreditCard,
-    title: 'Billing & Invoicing',
-    body: 'Automated invoicing, package credits, and Stripe-powered payment collection. Supports recurring billing for training subscriptions.',
+    title: 'Facturación y Cobros',
+    body: 'Facturas automáticas, paquetes de sesiones y cobros con Stripe. Compatible con facturación recurrente para suscripciones de adiestramiento.',
     bg: c.blueLight, ic: c.blue,
   },
   {
     Icon: Building2,
-    title: 'Facilities Management',
-    body: 'Map out kennels, suites, and training areas. Track occupancy in real time, flag maintenance issues, and visualize capacity at a glance.',
+    title: 'Gestión de Instalaciones',
+    body: 'Mapea boxes, suites y áreas de entrenamiento. Controla la ocupación en tiempo real, reporta incidencias de mantenimiento y visualiza el aforo de un vistazo.',
     bg: c.orangeLight, ic: c.orange,
   },
   {
     Icon: BarChart3,
-    title: 'Reports & Analytics',
-    body: 'Revenue trends, occupancy rates, staff performance, and client retention — in dashboards you can actually read and act on.',
+    title: 'Reportes y Analítica',
+    body: 'Tendencias de ingresos, tasas de ocupación, rendimiento del equipo y retención de clientes — en paneles que puedes leer y actuar sobre ellos de verdad.',
     bg: c.greenLight, ic: c.green,
   },
 ];
@@ -75,45 +76,45 @@ const FEATURES = [
 const STEPS = [
   {
     n: '01',
-    title: 'Set up your facility',
-    body: 'Map your kennel layout, configure capacity per run or suite, and import your existing client database. Most teams finish in under 30 minutes.',
+    title: 'Configura tu centro',
+    body: 'Mapea el plano de tu kennel, ajusta la capacidad por box o suite e importa tu base de clientes existente. La mayoría de equipos termina en menos de 30 minutos.',
   },
   {
     n: '02',
-    title: 'Go live with bookings',
-    body: 'Your client-facing booking portal is ready immediately. Embed it on your website or share a direct link — no developer needed.',
+    title: 'Activa las reservas',
+    body: 'Tu portal de reservas para clientes está listo al instante. Incrústalo en tu web o comparte el enlace directo — sin necesidad de programador.',
   },
   {
     n: '03',
-    title: 'Run your operation',
-    body: 'Manage daily check-ins, send care updates to owners, collect payments, and review performance data — all from one screen.',
+    title: 'Gestiona tu operación',
+    body: 'Controla los check-ins diarios, envía actualizaciones a los dueños, cobra pagos y revisa el rendimiento — todo desde una sola pantalla.',
   },
 ];
 
 const TESTIMONIALS = [
   {
-    name: 'Sarah Kowalski',
-    role: 'Owner, Lakeside Paw Lodge',
-    location: 'Austin, TX',
-    quote: 'We went from managing 3 spreadsheets and a paper log to running everything from one screen. Bookings are up 40% since we stopped double-booking suites.',
+    name: 'Sara Kowalski',
+    role: 'Propietaria, Lakeside Paw Lodge',
+    location: 'Madrid, España',
+    quote: 'Pasamos de gestionar 3 hojas de cálculo y un registro en papel a controlarlo todo desde una pantalla. Las reservas subieron un 40% desde que dejamos de hacer doble reserva en los boxes.',
     initials: 'SK',
     aBg: '#DBEAFE',
     aText: '#1E40AF',
   },
   {
-    name: 'Marcus Delgado',
-    role: 'Head Trainer, Canine Academy Pro',
-    location: 'Denver, CO',
-    quote: 'The training program scheduler alone is worth it. Dog owners book online, I see the full class roster with each dog\'s history, and billing runs automatically.',
+    name: 'Marcos Delgado',
+    role: 'Adiestrador Jefe, Canine Academy Pro',
+    location: 'Barcelona, España',
+    quote: 'Solo el planificador de clases ya vale la pena. Los dueños reservan online, veo el listado completo con el historial de cada perro y la facturación corre sola al terminar.',
     initials: 'MD',
     aBg: '#FED7AA',
     aText: '#9A3412',
   },
   {
     name: 'Jennifer Tran',
-    role: 'Operations Manager, Happy Tails Resort',
-    location: 'Nashville, TN',
-    quote: 'Staff onboarding used to take two weeks. With KennelOps it\'s two days — roles are clear, everything is documented, and nobody calls me on their day off.',
+    role: 'Directora de Operaciones, Happy Tails Resort',
+    location: 'Valencia, España',
+    quote: 'Antes incorporar al personal tardaba dos semanas. Con KennelOps son dos días — los roles están claros, todo está documentado y nadie me llama en mi día libre.',
     initials: 'JT',
     aBg: '#D1FAE5',
     aText: '#065F46',
@@ -125,85 +126,92 @@ const PLANS = [
     name: 'Starter',
     mo: 79,
     yr: 63,
-    desc: 'For single-location kennels getting organized.',
-    cta: 'Start free trial',
+    desc: 'Para centros de una sola sede que quieren organizarse.',
+    cta: 'Empezar gratis',
     highlight: false,
     features: [
-      'Up to 40 kennel units',
-      'Reservations & calendar',
-      'Client & dog profiles',
-      'Basic billing & invoices',
-      'Email notifications',
-      '2 staff accounts',
-      'Email support',
+      'Hasta 40 unidades de alojamiento',
+      'Reservas y calendario',
+      'Fichas de clientes y perros',
+      'Facturación básica',
+      'Notificaciones por email',
+      '2 cuentas de personal',
+      'Soporte por email',
     ],
   },
   {
     name: 'Growth',
     mo: 179,
     yr: 143,
-    desc: 'For growing operations that need the full platform.',
-    cta: 'Start free trial',
+    desc: 'Para centros en crecimiento que necesitan la plataforma completa.',
+    cta: 'Empezar gratis',
     highlight: true,
-    badge: 'Most popular',
+    badge: 'Más popular',
     features: [
-      'Unlimited kennel units',
-      'Everything in Starter',
-      'Medical & clinic records',
-      'Facilities management',
-      'Staff scheduling & roles',
-      'SMS + email communications',
-      'Reports & analytics',
-      'Unlimited staff accounts',
-      'Priority support',
+      'Alojamientos ilimitados',
+      'Todo lo del plan Starter',
+      'Historial médico y clínica',
+      'Gestión de instalaciones',
+      'Horarios y roles del personal',
+      'Comunicaciones SMS + email',
+      'Reportes y analítica',
+      'Personal ilimitado',
+      'Soporte prioritario',
     ],
   },
   {
     name: 'Enterprise',
     mo: null,
     yr: null,
-    desc: 'For multi-location groups and franchise networks.',
-    cta: 'Contact sales',
+    desc: 'Para grupos con múltiples sedes y redes de franquicias.',
+    cta: 'Contactar ventas',
     highlight: false,
     features: [
-      'Multi-location management',
-      'Everything in Growth',
-      'Custom integrations',
-      'White-label options',
-      'Dedicated onboarding',
-      'SLA guarantee',
-      'Custom reporting',
-      'Account manager',
+      'Gestión multisede',
+      'Todo lo del plan Growth',
+      'Integraciones personalizadas',
+      'Opciones white-label',
+      'Incorporación dedicada',
+      'Garantía de SLA',
+      'Reportes a medida',
+      'Account manager propio',
     ],
   },
 ];
 
 const FAQS = [
   {
-    q: 'How long does onboarding take?',
-    a: 'Most kennels are fully operational within 48 hours. We migrate your existing client data, configure your facility layout, and run a live walkthrough with your team — our onboarding team is available every day including weekends.',
+    q: '¿Cuánto tiempo tarda la incorporación?',
+    a: 'La mayoría de los centros están completamente operativos en 48 horas. Migramos tus datos de clientes existentes, configuramos el plano de tus instalaciones y hacemos un recorrido en vivo con tu equipo — nuestro equipo de incorporación está disponible todos los días, incluidos los fines de semana.',
   },
   {
-    q: 'Can my clients book online?',
-    a: 'Yes. Every account includes a customizable booking portal you can embed on your website or share as a direct link. Clients book, check availability, and receive automated confirmations without calling in.',
+    q: '¿Mis clientes pueden reservar online?',
+    a: 'Sí. Cada cuenta incluye un portal de reservas personalizable que puedes incrustar en tu web o compartir como enlace directo. Los clientes reservan, consultan disponibilidad y reciben confirmaciones automáticas sin necesidad de llamar.',
   },
   {
-    q: 'Do you support multiple locations?',
-    a: 'The Enterprise plan supports unlimited locations under one account — with separate calendars, staff permissions, and reporting per location, plus a consolidated cross-facility view.',
+    q: '¿Admite múltiples sedes?',
+    a: 'El plan Enterprise permite sedes ilimitadas bajo una misma cuenta, con calendarios, permisos de personal y reportes independientes por sede, además de una vista consolidada de todas las instalaciones.',
   },
   {
-    q: 'Is there a contract or minimum commitment?',
-    a: 'No contracts. Monthly plans cancel anytime. Annual plans are billed upfront at a 20% discount with a prorated refund available within the first 30 days.',
+    q: '¿Hay contrato o permanencia mínima?',
+    a: 'Sin contratos. Los planes mensuales se cancelan en cualquier momento. Los planes anuales se facturan por adelantado con un 20% de descuento y permiten reembolso prorrateado dentro de los primeros 30 días.',
   },
   {
-    q: 'How does the free trial work?',
-    a: '14 days, full access, no credit card required. You get everything in the Growth plan so you can properly evaluate the platform before choosing a tier.',
+    q: '¿Cómo funciona la prueba gratuita?',
+    a: '14 días, acceso completo, sin tarjeta de crédito. Obtienes todo lo del plan Growth para evaluar la plataforma correctamente antes de elegir un plan.',
   },
 ];
 
 const TRUST_NAMES = [
   'Paw Palace Group', 'Summit Dog Training', 'K9 Resorts',
   'Barkly Stays', 'Happy Hound Hotels', 'ProPaw Academy',
+];
+
+const NAV_LINKS = [
+  { label: 'Funciones',   id: 'features' },
+  { label: 'Precios',     id: 'pricing' },
+  { label: 'Testimonios', id: 'testimonials' },
+  { label: 'FAQ',         id: 'faq' },
 ];
 
 /* ─── Hooks ─────────────────────────────────────────────────────────────────── */
@@ -444,7 +452,7 @@ function NavBar() {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  const navLinks = ['Features', 'Pricing', 'Testimonials', 'FAQ'];
+  const navLinks = NAV_LINKS;
 
   return (
     <header
@@ -478,29 +486,29 @@ function NavBar() {
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((l) => (
             <a
-              key={l}
-              href={`#${l.toLowerCase()}`}
+              key={l.id}
+              href={`#${l.id}`}
               className="text-sm font-medium no-underline"
               style={{ color: c.muted, transition: 'color 0.2s' }}
               onMouseEnter={(e) => (e.currentTarget.style.color = c.text)}
               onMouseLeave={(e) => (e.currentTarget.style.color = c.muted)}
             >
-              {l}
+              {l.label}
             </a>
           ))}
         </nav>
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <a
-            href="#"
+          <Link
+            to="/login"
             className="hidden md:block text-sm font-medium no-underline px-3 py-2"
             style={{ color: c.text }}
           >
-            Sign in
-          </a>
-          <a
-            href="#pricing"
+            Iniciar sesión
+          </Link>
+          <Link
+            to="/register"
             className="text-sm font-semibold no-underline px-5 py-2.5 rounded-lg cursor-pointer"
             style={{
               backgroundColor: c.blue, color: '#fff',
@@ -518,8 +526,8 @@ function NavBar() {
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(29,78,216,0.28)';
             }}
           >
-            Start free trial
-          </a>
+            Empezar gratis
+          </Link>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-1.5 rounded-md cursor-pointer border-none bg-transparent"
@@ -545,23 +553,23 @@ function NavBar() {
         <div className="px-6 pt-2 pb-6 flex flex-col gap-0">
           {navLinks.map((l) => (
             <a
-              key={l}
-              href={`#${l.toLowerCase()}`}
+              key={l.id}
+              href={`#${l.id}`}
               onClick={() => setMobileOpen(false)}
               className="block py-3.5 text-base font-medium no-underline"
               style={{ color: c.text, borderBottom: `1px solid ${c.border}` }}
             >
-              {l}
+              {l.label}
             </a>
           ))}
-          <a
-            href="#pricing"
+          <Link
+            to="/register"
             onClick={() => setMobileOpen(false)}
             className="block mt-4 text-center text-sm font-semibold no-underline py-3.5 rounded-xl"
             style={{ backgroundColor: c.blue, color: '#fff' }}
           >
-            Start free trial
-          </a>
+            Empezar gratis
+          </Link>
         </div>
       </div>
     </header>
@@ -613,7 +621,7 @@ function Hero() {
               >
                 <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: c.blue }} />
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: c.blue }}>
-                  Now with AI-powered scheduling
+                  Ahora con programación impulsada por IA
                 </span>
               </div>
             </Reveal>
@@ -629,8 +637,8 @@ function Hero() {
                   letterSpacing: '-0.03em',
                 }}
               >
-                Run every kennel day<br />
-                <span style={{ color: c.blue }}>like you planned it</span>
+                Gestiona tu centro canino<br />
+                <span style={{ color: c.blue }}>como lo tenías planeado</span>
               </h1>
             </Reveal>
 
@@ -639,16 +647,16 @@ function Hero() {
                 className="mb-8"
                 style={{ fontSize: 18, color: c.muted, lineHeight: 1.72, maxWidth: 480 }}
               >
-                KennelOps gives boarding centers and training schools one platform to
-                manage reservations, medical records, billing, and staff — so nothing
-                slips through the cracks.
+                KennelOps da a los centros de pensión y escuelas de adiestramiento
+                una sola plataforma para gestionar reservas, historiales médicos,
+                facturación y personal — para que nada se pierda por el camino.
               </p>
             </Reveal>
 
             <Reveal delay={140}>
               <div className="flex flex-wrap gap-3 mb-10">
-                <a
-                  href="#pricing"
+                <Link
+                  to="/register"
                   className="inline-flex items-center gap-2 no-underline font-semibold rounded-xl cursor-pointer"
                   style={{
                     backgroundColor: c.blue, color: '#fff',
@@ -667,9 +675,9 @@ function Hero() {
                     e.currentTarget.style.boxShadow = '0 4px 16px rgba(29,78,216,0.35)';
                   }}
                 >
-                  Start free trial
+                  Empezar gratis
                   <ArrowRight size={16} />
-                </a>
+                </Link>
                 <a
                   href="#features"
                   className="inline-flex items-center gap-2 no-underline font-semibold rounded-xl cursor-pointer"
@@ -691,7 +699,7 @@ function Hero() {
                   }}
                 >
                   <Play size={14} color={c.blue} fill={c.blue} />
-                  See a 2-min demo
+                  Ver demo de 2 min
                 </a>
               </div>
             </Reveal>
@@ -699,9 +707,9 @@ function Hero() {
             <Reveal delay={180}>
               <div className="flex flex-wrap gap-8">
                 {[
-                  { v: '2,847+', l: 'kennels & schools' },
-                  { v: '4.9 ★',  l: 'average rating' },
-                  { v: '99.9%',  l: 'uptime SLA' },
+                  { v: '2.847+', l: 'centros y escuelas' },
+                  { v: '4,9 ★',  l: 'valoración media' },
+                  { v: '99,9%',  l: 'uptime garantizado' },
                 ].map((s) => (
                   <div key={s.l}>
                     <p style={{ fontSize: 22, fontWeight: 800, color: c.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
@@ -740,7 +748,7 @@ function TrustBar() {
             textTransform: 'uppercase', letterSpacing: '0.09em',
           }}
         >
-          Trusted by
+          Con la confianza de
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
           {TRUST_NAMES.map((name) => (
@@ -770,7 +778,7 @@ function Features() {
               textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
             }}
           >
-            Platform
+            Plataforma
           </p>
           <h2
             style={{
@@ -779,11 +787,11 @@ function Features() {
               letterSpacing: '-0.02em', lineHeight: 1.18, marginBottom: 14,
             }}
           >
-            Everything a kennel needs.<br />Nothing it doesn't.
+            Todo lo que necesita tu centro.<br />Nada más.
           </h2>
           <p style={{ fontSize: 17, color: c.muted, maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>
-            Built from the ground up for dog boarding and training operations —
-            not adapted from a generic scheduling tool.
+            Diseñado desde cero para centros de pensión y adiestramiento canino —
+            no adaptado de una herramienta de agenda genérica.
           </p>
         </Reveal>
 
@@ -845,7 +853,7 @@ function HowItWorks() {
               textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
             }}
           >
-            How it works
+            Cómo funciona
           </p>
           <h2
             style={{
@@ -854,7 +862,7 @@ function HowItWorks() {
               letterSpacing: '-0.02em', lineHeight: 1.18,
             }}
           >
-            Operational from day one
+            Operativo desde el primer día
           </h2>
         </Reveal>
 
@@ -914,7 +922,7 @@ function Testimonials() {
               textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
             }}
           >
-            Testimonials
+            Testimonios
           </p>
           <h2
             style={{
@@ -923,7 +931,7 @@ function Testimonials() {
               letterSpacing: '-0.02em', lineHeight: 1.18,
             }}
           >
-            From kennels that run<br />on KennelOps
+            Centros que confían<br />en KennelOps
           </h2>
         </Reveal>
 
@@ -985,7 +993,7 @@ function Pricing() {
               textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
             }}
           >
-            Pricing
+            Precios
           </p>
           <h2
             style={{
@@ -994,10 +1002,10 @@ function Pricing() {
               letterSpacing: '-0.02em', lineHeight: 1.18, marginBottom: 12,
             }}
           >
-            Simple, transparent pricing
+            Precios simples y transparentes
           </h2>
           <p style={{ fontSize: 17, color: c.muted, marginBottom: 28, lineHeight: 1.65 }}>
-            No setup fees. No per-booking charges. One predictable monthly price.
+            Sin coste de alta. Sin cargos por reserva. Un precio mensual predecible.
           </p>
 
           {/* Billing toggle */}
@@ -1006,8 +1014,8 @@ function Pricing() {
             style={{ backgroundColor: c.border, gap: 2 }}
           >
             {[
-              { label: 'Monthly', key: false },
-              { label: 'Annual', key: true },
+              { label: 'Mensual', key: false },
+              { label: 'Anual', key: true },
             ].map(({ label, key }) => (
               <button
                 key={label}
@@ -1110,7 +1118,7 @@ function Pricing() {
                   )}
                   {annual && p.mo !== null && (
                     <p style={{ fontSize: 12, color: p.highlight ? '#64748B' : c.muted, marginTop: 4 }}>
-                      Billed ${(p.yr! * 12).toLocaleString()}/year
+                      Facturado ${(p.yr! * 12).toLocaleString()}/año
                     </p>
                   )}
                 </div>
@@ -1136,8 +1144,8 @@ function Pricing() {
                   ))}
                 </ul>
 
-                <a
-                  href="#"
+                <Link
+                  to={p.name === 'Enterprise' ? '#' : '/register'}
                   className="block text-center text-sm font-semibold no-underline py-3.5 rounded-xl cursor-pointer"
                   style={{
                     backgroundColor: p.highlight ? c.blue : 'transparent',
@@ -1155,7 +1163,7 @@ function Pricing() {
                   }}
                 >
                   {p.cta}
-                </a>
+                </Link>
               </div>
             </Reveal>
           ))}
@@ -1163,7 +1171,7 @@ function Pricing() {
 
         <Reveal className="mt-8 text-center">
           <p style={{ fontSize: 13.5, color: c.muted }}>
-            All plans include a 14-day free trial · No credit card required · Cancel anytime
+            Todos los planes incluyen 14 días gratis · Sin tarjeta de crédito · Cancela cuando quieras
           </p>
         </Reveal>
       </div>
@@ -1195,7 +1203,7 @@ function FAQ() {
               letterSpacing: '-0.02em', lineHeight: 1.2,
             }}
           >
-            Common questions
+            Preguntas frecuentes
           </h2>
         </Reveal>
 
@@ -1262,7 +1270,7 @@ function CTABanner() {
               letterSpacing: '-0.025em', lineHeight: 1.15,
             }}
           >
-            Ready to get your kennel<br />running like clockwork?
+            ¿Listo para que tu centro<br />funcione como un reloj?
           </h2>
         </Reveal>
         <Reveal delay={60}>
@@ -1270,14 +1278,14 @@ function CTABanner() {
             className="mb-10"
             style={{ fontSize: 17, color: '#94A3B8', lineHeight: 1.67 }}
           >
-            Start your 14-day free trial. Full access to the Growth plan.
-            No credit card. Cancel anytime.
+            Empieza tu prueba gratuita de 14 días. Acceso completo al plan Growth.
+            Sin tarjeta de crédito. Cancela cuando quieras.
           </p>
         </Reveal>
         <Reveal delay={110}>
           <div className="flex flex-wrap justify-center gap-3">
-            <a
-              href="#pricing"
+            <Link
+              to="/register"
               className="inline-flex items-center gap-2 no-underline font-semibold rounded-xl cursor-pointer"
               style={{
                 backgroundColor: c.orange, color: '#fff',
@@ -1298,7 +1306,7 @@ function CTABanner() {
             >
               Start free trial
               <ArrowRight size={16} />
-            </a>
+            </Link>
             <a
               href="#"
               className="inline-flex items-center gap-2 no-underline font-semibold rounded-xl cursor-pointer"
@@ -1315,7 +1323,7 @@ function CTABanner() {
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)';
               }}
             >
-              Schedule a demo
+              Solicitar demo
             </a>
           </div>
         </Reveal>
@@ -1328,9 +1336,9 @@ function CTABanner() {
 
 function Footer() {
   const cols = [
-    { heading: 'Product',   links: ['Features', 'Pricing', 'Security', 'Changelog', 'Roadmap'] },
-    { heading: 'Resources', links: ['Documentation', 'API Reference', 'Status page', 'Blog'] },
-    { heading: 'Company',   links: ['About', 'Careers', 'Press', 'Contact'] },
+    { heading: 'Producto',  links: ['Funciones', 'Precios', 'Seguridad', 'Novedades', 'Hoja de ruta'] },
+    { heading: 'Recursos',  links: ['Documentación', 'Referencia API', 'Estado del servicio', 'Blog'] },
+    { heading: 'Empresa',   links: ['Sobre nosotros', 'Empleo', 'Prensa', 'Contacto'] },
   ];
 
   return (
@@ -1357,7 +1365,7 @@ function Footer() {
               </span>
             </div>
             <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.67, maxWidth: 210 }}>
-              The all-in-one operations platform for dog boarding centers and training schools.
+              La plataforma todo en uno para centros de pensión y escuelas de adiestramiento canino.
             </p>
           </div>
 
@@ -1401,7 +1409,7 @@ function Footer() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
           <p style={{ fontSize: 13, color: '#475569' }}>
-            © 2025 KennelOps, Inc. All rights reserved.
+            © 2025 KennelOps, Inc. Todos los derechos reservados.
           </p>
           <div className="flex gap-6">
             {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((l) => (
