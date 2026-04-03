@@ -57,17 +57,27 @@ export default function NoticesPage() {
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 
-  // Subscribe to realtime notices
+  // Subscribe to realtime notices — filtered by org so other orgs' notices never arrive
   useEffect(() => {
+    if (!organization) return;
     const channel = supabase
-      .channel("notices-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notices" }, (payload) => {
-        setNotices((prev) => [payload.new as NoticeRow, ...prev]);
-        toast.info("Nuevo aviso", { description: (payload.new as NoticeRow).title });
-      })
+      .channel(`notices-${organization.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notices",
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        (payload) => {
+          setNotices((prev) => [payload.new as NoticeRow, ...prev]);
+          toast.info("Nuevo aviso", { description: (payload.new as NoticeRow).title });
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [organization?.id]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

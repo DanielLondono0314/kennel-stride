@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Clock, MapPin, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface BusinessData {
-  id: string;
+interface OrgFields {
   name: string;
   address: string;
   city: string;
-  state: string;
-  zip_code: string;
   phone: string;
   email: string;
   opening_time: string;
@@ -31,84 +29,61 @@ const timezones = [
 ];
 
 export function BusinessProfileTab() {
-  const [data, setData] = useState<BusinessData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { organization, isAdmin, refetch } = useOrganization();
+  const [fields, setFields] = useState<OrgFields | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchBusiness();
-  }, []);
-
-  const fetchBusiness = async () => {
-    const { data: rows, error } = await supabase
-      .from("business_profile")
-      .select("*")
-      .limit(1);
-    if (error) {
-      toast.error("Error al cargar perfil del negocio");
-      console.error(error);
-    } else if (rows && rows.length > 0) {
-      const row = rows[0];
-      setData({
-        id: row.id,
-        name: row.name,
-        address: row.address || "",
-        city: row.city || "",
-        state: row.state || "",
-        zip_code: row.zip_code || "",
-        phone: row.phone || "",
-        email: row.email || "",
-        opening_time: row.opening_time || "07:00",
-        closing_time: row.closing_time || "19:00",
-        timezone: row.timezone || "America/Mexico_City",
-      });
-    }
-    setLoading(false);
-  };
+    if (!organization) return;
+    setFields({
+      name:         organization.name,
+      address:      organization.address      ?? "",
+      city:         organization.city         ?? "",
+      phone:        organization.phone        ?? "",
+      email:        organization.email        ?? "",
+      opening_time: organization.opening_time ?? "07:00",
+      closing_time: organization.closing_time ?? "19:00",
+      timezone:     organization.timezone     ?? "America/Mexico_City",
+    });
+  }, [organization?.id]);
 
   const handleSave = async () => {
-    if (!data) return;
+    if (!fields || !organization) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("business_profile")
+    const { error } = await (supabase as any)
+      .from("organizations")
       .update({
-        name: data.name,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zip_code: data.zip_code,
-        phone: data.phone,
-        email: data.email,
-        opening_time: data.opening_time,
-        closing_time: data.closing_time,
-        timezone: data.timezone,
-        updated_at: new Date().toISOString(),
+        name:         fields.name,
+        address:      fields.address      || null,
+        city:         fields.city         || null,
+        phone:        fields.phone        || null,
+        email:        fields.email        || null,
+        opening_time: fields.opening_time,
+        closing_time: fields.closing_time,
+        timezone:     fields.timezone,
+        updated_at:   new Date().toISOString(),
       })
-      .eq("id", data.id);
+      .eq("id", organization.id);
 
     if (error) {
       toast.error("Error al guardar");
-      console.error(error);
     } else {
       toast.success("Perfil del negocio actualizado");
+      refetch();
     }
     setSaving(false);
   };
 
-  const update = (field: keyof BusinessData, value: string) => {
-    setData(prev => prev ? { ...prev, [field]: value } : null);
+  const update = (field: keyof OrgFields, value: string) => {
+    setFields((prev) => prev ? { ...prev, [field]: value } : null);
   };
 
-  if (loading) {
+  if (!fields) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (!data) {
-    return <p className="text-muted-foreground py-8 text-center">No se encontró perfil del negocio.</p>;
   }
 
   return (
@@ -124,16 +99,16 @@ export function BusinessProfileTab() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="biz-name">Nombre del negocio</Label>
-            <Input id="biz-name" value={data.name} onChange={(e) => update("name", e.target.value)} />
+            <Input id="biz-name" value={fields.name} onChange={(e) => update("name", e.target.value)} disabled={!isAdmin} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="biz-email">Email</Label>
-              <Input id="biz-email" type="email" value={data.email} onChange={(e) => update("email", e.target.value)} />
+              <Input id="biz-email" type="email" value={fields.email} onChange={(e) => update("email", e.target.value)} disabled={!isAdmin} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="biz-phone">Teléfono</Label>
-              <Input id="biz-phone" value={data.phone} onChange={(e) => update("phone", e.target.value)} />
+              <Input id="biz-phone" value={fields.phone} onChange={(e) => update("phone", e.target.value)} disabled={!isAdmin} />
             </div>
           </div>
         </CardContent>
@@ -149,21 +124,11 @@ export function BusinessProfileTab() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="biz-address">Dirección</Label>
-            <Input id="biz-address" value={data.address} onChange={(e) => update("address", e.target.value)} />
+            <Input id="biz-address" value={fields.address} onChange={(e) => update("address", e.target.value)} disabled={!isAdmin} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="biz-city">Ciudad</Label>
-              <Input id="biz-city" value={data.city} onChange={(e) => update("city", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="biz-state">Estado</Label>
-              <Input id="biz-state" value={data.state} onChange={(e) => update("state", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="biz-zip">Código postal</Label>
-              <Input id="biz-zip" value={data.zip_code} onChange={(e) => update("zip_code", e.target.value)} />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="biz-city">Ciudad</Label>
+            <Input id="biz-city" value={fields.city} onChange={(e) => update("city", e.target.value)} disabled={!isAdmin} />
           </div>
         </CardContent>
       </Card>
@@ -179,20 +144,20 @@ export function BusinessProfileTab() {
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="biz-open">Apertura</Label>
-              <Input id="biz-open" type="time" value={data.opening_time} onChange={(e) => update("opening_time", e.target.value)} />
+              <Input id="biz-open" type="time" value={fields.opening_time} onChange={(e) => update("opening_time", e.target.value)} disabled={!isAdmin} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="biz-close">Cierre</Label>
-              <Input id="biz-close" type="time" value={data.closing_time} onChange={(e) => update("closing_time", e.target.value)} />
+              <Input id="biz-close" type="time" value={fields.closing_time} onChange={(e) => update("closing_time", e.target.value)} disabled={!isAdmin} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="biz-tz">Zona horaria</Label>
-              <Select value={data.timezone} onValueChange={(v) => update("timezone", v)}>
+              <Select value={fields.timezone} onValueChange={(v) => update("timezone", v)} disabled={!isAdmin}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {timezones.map(tz => (
+                  {timezones.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -202,12 +167,19 @@ export function BusinessProfileTab() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Guardar cambios
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Guardar cambios
+          </Button>
+        </div>
+      )}
+      {!isAdmin && (
+        <p className="text-sm text-muted-foreground text-right">
+          Solo los administradores pueden modificar la configuración del negocio.
+        </p>
+      )}
     </div>
   );
 }

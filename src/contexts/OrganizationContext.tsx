@@ -19,12 +19,18 @@ export interface Organization {
   email: string | null;
 }
 
+export type OrgRole = "admin" | "manager" | "front_desk" | "trainer";
+
 interface OrganizationContextType {
   organization: Organization | null;
   loading: boolean;
   /** True when the DB query completed but the slug was not found */
   notFound: boolean;
   isSubscriptionActive: boolean;
+  /** Role of the currently authenticated user in this org */
+  currentUserRole: OrgRole | null;
+  /** True only if current user is an admin of this org */
+  isAdmin: boolean;
   refetch: () => void;
 }
 
@@ -33,6 +39,8 @@ const OrganizationContext = createContext<OrganizationContextType>({
   loading: true,
   notFound: false,
   isSubscriptionActive: false,
+  currentUserRole: null,
+  isAdmin: false,
   refetch: () => {},
 });
 
@@ -40,6 +48,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<OrgRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -54,17 +63,32 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   async function load() {
     setLoading(true);
     setNotFound(false);
-    const { data } = await (supabase as any)
-      .from("organizations")
-      .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email")
-      .eq("slug", orgSlug)
-      .maybeSingle();
-    if (data) {
-      setOrganization(data);
+
+    // Load org + current user's role in one round-trip
+    const [{ data: orgData }, { data: memberData }] = await Promise.all([
+      (supabase as any)
+        .from("organizations")
+        .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email")
+        .eq("slug", orgSlug)
+        .maybeSingle(),
+      user
+        ? (supabase as any)
+            .from("organization_members")
+            .select("role, organizations!inner(slug)")
+            .eq("user_id", user.id)
+            .eq("organizations.slug", orgSlug)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    if (orgData) {
+      setOrganization(orgData);
       setNotFound(false);
+      setCurrentUserRole((memberData?.role as OrgRole) ?? null);
     } else {
       setOrganization(null);
       setNotFound(true);
+      setCurrentUserRole(null);
     }
     setLoading(false);
   }
@@ -75,8 +99,10 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         new Date(organization.trial_ends_at) > new Date())
     : false;
 
+  const isAdmin = currentUserRole === "admin";
+
   return (
-    <OrganizationContext.Provider value={{ organization, loading, notFound, isSubscriptionActive, refetch: load }}>
+    <OrganizationContext.Provider value={{ organization, loading, notFound, isSubscriptionActive, currentUserRole, isAdmin, refetch: load }}>
       {children}
     </OrganizationContext.Provider>
   );

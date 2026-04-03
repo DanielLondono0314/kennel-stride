@@ -26,17 +26,15 @@ export default function JoinPage() {
   useEffect(() => {
     if (!token) { setStatus("invalid"); return; }
 
+    // Use SECURITY DEFINER function — prevents enumeration of all invitation tokens
     (supabase as any)
-      .from("organization_invitations")
-      .select("email, role, expires_at, accepted_at, organizations(name)")
-      .eq("token", token)
-      .maybeSingle()
+      .rpc("get_invitation_by_token", { p_token: token })
       .then(({ data }: any) => {
-        if (!data || data.accepted_at || new Date(data.expires_at) < new Date()) {
+        if (!data) {
           setStatus("invalid");
           return;
         }
-        setOrgName((data.organizations as any)?.name ?? "tu equipo");
+        setOrgName(data.org_name ?? "tu equipo");
         setRole(data.role);
 
         // If already logged in, accept automatically
