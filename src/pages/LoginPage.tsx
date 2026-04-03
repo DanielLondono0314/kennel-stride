@@ -133,6 +133,11 @@ export default function LoginPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
             </div>
             <Button type="submit" className="w-full h-11" disabled={loading || googleLoading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

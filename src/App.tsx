@@ -10,9 +10,11 @@ import { OrgGuard } from "@/components/auth/OrgGuard";
 import { AppLayout } from "@/components/navigation/AppLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-const LandingPage      = lazy(() => import("./pages/LandingPage"));
-const LoginPage        = lazy(() => import("./pages/LoginPage"));
-const RegisterPage     = lazy(() => import("./pages/RegisterPage"));
+const LandingPage          = lazy(() => import("./pages/LandingPage"));
+const LoginPage            = lazy(() => import("./pages/LoginPage"));
+const RegisterPage         = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage   = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage    = lazy(() => import("./pages/ResetPasswordPage"));
 const OnboardingPage   = lazy(() => import("./pages/OnboardingPage"));
 const BillingPage      = lazy(() => import("./pages/BillingPage"));
 
@@ -51,6 +53,8 @@ const App = () => (
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 {/* Auth required, no org needed */}
                 <Route element={<ProtectedRoute />}>
