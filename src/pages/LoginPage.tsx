@@ -29,7 +29,7 @@ async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeo
 }
 
 export default function LoginPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const invite = searchParams.get("invite");
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
   // Redirect already-logged-in users
   useEffect(() => {
-    if (!session) return;
+    if (authLoading || !session) return;
     (async () => {
       if (invite) {
         const result = await acceptInviteAndNavigate(invite, navigate);
@@ -52,7 +52,7 @@ export default function LoginPage() {
       const slug = await getFirstOrgSlug(session.user.id);
       navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
     })();
-  }, [session]);
+  }, [session, authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
