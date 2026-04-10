@@ -292,6 +292,9 @@ export type Database = {
           gender: string
           id: string
           is_neutered: boolean
+          is_aggressive: boolean
+          has_allergies: boolean
+          on_medication: boolean
           medical_notes: string | null
           microchip_number: string | null
           name: string
@@ -309,6 +312,9 @@ export type Database = {
           gender?: string
           id?: string
           is_neutered?: boolean
+          is_aggressive?: boolean
+          has_allergies?: boolean
+          on_medication?: boolean
           medical_notes?: string | null
           microchip_number?: string | null
           name: string
@@ -326,6 +332,9 @@ export type Database = {
           gender?: string
           id?: string
           is_neutered?: boolean
+          is_aggressive?: boolean
+          has_allergies?: boolean
+          on_medication?: boolean
           medical_notes?: string | null
           microchip_number?: string | null
           name?: string
