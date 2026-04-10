@@ -29,6 +29,7 @@ interface KennelAssignmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   unit: UnitData | null;
+  dogs: Array<{ id: string; name: string }>;
   onAssign: (unitId: string, data: {
     assigned_dog_id: string;
     assigned_dog_name: string;
@@ -41,20 +42,8 @@ interface KennelAssignmentModalProps {
   onSetMaintenance: (unitId: string) => void;
 }
 
-// Mock dogs for selection
-const MOCK_DOGS = [
-  { id: "dog_1", name: "Max" },
-  { id: "dog_2", name: "Luna" },
-  { id: "dog_3", name: "Rocky" },
-  { id: "dog_4", name: "Bella" },
-  { id: "dog_5", name: "Thor" },
-  { id: "dog_6", name: "Coco" },
-  { id: "dog_7", name: "Simba" },
-  { id: "dog_8", name: "Nala" },
-];
-
 export function KennelAssignmentModal({
-  open, onOpenChange, unit, onAssign, onRelease, onSetMaintenance,
+  open, onOpenChange, unit, dogs, onAssign, onRelease, onSetMaintenance,
 }: KennelAssignmentModalProps) {
   const [dogId, setDogId] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
@@ -65,7 +54,7 @@ export function KennelAssignmentModal({
 
   const handleAssign = () => {
     if (!unit || !dogId || !startDate || !endDate) return;
-    const dog = MOCK_DOGS.find((d) => d.id === dogId);
+    const dog = dogs.find((d) => d.id === dogId);
     onAssign(unit.id, {
       assigned_dog_id: dogId,
       assigned_dog_name: dog?.name || "",
@@ -133,7 +122,7 @@ export function KennelAssignmentModal({
               <Select value={dogId} onValueChange={setDogId}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar perro..." /></SelectTrigger>
                 <SelectContent>
-                  {MOCK_DOGS.map((d) => (
+                  {dogs.map((d) => (
                     <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                   ))}
                 </SelectContent>

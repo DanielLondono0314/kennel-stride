@@ -43,6 +43,7 @@ export default function FacilityPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUnit, setSelectedUnit] = useState<FacilityUnit | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [dogs, setDogs] = useState<Array<{ id: string; name: string }>>([]);
   const { toast } = useToast();
 
   // Load data
@@ -55,6 +56,22 @@ export default function FacilityPage() {
     ]);
     if (zRes.data) setZones(zRes.data);
     if (uRes.data) setUnits(uRes.data);
+
+    // Fetch dogs for kennel assignment
+    const { data: custData } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("organization_id", organization!.id);
+    const custIds = (custData ?? []).map((c: { id: string }) => c.id);
+    if (custIds.length > 0) {
+      const { data: dogsData } = await supabase
+        .from("dogs")
+        .select("id, name")
+        .in("customer_id", custIds)
+        .order("name");
+      if (dogsData) setDogs(dogsData as Array<{ id: string; name: string }>);
+    }
+
     setLoading(false);
   }, [organization?.id]);
 
@@ -241,6 +258,7 @@ export default function FacilityPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         unit={selectedUnit}
+        dogs={dogs}
         onAssign={handleAssign}
         onRelease={handleRelease}
         onSetMaintenance={handleSetMaintenance}
