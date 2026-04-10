@@ -13,8 +13,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Dog as DogIcon, Loader2, Save, Camera, X } from "lucide-react";
+import { Dog as DogIcon, Loader2, Save, Camera, X, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { DOG_BREEDS } from "@/lib/constants";
 
 interface DogModalProps {
   dog?: any | null;
@@ -31,6 +35,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [customerId, setCustomerId] = useState("");
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
+  const [breedOpen, setBreedOpen] = useState(false);
   const [birthDate, setBirthDate] = useState("");
   const [weight, setWeight] = useState("");
   const [color, setColor] = useState("");
@@ -74,12 +79,14 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setBehaviorNotes(dog.behavior_notes || "");
       setMedicalNotes(dog.medical_notes || "");
       setPhotoUrl(dog.photo_url || null);
+      setBreedOpen(false);
     } else {
       setCustomerId(preselectedCustomerId || "");
       setName(""); setBreed(""); setBirthDate(""); setWeight("");
       setColor(""); setGender("male"); setIsNeutered(false);
       setMicrochipNumber(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
       setPhotoUrl(null);
+      setBreedOpen(false);
     }
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -237,7 +244,51 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             </div>
             <div className="space-y-2">
               <Label>Raza *</Label>
-              <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Raza" />
+              <Popover open={breedOpen} onOpenChange={setBreedOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={breedOpen}
+                    className="w-full justify-between font-normal text-left"
+                  >
+                    <span className="truncate">{breed || "Seleccionar raza..."}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[240px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Buscar raza..."
+                      value={breed}
+                      onValueChange={setBreed}
+                    />
+                    <CommandEmpty>
+                      <p className="text-xs text-muted-foreground px-3 py-2">
+                        No encontrada — se guardará "{breed}".
+                      </p>
+                    </CommandEmpty>
+                    <CommandGroup className="max-h-52 overflow-auto">
+                      {DOG_BREEDS.filter((b) =>
+                        b.toLowerCase().includes((breed ?? "").toLowerCase())
+                      ).map((b) => (
+                        <CommandItem
+                          key={b}
+                          value={b}
+                          onSelect={(val) => {
+                            setBreed(val);
+                            setBreedOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", breed === b ? "opacity-100" : "opacity-0")} />
+                          {b}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
