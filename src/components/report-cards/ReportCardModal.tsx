@@ -151,7 +151,8 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
 
       const { error } = await supabase.storage.from("report-card-photos").upload(path, file);
       if (error) {
-        toast.error(`Error subiendo ${file.name}`);
+        toast.error(`Error subiendo ${file.name}: ${error.message}`);
+        console.error("Photo upload error:", error);
         continue;
       }
 
