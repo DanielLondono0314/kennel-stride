@@ -174,6 +174,28 @@ export default function FacilityPage() {
     toast({ title: "Perrera liberada" });
   };
 
+  // Add a single kennel unit to an existing zone
+  const handleAddUnit = async (zoneId: string) => {
+    if (!organization) return;
+    const zoneUnits = units.filter((u) => u.zone_id === zoneId);
+    const nextIndex = zoneUnits.length;
+    const nextName = `Perrera ${String(nextIndex + 1).padStart(2, "0")}`;
+    const { error } = await supabase.from("facility_units").insert({
+      zone_id: zoneId,
+      name: nextName,
+      unit_type: "kennel",
+      position_index: nextIndex,
+      status: "available",
+      organization_id: organization!.id,
+    });
+    if (error) {
+      toast({ title: "Error al agregar perrera", description: error.message, variant: "destructive" });
+      return;
+    }
+    fetchData();
+    toast({ title: "Perrera agregada", description: nextName });
+  };
+
   // Set maintenance
   const handleSetMaintenance = async (unitId: string) => {
     const { error } = await supabase.from("facility_units").update({
@@ -244,6 +266,7 @@ export default function FacilityPage() {
                 onDelete={handleDeleteZone}
                 onRename={handleRenameZone}
                 onUnitClick={handleUnitClick}
+                onAddUnit={handleAddUnit}
               />
             ))}
           </div>

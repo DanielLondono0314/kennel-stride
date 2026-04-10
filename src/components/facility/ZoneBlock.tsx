@@ -34,9 +34,10 @@ interface ZoneBlockProps {
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onUnitClick: (unit: any) => void;
+  onAddUnit: (zoneId: string) => void;
 }
 
-export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, onUnitClick }: ZoneBlockProps) {
+export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, onUnitClick, onAddUnit }: ZoneBlockProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -154,7 +155,15 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
       {/* Content */}
       <div className="overflow-auto p-1" style={{ maxHeight: zone.height - 32 }}>
         {zone.zone_type === "kennels" ? (
-          <KennelGrid units={units} onUnitClick={onUnitClick} />
+          <div>
+            <KennelGrid units={units} onUnitClick={onUnitClick} />
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddUnit(zone.id); }}
+              className="mt-1 w-full text-[9px] text-muted-foreground hover:text-foreground border border-dashed border-muted-foreground/30 hover:border-muted-foreground/60 rounded px-1 py-0.5 transition-colors"
+            >
+              + Agregar perrera
+            </button>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-[10px] text-muted-foreground capitalize">{ztConfig?.label}</p>
