@@ -17,6 +17,7 @@ export interface Organization {
   city: string | null;
   phone: string | null;
   email: string | null;
+  service_types: Array<{ value: string; label: string }>;
 }
 
 export type OrgRole = "admin" | "manager" | "front_desk" | "trainer";
@@ -68,7 +69,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     const [{ data: orgData }, { data: memberData }] = await Promise.all([
       (supabase as any)
         .from("organizations")
-        .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email")
+        .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types")
         .eq("slug", orgSlug)
         .maybeSingle(),
       user
