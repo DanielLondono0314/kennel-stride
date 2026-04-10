@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function StaffManagementTab() {
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [saving, setSaving] = useState(false);
+  const { organization } = useOrganization();
 
   // Form state
   const [firstName, setFirstName] = useState("");
@@ -72,12 +74,14 @@ export function StaffManagementTab() {
   const [role, setRole] = useState<AppRole>("trainer");
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => { fetchStaff(); }, [organization?.id]);
 
   const fetchStaff = async () => {
-    const { data, error } = await supabase
+    if (!organization) return;
+    const { data, error } = await (supabase as any)
       .from("staff_members")
       .select("*")
+      .eq("organization_id", organization.id)
       .order("created_at", { ascending: true });
     if (error) {
       toast.error("Error al cargar personal");
@@ -121,9 +125,17 @@ export function StaffManagementTab() {
       if (error) { toast.error("Error al actualizar"); console.error(error); }
       else { toast.success("Empleado actualizado"); }
     } else {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("staff_members")
-        .insert({ first_name: firstName, last_name: lastName, email, phone, role, is_active: isActive });
+        .insert({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+          role,
+          is_active: isActive,
+          organization_id: organization!.id,
+        });
       if (error) { toast.error("Error al crear"); console.error(error); }
       else { toast.success("Empleado creado"); }
     }
