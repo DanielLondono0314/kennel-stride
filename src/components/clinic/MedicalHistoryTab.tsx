@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { organization } = useOrganization();
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -73,20 +75,37 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
 
   const handleSave = async () => {
     const payload = {
-      dog_id: dogId, dog_name: dogName, record_date: form.record_date, record_type: form.record_type,
-      veterinarian: form.veterinarian, reason: form.reason, diagnosis: form.diagnosis,
-      treatment: form.treatment, prescription: form.prescription,
-      weight: form.weight ? parseFloat(form.weight) : null, temperature: form.temperature ? parseFloat(form.temperature) : null,
-      heart_rate: form.heart_rate ? parseInt(form.heart_rate) : null, respiratory_rate: form.respiratory_rate ? parseInt(form.respiratory_rate) : null,
-      blood_pressure: form.blood_pressure, body_condition_score: form.body_condition_score ? parseInt(form.body_condition_score) : null,
-      notes: form.notes, next_appointment: form.next_appointment || null, updated_at: new Date().toISOString(),
+      dog_id: dogId,
+      dog_name: dogName,
+      organization_id: organization?.id,
+      record_date: form.record_date,
+      record_type: form.record_type,
+      veterinarian: form.veterinarian,
+      reason: form.reason,
+      diagnosis: form.diagnosis,
+      treatment: form.treatment,
+      prescription: form.prescription,
+      weight: form.weight ? parseFloat(form.weight) : null,
+      temperature: form.temperature ? parseFloat(form.temperature) : null,
+      heart_rate: form.heart_rate ? parseInt(form.heart_rate) : null,
+      respiratory_rate: form.respiratory_rate ? parseInt(form.respiratory_rate) : null,
+      blood_pressure: form.blood_pressure,
+      body_condition_score: form.body_condition_score ? parseInt(form.body_condition_score) : null,
+      notes: form.notes,
+      next_appointment: form.next_appointment || null,
+      updated_at: new Date().toISOString(),
     };
     const { error } = editingId
-      ? await supabase.from("medical_history").update(payload).eq("id", editingId)
-      : await supabase.from("medical_history").insert(payload);
-    if (error) { toast.error("Error al guardar"); return; }
+      ? await (supabase as any).from("medical_history").update(payload).eq("id", editingId)
+      : await (supabase as any).from("medical_history").insert(payload);
+    if (error) {
+      console.error("Medical history save error:", error);
+      toast.error(`Error al guardar: ${error.message}`);
+      return;
+    }
     toast.success(editingId ? "Registro actualizado" : "Registro guardado");
-    setModalOpen(false); fetchRecords();
+    setModalOpen(false);
+    fetchRecords();
   };
 
   const handleDelete = async () => {
