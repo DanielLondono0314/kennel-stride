@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -70,15 +70,18 @@ interface DbDog { id: string; name: string; breed: string; }
 
 export function ReportCardModal({ open, onOpenChange, editData, onSaved }: ReportCardModalProps) {
   const { organization } = useOrganization();
-  const SERVICE_TYPES = organization?.service_types?.length
-    ? organization.service_types
-    : [
-        { value: "daycare", label: "Guardería" },
-        { value: "board_and_train", label: "Internado + Entrenamiento" },
-        { value: "training_session", label: "Sesión de Entrenamiento" },
-        { value: "grooming", label: "Grooming" },
-        { value: "evaluation", label: "Evaluación" },
-      ];
+  const SERVICE_TYPES = useMemo(() =>
+    organization?.service_types?.length
+      ? organization.service_types
+      : [
+          { value: "daycare", label: "Guardería" },
+          { value: "board_and_train", label: "Internado + Entrenamiento" },
+          { value: "training_session", label: "Sesión de Entrenamiento" },
+          { value: "grooming", label: "Grooming" },
+          { value: "evaluation", label: "Evaluación" },
+        ],
+    [organization?.service_types]
+  );
   const [form, setForm] = useState<ReportCardFormData>(defaultForm);
   const [trainers, setTrainers] = useState<StaffMember[]>([]);
   const [dogs, setDogs] = useState<DbDog[]>([]);
@@ -108,7 +111,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
           is_sent: editData.is_sent,
         });
       } else {
-        setForm(defaultForm);
+        setForm({ ...defaultForm, service_type: SERVICE_TYPES[0]?.value ?? "daycare" });
       }
     }
   }, [open, editData]);

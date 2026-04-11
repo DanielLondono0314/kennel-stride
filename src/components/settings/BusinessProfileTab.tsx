@@ -21,6 +21,15 @@ interface OrgFields {
   service_types: Array<{ value: string; label: string }>;
 }
 
+function toSlug(label: string): string {
+  return label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 const timezones = [
   { value: "America/New_York", label: "Este (ET)" },
   { value: "America/Chicago", label: "Central (CT)" },
@@ -223,23 +232,21 @@ export function BusinessProfileTab() {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     if (!newServiceLabel.trim()) return;
-                    const slug = newServiceLabel
-                      .toLowerCase()
-                      .normalize("NFD")
-                      .replace(/[\u0300-\u036f]/g, "")
-                      .replace(/[^a-z0-9]+/g, "_")
-                      .replace(/^_+|_+$/g, "");
-                    setFields((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            service_types: [
-                              ...prev.service_types,
-                              { value: slug, label: newServiceLabel.trim() },
-                            ],
-                          }
-                        : null
-                    );
+                    const slug = toSlug(newServiceLabel.trim());
+                    setFields((prev) => {
+                      if (!prev) return null;
+                      if (prev.service_types.some(st => st.value === slug)) {
+                        toast.error("Ya existe un servicio con ese nombre");
+                        return prev;
+                      }
+                      return {
+                        ...prev,
+                        service_types: [
+                          ...prev.service_types,
+                          { value: slug, label: newServiceLabel.trim() },
+                        ],
+                      };
+                    });
                     setNewServiceLabel("");
                   }
                 }}
@@ -251,23 +258,21 @@ export function BusinessProfileTab() {
                 disabled={!newServiceLabel.trim()}
                 onClick={() => {
                   if (!newServiceLabel.trim()) return;
-                  const slug = newServiceLabel
-                    .toLowerCase()
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/[^a-z0-9]+/g, "_")
-                    .replace(/^_+|_+$/g, "");
-                  setFields((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          service_types: [
-                            ...prev.service_types,
-                            { value: slug, label: newServiceLabel.trim() },
-                          ],
-                        }
-                      : null
-                  );
+                  const slug = toSlug(newServiceLabel.trim());
+                  setFields((prev) => {
+                    if (!prev) return null;
+                    if (prev.service_types.some(st => st.value === slug)) {
+                      toast.error("Ya existe un servicio con ese nombre");
+                      return prev;
+                    }
+                    return {
+                      ...prev,
+                      service_types: [
+                        ...prev.service_types,
+                        { value: slug, label: newServiceLabel.trim() },
+                      ],
+                    };
+                  });
                   setNewServiceLabel("");
                 }}
               >
