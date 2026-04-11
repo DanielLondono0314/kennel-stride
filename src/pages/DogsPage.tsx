@@ -4,7 +4,6 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
-import { FlagIndicators } from "@/components/shared/FlagIndicators";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,7 +146,7 @@ export default function DogsPage() {
     if (error) {
       toast.error("Error al guardar perro");
     } else {
-      toast.success(data.id ? "Perro actualizado" : "Perro registrado");
+      toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
       setModalOpen(false);
       fetchDogs(true);
     }

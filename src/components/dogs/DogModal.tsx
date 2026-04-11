@@ -25,7 +25,7 @@ interface DogModalProps {
   preselectedCustomerId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: any) => void;
+  onSave: (data: any) => void | Promise<void>;
 }
 
 export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSave }: DogModalProps) {
@@ -148,30 +148,33 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     }
     setIsSubmitting(true);
 
-    // If creating, save first to get the ID, then upload photo
-    const dogId = dog?.id ?? crypto.randomUUID();
-    const uploadedPhotoUrl = await uploadPhoto(dogId);
+    try {
+      // If creating, save first to get the ID, then upload photo
+      const dogId = dog?.id ?? crypto.randomUUID();
+      const uploadedPhotoUrl = await uploadPhoto(dogId);
 
-    onSave({
-      id: dogId,
-      customer_id: customerId,
-      name,
-      breed,
-      birth_date: birthDate || null,
-      weight: weight || null,
-      color: color || null,
-      gender,
-      is_neutered: isNeutered,
-      is_aggressive: isAggressive,
-      has_allergies: hasAllergies,
-      on_medication: onMedication,
-      microchip_number: microchipNumber || null,
-      notes,
-      behavior_notes: behaviorNotes,
-      medical_notes: medicalNotes,
-      photo_url: uploadedPhotoUrl,
-    });
-    setIsSubmitting(false);
+      await onSave({
+        id: dogId,
+        customer_id: customerId,
+        name,
+        breed,
+        birth_date: birthDate || null,
+        weight: weight || null,
+        color: color || null,
+        gender,
+        is_neutered: isNeutered,
+        is_aggressive: isAggressive,
+        has_allergies: hasAllergies,
+        on_medication: onMedication,
+        microchip_number: microchipNumber || null,
+        notes,
+        behavior_notes: behaviorNotes,
+        medical_notes: medicalNotes,
+        photo_url: uploadedPhotoUrl,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentPhoto = photoPreview ?? photoUrl;

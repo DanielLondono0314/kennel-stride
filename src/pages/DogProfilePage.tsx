@@ -41,6 +41,7 @@ interface DbDog {
   notes: string | null;
   behavior_notes: string | null;
   medical_notes: string | null;
+  photo_url: string | null;
   customer_id: string;
   customers?: { id: string; first_name: string; last_name: string; phone: string | null } | null;
 }
