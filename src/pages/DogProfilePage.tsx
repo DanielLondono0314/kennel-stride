@@ -181,6 +181,9 @@ export default function DogProfilePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
         <Avatar className="h-24 w-24 border-4 border-background shadow-lg shrink-0">
+          {dog.photo_url && (
+            <AvatarImage src={dog.photo_url} alt={dog.name} className="object-cover" />
+          )}
           <AvatarFallback className="bg-accent text-accent-foreground text-3xl">
             <Dog className="h-12 w-12" />
           </AvatarFallback>

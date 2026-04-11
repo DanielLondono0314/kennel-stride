@@ -58,19 +58,12 @@ export default function FacilityPage() {
     if (uRes.data) setUnits(uRes.data);
 
     // Fetch dogs for kennel assignment
-    const { data: custData } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("organization_id", organization!.id);
-    const custIds = (custData ?? []).map((c: { id: string }) => c.id);
-    if (custIds.length > 0) {
-      const { data: dogsData } = await supabase
-        .from("dogs")
-        .select("id, name")
-        .in("customer_id", custIds)
-        .order("name");
-      if (dogsData) setDogs(dogsData as Array<{ id: string; name: string }>);
-    }
+    const { data: dogsData } = await (supabase as any)
+      .from("dogs")
+      .select("id, name")
+      .eq("organization_id", organization!.id)
+      .order("name");
+    if (dogsData) setDogs(dogsData as Array<{ id: string; name: string }>);
 
     setLoading(false);
   }, [organization?.id]);

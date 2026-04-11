@@ -122,7 +122,7 @@ export function StaffManagementTab() {
         .from("staff_members")
         .update({ first_name: firstName, last_name: lastName, email, phone, role, is_active: isActive, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id);
-      if (error) { toast.error("Error al actualizar"); console.error(error); }
+      if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
       const { error } = await (supabase as any)
@@ -136,7 +136,7 @@ export function StaffManagementTab() {
           is_active: isActive,
           organization_id: organization!.id,
         });
-      if (error) { toast.error("Error al crear"); console.error(error); }
+      if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
     }
     setSaving(false);

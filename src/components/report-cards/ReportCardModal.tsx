@@ -114,7 +114,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
         setForm({ ...defaultForm, service_type: SERVICE_TYPES[0]?.value ?? "daycare" });
       }
     }
-  }, [open, editData]);
+  }, [open, editData, SERVICE_TYPES]);
 
   async function loadTrainers() {
     if (!organization) return;

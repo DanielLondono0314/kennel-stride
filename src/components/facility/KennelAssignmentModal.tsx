@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Dog } from "lucide-react";
@@ -72,6 +72,10 @@ export function KennelAssignmentModal({
     setEndDate(undefined);
     setNotes("");
   };
+
+  useEffect(() => {
+    if (open) resetForm();
+  }, [open, unit?.id]);
 
   if (!unit) return null;
 
