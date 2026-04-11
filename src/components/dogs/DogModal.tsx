@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Dog as DogIcon, Loader2, Save, Camera, X, Check, ChevronsUpDown } from "lucide-react";
+import { Dog as DogIcon, Loader2, Save, Camera, X, Check, ChevronsUpDown, AlertTriangle, Leaf, Pill } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -41,6 +41,9 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [color, setColor] = useState("");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [isNeutered, setIsNeutered] = useState(false);
+  const [isAggressive, setIsAggressive] = useState(false);
+  const [hasAllergies, setHasAllergies] = useState(false);
+  const [onMedication, setOnMedication] = useState(false);
   const [microchipNumber, setMicrochipNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [behaviorNotes, setBehaviorNotes] = useState("");
@@ -74,6 +77,9 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setColor(dog.color || "");
       setGender(dog.gender as "male" | "female");
       setIsNeutered(dog.is_neutered);
+      setIsAggressive(dog.is_aggressive ?? false);
+      setHasAllergies(dog.has_allergies ?? false);
+      setOnMedication(dog.on_medication ?? false);
       setMicrochipNumber(dog.microchip_number || "");
       setNotes(dog.notes || "");
       setBehaviorNotes(dog.behavior_notes || "");
@@ -84,6 +90,9 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setCustomerId(preselectedCustomerId || "");
       setName(""); setBreed(""); setBirthDate(""); setWeight("");
       setColor(""); setGender("male"); setIsNeutered(false);
+      setIsAggressive(false);
+      setHasAllergies(false);
+      setOnMedication(false);
       setMicrochipNumber(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
       setPhotoUrl(null);
       setBreedOpen(false);
@@ -153,6 +162,9 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       color: color || null,
       gender,
       is_neutered: isNeutered,
+      is_aggressive: isAggressive,
+      has_allergies: hasAllergies,
+      on_medication: onMedication,
       microchip_number: microchipNumber || null,
       notes,
       behavior_notes: behaviorNotes,
@@ -327,6 +339,30 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           <div className="flex items-center gap-3">
             <Switch checked={isNeutered} onCheckedChange={setIsNeutered} />
             <Label>{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Alertas de comportamiento/salud</Label>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <Switch checked={isAggressive} onCheckedChange={setIsAggressive} />
+                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-destructive">
+                  <AlertTriangle className="h-4 w-4" /> Perro agresivo
+                </Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={hasAllergies} onCheckedChange={setHasAllergies} />
+                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-yellow-600">
+                  <Leaf className="h-4 w-4" /> Tiene alergias
+                </Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch checked={onMedication} onCheckedChange={setOnMedication} />
+                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-blue-600">
+                  <Pill className="h-4 w-4" /> En medicación
+                </Label>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

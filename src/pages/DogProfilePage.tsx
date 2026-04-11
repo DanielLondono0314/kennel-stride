@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { DogModal } from "@/components/dogs/DogModal";
+import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { VaccinationTab } from "@/components/clinic/VaccinationTab";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
 import { DewormingTab } from "@/components/clinic/DewormingTab";
@@ -33,6 +34,9 @@ interface DbDog {
   weight: number | null;
   color: string | null;
   is_neutered: boolean;
+  is_aggressive: boolean;
+  has_allergies: boolean;
+  on_medication: boolean;
   microchip_number: string | null;
   notes: string | null;
   behavior_notes: string | null;
@@ -114,6 +118,9 @@ export default function DogProfilePage() {
       color: data.color || null,
       gender: data.gender,
       is_neutered: data.is_neutered,
+      is_aggressive: data.is_aggressive ?? false,
+      has_allergies: data.has_allergies ?? false,
+      on_medication: data.on_medication ?? false,
       microchip_number: data.microchip_number || null,
       notes: data.notes || "",
       behavior_notes: data.behavior_notes || "",
@@ -190,6 +197,12 @@ export default function DogProfilePage() {
                 )}
                 {dog.color && <Badge variant="outline">{dog.color}</Badge>}
               </div>
+              <DogCharacteristicIcons
+                isAggressive={dog.is_aggressive}
+                hasAllergies={dog.has_allergies}
+                onMedication={dog.on_medication}
+                size="md"
+              />
             </div>
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />

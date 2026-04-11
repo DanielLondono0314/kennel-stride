@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { DogModal } from "@/components/dogs/DogModal";
+import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { FlagIndicators } from "@/components/shared/FlagIndicators";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,9 @@ interface DbDog {
   color: string | null;
   gender: string;
   is_neutered: boolean;
+  is_aggressive: boolean;
+  has_allergies: boolean;
+  on_medication: boolean;
   microchip_number: string | null;
   notes: string | null;
   behavior_notes: string | null;
@@ -122,6 +126,9 @@ export default function DogsPage() {
       color: data.color || null,
       gender: data.gender,
       is_neutered: data.is_neutered,
+      is_aggressive: data.is_aggressive ?? false,
+      has_allergies: data.has_allergies ?? false,
+      on_medication: data.on_medication ?? false,
       microchip_number: data.microchip_number || null,
       notes: data.notes || "",
       behavior_notes: data.behavior_notes || "",
@@ -204,6 +211,11 @@ export default function DogsPage() {
                     </Avatar>
                     <div>
                       <p className="font-medium">{dog.name}</p>
+                      <DogCharacteristicIcons
+                        isAggressive={dog.is_aggressive}
+                        hasAllergies={dog.has_allergies}
+                        onMedication={dog.on_medication}
+                      />
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
                         {dog.is_neutered && <Badge variant="secondary" className="text-[10px] px-1.5">{dog.gender === "male" ? "Castrado" : "Esterilizada"}</Badge>}
@@ -261,6 +273,11 @@ export default function DogsPage() {
                   </Avatar>
                   <div className="min-w-0">
                     <p className="font-medium truncate">{dog.name}</p>
+                    <DogCharacteristicIcons
+                      isAggressive={dog.is_aggressive}
+                      hasAllergies={dog.has_allergies}
+                      onMedication={dog.on_medication}
+                    />
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
                       {dog.is_neutered && <Badge variant="secondary" className="text-[10px] px-1.5">{dog.gender === "male" ? "Castrado" : "Esterilizada"}</Badge>}
