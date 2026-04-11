@@ -18,6 +18,7 @@ interface OrgFields {
   opening_time: string;
   closing_time: string;
   timezone: string;
+  service_types: Array<{ value: string; label: string }>;
 }
 
 const timezones = [
@@ -32,6 +33,7 @@ export function BusinessProfileTab() {
   const { organization, isAdmin, refetch } = useOrganization();
   const [fields, setFields] = useState<OrgFields | null>(null);
   const [saving, setSaving] = useState(false);
+  const [newServiceLabel, setNewServiceLabel] = useState("");
 
   useEffect(() => {
     if (!organization) return;
@@ -44,6 +46,15 @@ export function BusinessProfileTab() {
       opening_time: organization.opening_time ?? "07:00",
       closing_time: organization.closing_time ?? "19:00",
       timezone:     organization.timezone     ?? "America/Mexico_City",
+      service_types: organization.service_types?.length
+        ? organization.service_types
+        : [
+            { value: "daycare", label: "Guardería" },
+            { value: "board_and_train", label: "Internado + Entrenamiento" },
+            { value: "training_session", label: "Sesión de Entrenamiento" },
+            { value: "grooming", label: "Grooming" },
+            { value: "evaluation", label: "Evaluación" },
+          ],
     });
   }, [organization?.id]);
 
@@ -61,6 +72,7 @@ export function BusinessProfileTab() {
         opening_time: fields.opening_time,
         closing_time: fields.closing_time,
         timezone:     fields.timezone,
+        service_types: fields.service_types,
         updated_at:   new Date().toISOString(),
       })
       .eq("id", organization.id);
@@ -164,6 +176,105 @@ export function BusinessProfileTab() {
               </Select>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Tipos de Servicio</CardTitle>
+          <CardDescription>
+            Personaliza los servicios que ofrece tu centro. Se usan en report cards y reservas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            {fields.service_types.map((st, i) => (
+              <div
+                key={st.value}
+                className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50"
+              >
+                <span className="text-sm">{st.label}</span>
+                {isAdmin && fields.service_types.length > 1 && (
+                  <button
+                    type="button"
+                    className="text-xs text-destructive hover:underline"
+                    onClick={() =>
+                      setFields((prev) =>
+                        prev
+                          ? { ...prev, service_types: prev.service_types.filter((_, idx) => idx !== i) }
+                          : null
+                      )
+                    }
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {isAdmin && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nuevo servicio (ej. Spa canino)"
+                value={newServiceLabel}
+                onChange={(e) => setNewServiceLabel(e.target.value)}
+                className="h-8 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!newServiceLabel.trim()) return;
+                    const slug = newServiceLabel
+                      .toLowerCase()
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-z0-9]+/g, "_")
+                      .replace(/^_+|_+$/g, "");
+                    setFields((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            service_types: [
+                              ...prev.service_types,
+                              { value: slug, label: newServiceLabel.trim() },
+                            ],
+                          }
+                        : null
+                    );
+                    setNewServiceLabel("");
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!newServiceLabel.trim()}
+                onClick={() => {
+                  if (!newServiceLabel.trim()) return;
+                  const slug = newServiceLabel
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]+/g, "_")
+                    .replace(/^_+|_+$/g, "");
+                  setFields((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          service_types: [
+                            ...prev.service_types,
+                            { value: slug, label: newServiceLabel.trim() },
+                          ],
+                        }
+                      : null
+                  );
+                  setNewServiceLabel("");
+                }}
+              >
+                Agregar
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
