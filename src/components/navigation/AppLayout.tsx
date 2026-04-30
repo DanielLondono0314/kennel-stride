@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,13 @@ import { useAppCounts } from "@/hooks/useAppCounts";
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { unreadNotices, pendingRequests } = useAppCounts();
+  const location = useLocation();
+
+  // Auto-close mobile sidebar on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
 
   return (
     <TooltipProvider delayDuration={0}>

@@ -69,7 +69,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
 
   return (
     <>
-      <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card gap-3">
+      <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card gap-3">
         {/* Mobile hamburger */}
         <Button
           variant="ghost"
@@ -129,11 +129,11 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=profile")}>
                 <User className="mr-2 h-4 w-4" />
-                Perfil
+                Mi perfil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => orgNavigate("/settings")}>
+              <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=business")}>
                 <Settings className="mr-2 h-4 w-4" />
-                Configuración
+                Configuración del centro
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
