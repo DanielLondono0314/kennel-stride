@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, type NavigateOptions } from "react-router-dom";
 import { useCallback } from "react";
 
 /**
@@ -10,7 +10,7 @@ export function useOrgNavigate() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
 
   return useCallback(
-    (path: string, options?: Parameters<ReturnType<typeof useNavigate>>[1]) => {
+    (path: string, options?: NavigateOptions) => {
       navigate(`/${orgSlug}${path}`, options);
     },
     [navigate, orgSlug]

@@ -9,14 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Dog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-async function getFirstOrgSlug(userId: string): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from("organization_members")
-    .select("organizations(slug)")
-    .eq("user_id", userId)
-    .limit(1)
-    .maybeSingle();
-  return (data?.organizations as any)?.slug ?? null;
+async function getFirstOrgSlug(_userId: string): Promise<string | null> {
+  const { data, error } = await (supabase as any).rpc("get_my_first_org_slug");
+  if (error) {
+    console.error("get_my_first_org_slug error:", error);
+    return null;
+  }
+  return (data as string | null) ?? null;
 }
 
 async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeof useNavigate>) {
