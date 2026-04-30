@@ -114,6 +114,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      {checkingMembership ? (
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      ) : (
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
