@@ -127,11 +127,11 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/settings?tab=profile")}>
+              <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=profile")}>
                 <User className="mr-2 h-4 w-4" />
                 Perfil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <DropdownMenuItem onClick={() => orgNavigate("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
                 Configuración
               </DropdownMenuItem>
