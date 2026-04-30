@@ -23,6 +23,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
   const navigate = useNavigate();
+  const orgNavigate = useOrgNavigate();
   const { user, signOut } = useAuth();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
