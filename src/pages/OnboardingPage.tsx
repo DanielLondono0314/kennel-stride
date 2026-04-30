@@ -26,6 +26,23 @@ export default function OnboardingPage() {
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [centerName, setCenterName] = useState("");
   const [slug, setSlug] = useState("");
+  const [checkingMembership, setCheckingMembership] = useState(true);
+
+  // If the user already has an organization, skip onboarding and go straight to dashboard
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any).rpc("get_my_first_org_slug");
+      if (cancelled) return;
+      if (!error && data) {
+        navigate(`/${data}/dashboard`, { replace: true });
+        return;
+      }
+      setCheckingMembership(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user, navigate]);
 
   useEffect(() => {
     if (centerName) setSlug(toSlug(centerName));
