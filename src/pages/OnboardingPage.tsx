@@ -179,6 +179,7 @@ export default function OnboardingPage() {
           </Button>
         </form>
       </div>
+      )}
     </div>
   );
 }
