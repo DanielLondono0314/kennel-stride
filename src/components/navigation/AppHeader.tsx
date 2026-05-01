@@ -98,7 +98,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
             variant="ghost"
             size="icon"
             className="relative text-muted-foreground"
-            onClick={() => navigate("/notices")}
+            onClick={() => orgNavigate("/notices")}
           >
             <Bell className="h-5 w-5" />
             {noticeCount > 0 && (
