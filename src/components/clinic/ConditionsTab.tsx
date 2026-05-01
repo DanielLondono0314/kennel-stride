@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ const statusMap: Record<string, { label: string; className: string }> = {
 const emptyForm = { condition_name: "", condition_type: "disease", diagnosed_date: new Date().toISOString().split("T")[0], status: "active", severity: "moderate", treatment: "", notes: "" };
 
 export function ConditionsTab({ dogId, dogName }: Props) {
+  const { organization } = useOrganization();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,7 +66,8 @@ export function ConditionsTab({ dogId, dogName }: Props) {
 
   const handleSave = async () => {
     if (!form.condition_name) { toast.error("Ingresa el nombre de la condición"); return; }
-    const payload = { dog_id: dogId, dog_name: dogName, condition_name: form.condition_name, condition_type: form.condition_type, diagnosed_date: form.diagnosed_date, status: form.status, severity: form.severity, treatment: form.treatment, notes: form.notes, updated_at: new Date().toISOString() };
+    if (!organization) { toast.error("Sin organización activa"); return; }
+    const payload = { dog_id: dogId, dog_name: dogName, condition_name: form.condition_name, condition_type: form.condition_type, diagnosed_date: form.diagnosed_date, status: form.status, severity: form.severity, treatment: form.treatment, notes: form.notes, updated_at: new Date().toISOString(), organization_id: organization.id };
     const { error } = editingId
       ? await supabase.from("medical_conditions").update(payload).eq("id", editingId)
       : await supabase.from("medical_conditions").insert(payload);
