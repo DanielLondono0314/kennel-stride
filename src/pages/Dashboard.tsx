@@ -79,12 +79,13 @@ export default function Dashboard() {
 
   // Real-time subscription for notices
   useEffect(() => {
+    if (!organization) return;
     const channel = supabase
-      .channel("notices-dashboard")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notices" }, fetchNotices)
+      .channel(`notices-dashboard-${organization.id}-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notices", filter: `organization_id=eq.${organization.id}` }, fetchNotices)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchNotices]);
+  }, [fetchNotices, organization?.id]);
 
   // KPIs based on today's reservations
   const kpis = useMemo(() => {
