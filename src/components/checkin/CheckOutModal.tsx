@@ -172,6 +172,7 @@ export function CheckOutModal({
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
+            organization_id: organization!.id,
           });
 
         if (itemError) throw itemError;
@@ -207,6 +208,7 @@ export function CheckOutModal({
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
+            organization_id: organization!.id,
           });
 
         if (itemError) throw itemError;
