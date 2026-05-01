@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ const vaccineTypes = [
 const emptyForm = { vaccine_name: "", vaccine_type: "core", date_administered: new Date().toISOString().split("T")[0], next_dose_date: "", batch_number: "", veterinarian: "", notes: "" };
 
 export function VaccinationTab({ dogId, dogName }: Props) {
+  const { organization } = useOrganization();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,7 +65,8 @@ export function VaccinationTab({ dogId, dogName }: Props) {
 
   const handleSave = async () => {
     if (!form.vaccine_name) { toast.error("Ingresa el nombre de la vacuna"); return; }
-    const payload = { dog_id: dogId, dog_name: dogName, vaccine_name: form.vaccine_name, vaccine_type: form.vaccine_type, date_administered: form.date_administered, next_dose_date: form.next_dose_date || null, batch_number: form.batch_number, veterinarian: form.veterinarian, notes: form.notes };
+    if (!organization) { toast.error("Sin organización activa"); return; }
+    const payload = { dog_id: dogId, dog_name: dogName, vaccine_name: form.vaccine_name, vaccine_type: form.vaccine_type, date_administered: form.date_administered, next_dose_date: form.next_dose_date || null, batch_number: form.batch_number, veterinarian: form.veterinarian, notes: form.notes, organization_id: organization.id };
     const { error } = editingId
       ? await supabase.from("vaccination_schedule").update(payload).eq("id", editingId)
       : await supabase.from("vaccination_schedule").insert(payload);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +26,7 @@ const traits = [
 ];
 
 export function TemperamentTab({ dogId, dogName }: Props) {
+  const { organization } = useOrganization();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,6 +71,7 @@ export function TemperamentTab({ dogId, dogName }: Props) {
   useEffect(() => { fetchProfile(); }, [dogId]);
 
   const handleSave = async () => {
+    if (!organization) { toast.error("Sin organización activa"); return; }
     setSaving(true);
     const payload = {
       dog_id: dogId,
@@ -76,6 +79,7 @@ export function TemperamentTab({ dogId, dogName }: Props) {
       ...form,
       last_evaluation_date: new Date().toISOString().split("T")[0],
       updated_at: new Date().toISOString(),
+      organization_id: organization.id,
     };
 
     let error;

@@ -179,6 +179,7 @@ export default function InvoicesPage() {
       quantity: it.quantity,
       unit_price: it.unit_price,
       total: it.quantity * it.unit_price,
+      organization_id: organization!.id,
     }));
 
     const { error: itemsError } = await supabase.from("invoice_items").insert(itemsToInsert);

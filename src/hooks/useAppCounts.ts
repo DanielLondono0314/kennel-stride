@@ -34,13 +34,14 @@ export function useAppCounts() {
 
   useEffect(() => {
     fetch();
+    if (!organization) return;
     const channel = supabase
-      .channel("app-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notices" }, fetch)
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, fetch)
+      .channel(`app-counts-${organization.id}-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notices", filter: `organization_id=eq.${organization.id}` }, fetch)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `organization_id=eq.${organization.id}` }, fetch)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetch]);
+  }, [fetch, organization?.id]);
 
   return counts;
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ interface Props { dogId: string; dogName: string; }
 const emptyForm = { product_name: "", product_type: "internal", date_administered: new Date().toISOString().split("T")[0], next_dose_date: "", weight_at_time: "", veterinarian: "", notes: "" };
 
 export function DewormingTab({ dogId, dogName }: Props) {
+  const { organization } = useOrganization();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,7 +53,8 @@ export function DewormingTab({ dogId, dogName }: Props) {
 
   const handleSave = async () => {
     if (!form.product_name) { toast.error("Ingresa el nombre del producto"); return; }
-    const payload = { dog_id: dogId, dog_name: dogName, product_name: form.product_name, product_type: form.product_type, date_administered: form.date_administered, next_dose_date: form.next_dose_date || null, weight_at_time: form.weight_at_time ? parseFloat(form.weight_at_time) : null, veterinarian: form.veterinarian, notes: form.notes };
+    if (!organization) { toast.error("Sin organización activa"); return; }
+    const payload = { dog_id: dogId, dog_name: dogName, product_name: form.product_name, product_type: form.product_type, date_administered: form.date_administered, next_dose_date: form.next_dose_date || null, weight_at_time: form.weight_at_time ? parseFloat(form.weight_at_time) : null, veterinarian: form.veterinarian, notes: form.notes, organization_id: organization.id };
     const { error } = editingId
       ? await supabase.from("deworming_records").update(payload).eq("id", editingId)
       : await supabase.from("deworming_records").insert(payload);

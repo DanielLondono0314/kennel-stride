@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const severityConfig: Record<string, { icon: typeof AlertTriangle; className: st
 };
 
 export default function NoticesPage() {
-  const navigate = useNavigate();
+  const navigate = useOrgNavigate();
   const { organization } = useOrganization();
   const [notices, setNotices] = useState<NoticeRow[]>([]);
   const [loading, setLoading] = useState(true);
