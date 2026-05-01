@@ -154,13 +154,13 @@ export function useReservations(options: UseReservationsOptions = {}) {
   useEffect(() => { fetch(); }, [fetch]);
 
   useEffect(() => {
-    if (!options.autoRefresh) return;
+    if (!options.autoRefresh || !organization) return;
     const channel = supabase
-      .channel("reservations-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations" }, () => fetch())
+      .channel(`reservations-${organization.id}-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `organization_id=eq.${organization.id}` }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetch, options.autoRefresh]);
+  }, [fetch, options.autoRefresh, organization?.id]);
 
   const reservations = rows.map(mapDbToReservation);
 
