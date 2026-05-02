@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dog, Loader2, CheckCircle2 } from "lucide-react";
+// Loader2 still used in form submit button & slug spinner
 import { toast } from "sonner";
 
 function toSlug(name: string) {
