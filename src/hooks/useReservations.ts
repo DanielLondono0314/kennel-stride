@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, ReservationStatus, ServiceType } from "@/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -124,6 +124,13 @@ export function useReservations(options: UseReservationsOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Stabilize option deps so callers passing inline arrays don't trigger refetch loops
+  const dateKey = options.date?.toDateString();
+  const statusKey = useMemo(
+    () => (Array.isArray(options.status) ? [...options.status].sort().join(",") : options.status ?? ""),
+    [Array.isArray(options.status) ? options.status.join(",") : options.status]
+  );
+
   const fetch = useCallback(async () => {
     if (!organization) return;
     setLoading(true);
@@ -149,7 +156,8 @@ export function useReservations(options: UseReservationsOptions = {}) {
     if (error) setError(error.message);
     else setRows((data ?? []) as DbReservationRow[]);
     setLoading(false);
-  }, [organization?.id, options.date?.toDateString(), JSON.stringify(options.status)]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organization?.id, dateKey, statusKey]);
 
   useEffect(() => { fetch(); }, [fetch]);
 

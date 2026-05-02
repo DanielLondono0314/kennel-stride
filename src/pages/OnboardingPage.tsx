@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dog, Loader2, CheckCircle2 } from "lucide-react";
+// Loader2 still used in form submit button & slug spinner
 import { toast } from "sonner";
 
 function toSlug(name: string) {
@@ -26,23 +27,6 @@ export default function OnboardingPage() {
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [centerName, setCenterName] = useState("");
   const [slug, setSlug] = useState("");
-  const [checkingMembership, setCheckingMembership] = useState(true);
-
-  // If the user already has an organization, skip onboarding and go straight to dashboard
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await (supabase as any).rpc("get_my_first_org_slug");
-      if (cancelled) return;
-      if (!error && data) {
-        navigate(`/${data}/dashboard`, { replace: true });
-        return;
-      }
-      setCheckingMembership(false);
-    })();
-    return () => { cancelled = true; };
-  }, [user, navigate]);
 
   useEffect(() => {
     if (centerName) setSlug(toSlug(centerName));
@@ -114,9 +98,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      {checkingMembership ? (
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      ) : (
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
@@ -179,7 +160,6 @@ export default function OnboardingPage() {
           </Button>
         </form>
       </div>
-      )}
     </div>
   );
 }
