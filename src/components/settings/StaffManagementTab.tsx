@@ -116,12 +116,16 @@ export function StaffManagementTab() {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       toast.error("Nombre, apellido y email son requeridos"); return;
     }
+    if (!organization) {
+      toast.error("Organización no cargada, intenta de nuevo"); return;
+    }
     setSaving(true);
     if (editingStaff) {
       const { error } = await supabase
         .from("staff_members")
         .update({ first_name: firstName, last_name: lastName, email, phone, role, is_active: isActive, updated_at: new Date().toISOString() })
-        .eq("id", editingStaff.id);
+        .eq("id", editingStaff.id)
+        .eq("organization_id", organization.id);
       if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
@@ -134,7 +138,7 @@ export function StaffManagementTab() {
           phone,
           role,
           is_active: isActive,
-          organization_id: organization!.id,
+          organization_id: organization.id,
         });
       if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
@@ -146,8 +150,12 @@ export function StaffManagementTab() {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const { error } = await supabase.from("staff_members").delete().eq("id", deleteTarget.id);
+    if (!deleteTarget || !organization) return;
+    const { error } = await supabase
+      .from("staff_members")
+      .delete()
+      .eq("id", deleteTarget.id)
+      .eq("organization_id", organization.id);
     if (error) { toast.error("Error al eliminar"); console.error(error); }
     else { toast.success("Empleado eliminado"); }
     setDeleteDialogOpen(false);
@@ -156,10 +164,12 @@ export function StaffManagementTab() {
   };
 
   const toggleActive = async (s: StaffMember) => {
+    if (!organization) return;
     const { error } = await supabase
       .from("staff_members")
       .update({ is_active: !s.is_active, updated_at: new Date().toISOString() })
-      .eq("id", s.id);
+      .eq("id", s.id)
+      .eq("organization_id", organization.id);
     if (error) { toast.error("Error"); console.error(error); }
     else { toast.success(s.is_active ? "Empleado desactivado" : "Empleado activado"); fetchStaff(); }
   };

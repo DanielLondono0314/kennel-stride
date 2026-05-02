@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { format } from "date-fns";
@@ -41,7 +41,6 @@ function mapDbNotice(n: any): Notice {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useState<OpsTab>("expected");
