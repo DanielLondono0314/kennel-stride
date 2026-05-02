@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
@@ -38,7 +38,6 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
-  const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
   const [query, setQuery] = useState("");
