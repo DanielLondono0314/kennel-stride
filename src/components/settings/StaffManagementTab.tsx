@@ -164,10 +164,12 @@ export function StaffManagementTab() {
   };
 
   const toggleActive = async (s: StaffMember) => {
+    if (!organization) return;
     const { error } = await supabase
       .from("staff_members")
       .update({ is_active: !s.is_active, updated_at: new Date().toISOString() })
-      .eq("id", s.id);
+      .eq("id", s.id)
+      .eq("organization_id", organization.id);
     if (error) { toast.error("Error"); console.error(error); }
     else { toast.success(s.is_active ? "Empleado desactivado" : "Empleado activado"); fetchStaff(); }
   };

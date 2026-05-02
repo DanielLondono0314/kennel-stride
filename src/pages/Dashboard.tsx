@@ -41,7 +41,6 @@ function mapDbNotice(n: any): Notice {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useState<OpsTab>("expected");
