@@ -57,7 +57,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchRecords(); }, [dogId]);
+  useEffect(() => { fetchRecords(); }, [dogId, organization?.id]);
 
   const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
   const openEdit = (r: any) => {
@@ -74,10 +74,14 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
   };
 
   const handleSave = async () => {
+    if (!organization) {
+      toast.error("Organización no cargada, intenta de nuevo");
+      return;
+    }
     const payload = {
       dog_id: dogId,
       dog_name: dogName,
-      organization_id: organization?.id,
+      organization_id: organization.id,
       record_date: form.record_date,
       record_type: form.record_type,
       veterinarian: form.veterinarian,
