@@ -118,17 +118,46 @@ export default function NoticesPage() {
     toast.success("Avisos leídos eliminados");
   };
 
-  const handleAction = (action: string, params?: Record<string, string>) => {
+  const handleAction = async (action: string, params?: Record<string, string>) => {
     switch (action) {
       case "navigate":
         if (params?.path) navigate(params.path);
         break;
       case "contact":
-        toast.info("Abriendo contacto del cliente...");
+        if (params?.customerId) {
+          navigate(`/customers/${params.customerId}`);
+        } else {
+          navigate("/customers");
+        }
         break;
-      case "sendReminder":
-        toast.success("Recordatorio enviado al cliente");
+      case "sendReminder": {
+        if (!organization || !params?.customerId) {
+          toast.error("No se pudo enviar el recordatorio");
+          return;
+        }
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("first_name, last_name, email")
+          .eq("id", params.customerId)
+          .eq("organization_id", organization.id)
+          .maybeSingle();
+        if (!customer) {
+          toast.error("Cliente no encontrado");
+          return;
+        }
+        const { error } = await supabase.from("notices").insert({
+          title: "Recordatorio enviado",
+          message: `Se registró un recordatorio para ${customer.first_name} ${customer.last_name} (${customer.email}).`,
+          severity: "info",
+          entity_type: "customer",
+          entity_id: params.customerId,
+          auto_generated: false,
+          organization_id: organization.id,
+        });
+        if (error) toast.error("Error al registrar recordatorio");
+        else toast.success("Recordatorio registrado en el historial");
         break;
+      }
       case "renewPackage":
         navigate("/packages");
         break;
