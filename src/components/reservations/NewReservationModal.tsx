@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -54,6 +55,7 @@ export function NewReservationModal({
   onSaved,
 }: NewReservationModalProps) {
   const { organization } = useOrganization();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
 
   // Form fields
@@ -123,6 +125,20 @@ export function NewReservationModal({
 
     setSaving(true);
     const serviceName = SERVICE_OPTIONS.find((s) => s.type === serviceType)?.name ?? serviceType;
+
+    // Try to link this reservation to the current user's staff record (if any)
+    // so it shows up in the dashboard's "My Tasks" section.
+    let staffId: string | null = null;
+    if (user) {
+      const { data: staffRow } = await supabase
+        .from("staff_members")
+        .select("id")
+        .eq("organization_id", organization.id)
+        .eq("profile_id", user.id)
+        .maybeSingle();
+      staffId = staffRow?.id ?? null;
+    }
+
     const { data: reservation, error } = await supabase.from("reservations").insert({
       customer_id: customerId,
       dog_id: dogId,
@@ -134,6 +150,7 @@ export function NewReservationModal({
       notes: notes || "",
       status: "requested",
       organization_id: organization!.id,
+      staff_id: staffId,
     }).select("id").single();
 
     if (error) {

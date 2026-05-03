@@ -87,10 +87,12 @@ export function InviteMembersTab() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!organization) return;
     const { error } = await (supabase as any)
       .from("organization_invitations")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("organization_id", organization.id);
     if (error) {
       toast.error("Error al eliminar invitación");
     } else {
