@@ -134,7 +134,7 @@ export function StaffManagementTab() {
     if (editingStaff) {
       const { error } = await supabase
         .from("staff_members")
-        .update({ first_name: firstName, last_name: lastName, email, phone, role, is_active: isActive, updated_at: new Date().toISOString() })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id)
         .eq("organization_id", organization.id);
       if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
@@ -142,15 +142,7 @@ export function StaffManagementTab() {
     } else {
       const { error } = await (supabase as any)
         .from("staff_members")
-        .insert({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          role,
-          is_active: isActive,
-          organization_id: organization.id,
-        });
+        .insert({ ...payload, organization_id: organization.id });
       if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
     }
