@@ -12,6 +12,7 @@ import { Users2, Copy, Trash2, Loader2, Plus, Clock, CheckCircle2 } from "lucide
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { invitationSchema } from "@/lib/schemas";
 
 interface Invitation {
   id: string;
@@ -55,15 +56,19 @@ export function InviteMembersTab() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!organization || !user) return;
-    if (!email.trim()) { toast.error("Ingresa un correo electrónico"); return; }
+    const parsed = invitationSchema.safeParse({ email, role });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+      return;
+    }
 
     setSending(true);
     const { data, error } = await (supabase as any)
       .from("organization_invitations")
       .insert({
         organization_id: organization.id,
-        email: email.trim().toLowerCase(),
-        role,
+        email: parsed.data.email.toLowerCase(),
+        role: parsed.data.role,
         invited_by: user.id,
       })
       .select("*")

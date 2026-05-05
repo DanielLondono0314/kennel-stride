@@ -38,6 +38,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Edit, Trash2, Loader2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { staffMemberSchema } from "@/lib/schemas";
 
 type StaffMember = Tables<"staff_members">;
 type AppRole = "admin" | "front_desk" | "trainer" | "manager";
@@ -113,17 +114,27 @@ export function StaffManagementTab() {
   const openDelete = (s: StaffMember) => { setDeleteTarget(s); setDeleteDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      toast.error("Nombre, apellido y email son requeridos"); return;
-    }
     if (!organization) {
       toast.error("Organización no cargada, intenta de nuevo"); return;
     }
+    const parsed = staffMemberSchema.safeParse({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      role,
+      is_active: isActive,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+      return;
+    }
+    const payload = parsed.data;
     setSaving(true);
     if (editingStaff) {
       const { error } = await supabase
         .from("staff_members")
-        .update({ first_name: firstName, last_name: lastName, email, phone, role, is_active: isActive, updated_at: new Date().toISOString() })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id)
         .eq("organization_id", organization.id);
       if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
@@ -131,15 +142,7 @@ export function StaffManagementTab() {
     } else {
       const { error } = await (supabase as any)
         .from("staff_members")
-        .insert({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          role,
-          is_active: isActive,
-          organization_id: organization.id,
-        });
+        .insert({ ...payload, organization_id: organization.id });
       if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
     }
