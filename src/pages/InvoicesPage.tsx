@@ -98,25 +98,42 @@ export default function InvoicesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as { description: string; quantity: number; unit_price: number }[],
   });
 
-  const fetchData = async () => {
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchData = async (reset = true) => {
     if (!organization) return;
-    setLoading(true);
+    if (reset) setLoading(true); else setLoadingMore(true);
+    const currentPage = reset ? 0 : page + 1;
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const [invRes, custRes] = await Promise.all([
-      supabase.from("invoices").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id),
+      supabase.from("invoices")
+        .select("*")
+        .eq("organization_id", organization!.id)
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      reset
+        ? supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id)
+        : Promise.resolve({ data: customers } as any),
     ]);
-    const custs = (custRes.data || []) as CustomerRow[];
-    setCustomers(custs);
-    setInvoices(
-      (invRes.data || []).map((inv: any) => ({
-        ...inv,
-        customer: custs.find((c) => c.id === inv.customer_id),
-      }))
-    );
+    const custs = (custRes.data || customers) as CustomerRow[];
+    if (reset) setCustomers(custs);
+    const newInvs = (invRes.data || []).map((inv: any) => ({
+      ...inv,
+      customer: custs.find((c) => c.id === inv.customer_id),
+    }));
+    setInvoices((prev) => reset ? newInvs : [...prev, ...newInvs]);
+    setHasMore((invRes.data || []).length === PAGE_SIZE);
+    setPage(currentPage);
     setLoading(false);
+    setLoadingMore(false);
   };
 
-  useEffect(() => { fetchData(); }, [organization?.id]);
+  useEffect(() => { fetchData(true); }, [organization?.id]);
 
   const openCreate = () => {
     setForm({
