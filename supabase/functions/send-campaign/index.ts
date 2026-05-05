@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// [M-1] Restrict CORS to configured origin instead of wildcard
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -19,9 +20,33 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // [C-1] Require a valid Supabase JWT — reject unauthenticated callers
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Missing or invalid Authorization header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
+    // Validate the caller's JWT using the anon key client
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { campaignId } = await req.json();
 
+    // Service role client for admin operations after auth is confirmed
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -41,23 +66,32 @@ serve(async (req: Request) => {
       });
     }
 
-    // Build recipient query based on segment
+    // [C-2] All segment queries are scoped to the campaign's organization only.
+    // This prevents cross-org data leakage where org A could email org B's customers.
+    const orgId: string = campaign.organization_id;
+
     let query = supabase
       .from("customers")
-      .select("id, first_name, last_name, email, dogs(name)");
+      .select("id, first_name, last_name, email, dogs(name)")
+      .eq("organization_id", orgId);
 
     const now = new Date();
     if (campaign.segment_type === "new") {
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
       query = query.gte("created_at", thirtyDaysAgo);
     } else if (campaign.segment_type === "inactive") {
-      // Customers with no reservations in the last 30 days
-      // Use a simpler approach: get all customers and filter
-      // (for MVP; a proper approach would use a subquery or RPC)
+      // [C-4] "inactive" filtering requires a subquery/RPC against reservations.
+      // Sending to all customers without that filter would violate data isolation.
+      // This must be implemented as a proper DB-side function before enabling.
+      return new Response(
+        JSON.stringify({ error: "Segment 'inactive' is not yet implemented. Use 'all', 'new', or 'vip'." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (campaign.segment_type === "vip") {
-      // Top customers by balance (highest positive balance)
+      // Top customers by positive balance within this org
       query = query.order("balance", { ascending: false }).limit(50);
     }
+    // Implicit "all" segment: no additional filter beyond organization_id
 
     const { data: customers } = await query;
     const recipients = (customers || []).filter((c: Customer) => c.email);
@@ -75,7 +109,6 @@ serve(async (req: Request) => {
     let failed = 0;
 
     if (RESEND_API_KEY && campaign.channel === "email") {
-      // Send real emails via Resend
       for (const customer of recipients as Customer[]) {
         const dogName = customer.dogs?.[0]?.name || "tu mascota";
         const personalizedMessage = campaign.message_template
@@ -107,7 +140,6 @@ serve(async (req: Request) => {
 
     const statsSent = delivered + failed;
 
-    // Update campaign stats
     await supabase.from("campaigns").update({
       status: "sent",
       sent_at: new Date().toISOString(),
