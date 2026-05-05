@@ -67,8 +67,8 @@ export function InviteMembersTab() {
       .from("organization_invitations")
       .insert({
         organization_id: organization.id,
-        email: email.trim().toLowerCase(),
-        role,
+        email: parsed.data.email.toLowerCase(),
+        role: parsed.data.role,
         invited_by: user.id,
       })
       .select("*")
