@@ -435,6 +435,14 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+      {hasMore && !loading && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={() => fetchData(false)} disabled={loadingMore}>
+            {loadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Cargar más
+          </Button>
+        </div>
+      )}
 
       {/* Create Invoice Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
