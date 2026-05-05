@@ -27,6 +27,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoiceSchema } from "@/lib/schemas";
 
 interface InvoiceRow {
   id: string;
