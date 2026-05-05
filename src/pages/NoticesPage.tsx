@@ -82,8 +82,8 @@ export default function NoticesPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     // Trigger backend check functions
-    await supabase.rpc("check_expiring_packages" as any);
-    await supabase.rpc("check_overdue_invoices" as any);
+    await supabase.rpc("check_expiring_packages");
+    await supabase.rpc("check_overdue_invoices");
     await fetchNotices();
     setRefreshing(false);
     toast.success("Avisos actualizados");

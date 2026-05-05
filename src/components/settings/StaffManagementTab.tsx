@@ -79,7 +79,7 @@ export function StaffManagementTab() {
 
   const fetchStaff = async () => {
     if (!organization) return;
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("staff_members")
       .select("*")
       .eq("organization_id", organization.id)
@@ -140,7 +140,7 @@ export function StaffManagementTab() {
       if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("staff_members")
         .insert({ ...payload, organization_id: organization.id });
       if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }

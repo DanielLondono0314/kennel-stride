@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +41,7 @@ const emptyForm = { vaccine_name: "", vaccine_type: "core", date_administered: n
 
 export function VaccinationTab({ dogId, dogName }: Props) {
   const { organization } = useOrganization();
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<Tables<"vaccination_schedule">[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
   useEffect(() => { fetchRecords(); }, [dogId]);
 
   const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
-  const openEdit = (r: any) => {
+  const openEdit = (r: Tables<"vaccination_schedule">) => {
     setEditingId(r.id);
     setForm({ vaccine_name: r.vaccine_name, vaccine_type: r.vaccine_type, date_administered: r.date_administered, next_dose_date: r.next_dose_date || "", batch_number: r.batch_number || "", veterinarian: r.veterinarian || "", notes: r.notes || "" });
     setModalOpen(true);
@@ -68,7 +69,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
     if (!organization) { toast.error("Sin organización activa"); return; }
     const payload = { dog_id: dogId, dog_name: dogName, vaccine_name: form.vaccine_name, vaccine_type: form.vaccine_type, date_administered: form.date_administered, next_dose_date: form.next_dose_date || null, batch_number: form.batch_number, veterinarian: form.veterinarian, notes: form.notes, organization_id: organization.id };
     const { error } = editingId
-      ? await supabase.from("vaccination_schedule").update(payload).eq("id", editingId)
+      ? await supabase.from("vaccination_schedule").update(payload).eq("id", editingId).eq("organization_id", organization.id)
       : await supabase.from("vaccination_schedule").insert(payload);
     if (error) { toast.error("Error al guardar"); return; }
     toast.success(editingId ? "Vacuna actualizada" : "Vacuna registrada");
@@ -77,12 +78,13 @@ export function VaccinationTab({ dogId, dogName }: Props) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const { error } = await supabase.from("vaccination_schedule").delete().eq("id", deleteId);
+    if (!organization) return;
+    const { error } = await supabase.from("vaccination_schedule").delete().eq("id", deleteId).eq("organization_id", organization.id);
     if (!error) { toast.success("Vacuna eliminada"); fetchRecords(); }
     setDeleteId(null);
   };
 
-  const getStatus = (r: any) => {
+  const getStatus = (r: Tables<"vaccination_schedule">) => {
     if (!r.next_dose_date) return { label: "Vigente", icon: CheckCircle, className: "bg-success/10 text-success" };
     const next = new Date(r.next_dose_date);
     if (isPast(next)) return { label: "Vencida", icon: AlertTriangle, className: "bg-destructive/10 text-destructive" };

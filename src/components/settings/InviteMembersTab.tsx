@@ -42,7 +42,7 @@ export function InviteMembersTab() {
 
   const fetchInvitations = async () => {
     if (!organization) return;
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("organization_invitations")
       .select("*")
       .eq("organization_id", organization.id)
@@ -63,7 +63,7 @@ export function InviteMembersTab() {
     }
 
     setSending(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("organization_invitations")
       .insert({
         organization_id: organization.id,
@@ -93,7 +93,7 @@ export function InviteMembersTab() {
 
   const handleDelete = async (id: string) => {
     if (!organization) return;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("organization_invitations")
       .delete()
       .eq("id", id)

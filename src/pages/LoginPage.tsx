@@ -10,7 +10,7 @@ import { Dog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 async function getFirstOrgSlug(_userId: string): Promise<string | null> {
-  const { data, error } = await (supabase as any).rpc("get_my_first_org_slug");
+  const { data, error } = await supabase.rpc("get_my_first_org_slug");
   if (error) {
     console.error("get_my_first_org_slug error:", error);
     return null;

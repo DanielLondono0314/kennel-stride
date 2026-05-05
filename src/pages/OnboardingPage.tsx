@@ -36,7 +36,7 @@ export default function OnboardingPage() {
     if (!slug) { setSlugAvailable(null); return; }
     setChecking(true);
     const timer = setTimeout(async () => {
-      const { data } = await (supabase as any)
+      const { data } = await (supabase)
         .from("organizations")
         .select("id")
         .eq("slug", slug)
@@ -58,7 +58,7 @@ export default function OnboardingPage() {
 
     // Re-verify slug availability right before insert to prevent TOCTOU race
     // (two tabs checking at the same time could both see it as available)
-    const { data: existingOrg } = await (supabase as any)
+    const { data: existingOrg } = await (supabase)
       .from("organizations")
       .select("id")
       .eq("slug", slug)
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    const { data: org, error: orgError } = await (supabase as any)
+    const { data: org, error: orgError } = await (supabase)
       .rpc("create_organization", { p_name: centerName, p_slug: slug });
 
     if (orgError) {

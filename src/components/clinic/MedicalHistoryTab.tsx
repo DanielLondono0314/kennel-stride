@@ -100,8 +100,8 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
       updated_at: new Date().toISOString(),
     };
     const { error } = editingId
-      ? await (supabase as any).from("medical_history").update(payload).eq("id", editingId)
-      : await (supabase as any).from("medical_history").insert(payload);
+      ? await supabase.from("medical_history").update(payload).eq("id", editingId).eq("organization_id", organization.id)
+      : await supabase.from("medical_history").insert(payload);
     if (error) {
       console.error("Medical history save error:", error);
       toast.error(`Error al guardar: ${error.message}`);
@@ -114,7 +114,8 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const { error } = await supabase.from("medical_history").delete().eq("id", deleteId);
+    if (!organization) return;
+    const { error } = await supabase.from("medical_history").delete().eq("id", deleteId).eq("organization_id", organization.id);
     if (!error) { toast.success("Registro eliminado"); fetchRecords(); }
     setDeleteId(null);
   };

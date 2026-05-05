@@ -8,7 +8,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   subscription_created    → org status: trialing / active
 //   subscription_updated    → update status, cancel, resume
 //   subscription_cancelled  → org status: cancelled
-//   order_created           → record payment on packages/invoices
+//   subscription_resumed    → org status: active
+//   order_created           → record payment on packages
 //
 // Required environment variables (set in Supabase dashboard):
 //   LEMONSQUEEZY_WEBHOOK_SECRET  — signing secret from LS dashboard
@@ -16,6 +17,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   SUPABASE_SERVICE_ROLE_KEY    — auto-provided by Supabase
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Webhook is called server-to-server by LemonSqueezy, so wildcard CORS is acceptable here
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature",
@@ -51,15 +53,22 @@ serve(async (req) => {
     const signature = req.headers.get("x-signature") ?? "";
     const webhookSecret = Deno.env.get("LEMONSQUEEZY_WEBHOOK_SECRET") ?? "";
 
-    // Verify signature in production
-    if (webhookSecret) {
-      const valid = await verifySignature(rawBody, signature, webhookSecret);
-      if (!valid) {
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // [A-1] Fail hard if the signing secret is not configured.
+    // Skipping verification would allow any caller to manipulate subscription status.
+    if (!webhookSecret) {
+      console.error("LEMONSQUEEZY_WEBHOOK_SECRET is not configured");
+      return new Response(JSON.stringify({ error: "Server misconfiguration: webhook secret missing" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const valid = await verifySignature(rawBody, signature, webhookSecret);
+    if (!valid) {
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const payload = JSON.parse(rawBody);
@@ -72,50 +81,28 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Helper: resolve org by LS customer ID ───────────────────────────────
-    async function getOrgByCustomer(lsCustomerId: string) {
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("id")
-        .eq("ls_customer_id", lsCustomerId)
-        .single();
-      return org;
-    }
-
-    // ── Event routing ────────────────────────────────────────────────────────
     switch (eventName) {
 
-      // New subscription created (after checkout)
+      // New subscription created (after checkout).
+      // org_id must be passed via custom_data during the LemonSqueezy checkout URL.
       case "subscription_created": {
         const lsCustomerId = String(attributes.customer_id);
         const lsSubscriptionId = String(data.id);
         const status = attributes.status === "active" ? "active" : "trialing";
 
-        // Store customer + subscription IDs on the organization
-        // The org is matched by user email stored in custom data during checkout
-        const customerEmail: string = attributes.user_email ?? "";
-        if (customerEmail) {
-          // Find org admin by email
-          const { data: member } = await supabase
-            .from("organization_members")
-            .select("organization_id")
-            .eq("role", "admin")
-            .limit(1)
-            .single();
+        // [A-2] Removed dead code: unused query that fetched any admin member without
+        // an org filter. The correct lookup is via custom_data.org_id set at checkout.
+        const orgId: string = payload.meta?.custom_data?.org_id ?? "";
 
-          // More reliable: use custom data passed during checkout
-          const orgId: string = payload.meta?.custom_data?.org_id ?? "";
-
-          if (orgId) {
-            await supabase
-              .from("organizations")
-              .update({
-                ls_customer_id: lsCustomerId,
-                ls_subscription_id: lsSubscriptionId,
-                subscription_status: status,
-              })
-              .eq("id", orgId);
-          }
+        if (orgId) {
+          await supabase
+            .from("organizations")
+            .update({
+              ls_customer_id: lsCustomerId,
+              ls_subscription_id: lsSubscriptionId,
+              subscription_status: status,
+            })
+            .eq("id", orgId);
         }
         break;
       }
@@ -159,9 +146,7 @@ serve(async (req) => {
       // One-time order completed (e.g. package purchase via payment link)
       case "order_created": {
         const lsOrderId = String(data.id);
-        const lsCustomerId = String(attributes.customer_id);
         const variantId = String(attributes.first_order_item?.variant_id ?? "");
-        const customerEmail: string = attributes.user_email ?? "";
 
         // If custom_data carries an internal package ID, link it
         const packageId: string = payload.meta?.custom_data?.package_id ?? "";
@@ -179,7 +164,7 @@ serve(async (req) => {
       }
 
       default:
-        // Unhandled event — acknowledge without error
+        // Unhandled event — acknowledge without error so LS doesn't retry
         console.log(`Unhandled LS event: ${eventName}`);
     }
 

@@ -58,7 +58,7 @@ export default function FacilityPage() {
     if (uRes.data) setUnits(uRes.data);
 
     // Fetch dogs for kennel assignment
-    const { data: dogsData } = await (supabase as any)
+    const { data: dogsData } = await supabase
       .from("dogs")
       .select("id, name")
       .eq("organization_id", organization!.id)

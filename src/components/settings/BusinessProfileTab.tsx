@@ -70,7 +70,7 @@ export function BusinessProfileTab() {
   const handleSave = async () => {
     if (!fields || !organization) return;
     setSaving(true);
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("organizations")
       .update({
         name:         fields.name,

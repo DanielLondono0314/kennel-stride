@@ -67,13 +67,13 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 
     // Load org + current user's role in one round-trip
     const [{ data: orgData }, { data: memberData }] = await Promise.all([
-      (supabase as any)
+      supabase
         .from("organizations")
         .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types")
         .eq("slug", orgSlug)
         .maybeSingle(),
       user
-        ? (supabase as any)
+        ? supabase
             .from("organization_members")
             .select("role, organizations!inner(slug)")
             .eq("user_id", user.id)

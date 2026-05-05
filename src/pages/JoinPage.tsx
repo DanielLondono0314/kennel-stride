@@ -27,9 +27,9 @@ export default function JoinPage() {
     if (!token) { setStatus("invalid"); return; }
 
     // Use SECURITY DEFINER function — prevents enumeration of all invitation tokens
-    (supabase as any)
+    supabase
       .rpc("get_invitation_by_token", { p_token: token })
-      .then(({ data }: any) => {
+      .then(({ data }) => {
         if (!data) {
           setStatus("invalid");
           return;
@@ -49,7 +49,7 @@ export default function JoinPage() {
   const acceptInvitation = async () => {
     if (!token) return;
     setStatus("accepting");
-    const { data, error } = await (supabase as any).rpc("accept_invitation", { p_token: token });
+    const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
     if (error) {
       toast.error("Error al aceptar invitación", { description: error.message });
       setStatus("invalid");
