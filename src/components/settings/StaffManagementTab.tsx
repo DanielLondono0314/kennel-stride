@@ -38,6 +38,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Edit, Trash2, Loader2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { staffMemberSchema } from "@/lib/schemas";
 
 type StaffMember = Tables<"staff_members">;
 type AppRole = "admin" | "front_desk" | "trainer" | "manager";
