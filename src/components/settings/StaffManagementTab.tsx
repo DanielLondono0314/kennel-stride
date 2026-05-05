@@ -114,12 +114,22 @@ export function StaffManagementTab() {
   const openDelete = (s: StaffMember) => { setDeleteTarget(s); setDeleteDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      toast.error("Nombre, apellido y email son requeridos"); return;
-    }
     if (!organization) {
       toast.error("Organización no cargada, intenta de nuevo"); return;
     }
+    const parsed = staffMemberSchema.safeParse({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      role,
+      is_active: isActive,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+      return;
+    }
+    const payload = parsed.data;
     setSaving(true);
     if (editingStaff) {
       const { error } = await supabase
