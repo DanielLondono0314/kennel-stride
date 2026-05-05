@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { DbCustomer } from "@/pages/CustomersPage";
+import { customerSchema } from "@/lib/schemas";
 
 interface CustomerModalProps {
   customer?: DbCustomer | null;
