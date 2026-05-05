@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { DbCustomer } from "@/pages/CustomersPage";
+import { customerSchema } from "@/lib/schemas";
 
 interface CustomerModalProps {
   customer?: DbCustomer | null;
@@ -56,31 +57,46 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   }, [customer, open]);
 
   const handleSubmit = async () => {
-    const newErrors: Record<string, boolean> = {
-      firstName: !firstName.trim(),
-      lastName: !lastName.trim(),
-      email: !email.trim(),
-      phone: !phone.trim(),
+    const candidate = {
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      zip_code: zipCode,
+      notes,
     };
-    setErrors(newErrors);
-    if (Object.values(newErrors).some(Boolean)) {
-      toast.error("Completa los campos requeridos");
+    const parsed = customerSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, boolean> = {};
+      parsed.error.issues.forEach((i) => {
+        const k = String(i.path[0]);
+        if (k === "first_name") fieldErrors.firstName = true;
+        else if (k === "last_name") fieldErrors.lastName = true;
+        else fieldErrors[k] = true;
+      });
+      setErrors(fieldErrors);
+      toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
       return;
     }
+    setErrors({});
     setIsSubmitting(true);
+    const data = parsed.data;
     await onSave({
       id: customer?.id,
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      address: address.trim() || null,
-      city: city.trim() || null,
-      state: state.trim() || null,
-      zip_code: zipCode.trim() || null,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      phone: data.phone,
+      address: data.address || null,
+      city: data.city || null,
+      state: data.state || null,
+      zip_code: data.zip_code || null,
       emergency_contact_name: emergencyContactName.trim() || null,
       emergency_contact_phone: emergencyContactPhone.trim() || null,
-      notes: notes.trim() || null,
+      notes: data.notes || null,
     });
     setIsSubmitting(false);
   };

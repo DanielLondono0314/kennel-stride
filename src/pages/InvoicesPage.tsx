@@ -27,6 +27,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { invoiceSchema } from "@/lib/schemas";
 
 interface InvoiceRow {
   id: string;
@@ -97,25 +98,42 @@ export default function InvoicesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as { description: string; quantity: number; unit_price: number }[],
   });
 
-  const fetchData = async () => {
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchData = async (reset = true) => {
     if (!organization) return;
-    setLoading(true);
+    if (reset) setLoading(true); else setLoadingMore(true);
+    const currentPage = reset ? 0 : page + 1;
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const [invRes, custRes] = await Promise.all([
-      supabase.from("invoices").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id),
+      supabase.from("invoices")
+        .select("*")
+        .eq("organization_id", organization!.id)
+        .order("created_at", { ascending: false })
+        .range(from, to),
+      reset
+        ? supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id)
+        : Promise.resolve({ data: customers } as any),
     ]);
-    const custs = (custRes.data || []) as CustomerRow[];
-    setCustomers(custs);
-    setInvoices(
-      (invRes.data || []).map((inv: any) => ({
-        ...inv,
-        customer: custs.find((c) => c.id === inv.customer_id),
-      }))
-    );
+    const custs = (custRes.data || customers) as CustomerRow[];
+    if (reset) setCustomers(custs);
+    const newInvs = (invRes.data || []).map((inv: any) => ({
+      ...inv,
+      customer: custs.find((c) => c.id === inv.customer_id),
+    }));
+    setInvoices((prev) => reset ? newInvs : [...prev, ...newInvs]);
+    setHasMore((invRes.data || []).length === PAGE_SIZE);
+    setPage(currentPage);
     setLoading(false);
+    setLoadingMore(false);
   };
 
-  useEffect(() => { fetchData(); }, [organization?.id]);
+  useEffect(() => { fetchData(true); }, [organization?.id]);
 
   const openCreate = () => {
     setForm({
@@ -145,14 +163,28 @@ export default function InvoicesPage() {
   const subtotal = form.items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
 
   const handleSave = async () => {
-    if (!form.customer_id || form.items.every((it) => !it.description)) {
-      toast.error("Completa los campos obligatorios");
+    const validItems = form.items
+      .filter((it) => it.description.trim())
+      .map((it) => ({
+        description: it.description,
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+      }));
+
+    const parsed = invoiceSchema.safeParse({
+      customer_id: form.customer_id,
+      due_date: form.due_date,
+      items: validItems,
+      discount: 0,
+      tax: 0,
+      notes: form.notes,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
       return;
     }
     setSaving(true);
-
-    const validItems = form.items.filter((it) => it.description);
-    const total = validItems.reduce((s, it) => s + it.quantity * it.unit_price, 0);
+    const total = parsed.data.items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
 
     const { data: inv, error } = await supabase.from("invoices").insert({
       customer_id: form.customer_id,
@@ -173,7 +205,7 @@ export default function InvoicesPage() {
     }
 
     // Insert items
-    const itemsToInsert = validItems.map((it) => ({
+    const itemsToInsert = parsed.data.items.map((it) => ({
       invoice_id: inv.id,
       description: it.description,
       quantity: it.quantity,
@@ -403,6 +435,14 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+      {hasMore && !loading && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={() => fetchData(false)} disabled={loadingMore}>
+            {loadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Cargar más
+          </Button>
+        </div>
+      )}
 
       {/* Create Invoice Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { DOG_BREEDS } from "@/lib/constants";
+import { dogSchema } from "@/lib/schemas";
 
 interface DogModalProps {
   dog?: any | null;
@@ -142,8 +143,21 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   };
 
   const handleSubmit = async () => {
-    if (!customerId || !name || !breed) {
-      toast.error("Completa los campos requeridos");
+    if (!customerId) {
+      toast.error("Selecciona un dueño");
+      return;
+    }
+    const parsed = dogSchema.safeParse({
+      name,
+      breed,
+      gender,
+      weight: weight ? Number(weight) : null,
+      color,
+      microchip_number: microchipNumber,
+      notes,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
       return;
     }
     setIsSubmitting(true);
