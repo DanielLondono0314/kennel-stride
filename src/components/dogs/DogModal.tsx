@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { DOG_BREEDS } from "@/lib/constants";
+import { dogSchema } from "@/lib/schemas";
 
 interface DogModalProps {
   dog?: any | null;
