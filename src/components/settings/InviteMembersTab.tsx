@@ -56,7 +56,11 @@ export function InviteMembersTab() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!organization || !user) return;
-    if (!email.trim()) { toast.error("Ingresa un correo electrónico"); return; }
+    const parsed = invitationSchema.safeParse({ email, role });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Datos inválidos");
+      return;
+    }
 
     setSending(true);
     const { data, error } = await (supabase as any)
