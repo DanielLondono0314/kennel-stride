@@ -44,7 +44,7 @@ export function InviteMembersTab() {
     if (!organization) return;
     const { data } = await supabase
       .from("organization_invitations")
-      .select("*")
+      .select("id, email, role, token, expires_at, accepted_at, created_at")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: false });
     if (data) setInvitations(data);

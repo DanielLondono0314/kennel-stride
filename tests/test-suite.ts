@@ -8,6 +8,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import React from "react";
+import {
+  VaccinationType, DocumentType, DocumentStatus,
+  FlagType, FlagSeverity, ReservationStatus, ServiceType,
+  type Dog, type Customer, type Service, type Reservation,
+} from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers & utilities extracted from source files for isolated testing
@@ -397,5 +402,209 @@ describe("Performance – Reservation mapper", () => {
     rows.forEach(mapDbToReservation);
     const elapsed = performance.now() - start;
     expect(elapsed).toBeLessThan(50);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. VALIDATION LOGIC — validateCheckIn / validateCheckOut
+// ---------------------------------------------------------------------------
+
+// ── Factories ────────────────────────────────────────────────────────────────
+
+function makeCustomer(overrides: Partial<Customer> = {}): Customer {
+  return {
+    id: "cust-1", firstName: "Ana", lastName: "García",
+    email: "ana@example.com", phone: "555-1234", balance: 0,
+    createdAt: new Date(), updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function makeDog(overrides: Partial<Dog> = {}): Dog {
+  return {
+    id: "dog-1", customerId: "cust-1", name: "Max", breed: "Labrador",
+    gender: "male", isNeutered: false, flags: [], vaccinations: [], documents: [],
+    createdAt: new Date(), updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function makeService(overrides: Partial<Service> = {}): Service {
+  return {
+    id: "svc-1", name: "Hospedaje", type: ServiceType.BOARD_AND_TRAIN,
+    duration: 1440, price: 500, isActive: true,
+    requiredVaccinations: [], requiredDocuments: [],
+    ...overrides,
+  };
+}
+
+function makeReservation(overrides: Partial<Reservation> = {}): Reservation {
+  return {
+    id: "res-1", customerId: "cust-1", dogId: "dog-1", serviceId: "svc-1",
+    status: ReservationStatus.SCHEDULED,
+    startDate: new Date(), endDate: new Date(),
+    totalPrice: 500, usePackageCredits: false,
+    createdAt: new Date(), updatedAt: new Date(),
+    customer: makeCustomer(), dog: makeDog(),
+    ...overrides,
+  };
+}
+
+function makeVaccination(type: VaccinationType, opts: { expired?: boolean; verified?: boolean } = {}) {
+  const past = new Date(); past.setFullYear(past.getFullYear() - 2);
+  const future = new Date(); future.setFullYear(future.getFullYear() + 1);
+  return {
+    id: `vax-${type}`, dogId: "dog-1", name: type, type,
+    administeredAt: past,
+    expiresAt: opts.expired ? past : future,
+    verified: opts.verified !== false,
+  };
+}
+
+// ── validateCheckIn ──────────────────────────────────────────────────────────
+
+describe("validateCheckIn – vaccinations", () => {
+  it("passes when no vaccinations are required", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer(), makeService());
+    expect(result.isValid).toBe(true);
+    expect(result.alerts).toHaveLength(0);
+  });
+
+  it("blocks when a required vaccination is missing", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredVaccinations: [VaccinationType.RABIES] });
+    const dog = makeDog({ vaccinations: [] });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.isValid).toBe(false);
+    expect(result.canOverride).toBe(false);
+    expect(result.alerts.some(a => a.blocksOperation && a.type === "vaccination")).toBe(true);
+  });
+
+  it("blocks when a required vaccination is expired", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredVaccinations: [VaccinationType.RABIES] });
+    const dog = makeDog({ vaccinations: [makeVaccination(VaccinationType.RABIES, { expired: true })] });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.isValid).toBe(false);
+    expect(result.canOverride).toBe(false);
+  });
+
+  it("warns but does not block when required vaccination is unverified but valid", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredVaccinations: [VaccinationType.RABIES] });
+    const dog = makeDog({ vaccinations: [makeVaccination(VaccinationType.RABIES, { verified: false })] });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.isValid).toBe(true);
+    expect(result.alerts.some(a => a.type === "vaccination" && !a.blocksOperation)).toBe(true);
+  });
+
+  it("passes when all required vaccinations are valid and verified", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredVaccinations: [VaccinationType.RABIES, VaccinationType.DHPP] });
+    const dog = makeDog({
+      vaccinations: [
+        makeVaccination(VaccinationType.RABIES),
+        makeVaccination(VaccinationType.DHPP),
+      ],
+    });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.isValid).toBe(true);
+  });
+});
+
+describe("validateCheckIn – documents", () => {
+  it("blocks when liability waiver is missing", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredDocuments: [DocumentType.LIABILITY_WAIVER] });
+    const result = validateCheckIn(makeReservation(), makeDog({ documents: [] }), makeCustomer(), service);
+    expect(result.isValid).toBe(false);
+    expect(result.alerts.some(a => a.type === "document" && a.blocksOperation)).toBe(true);
+  });
+
+  it("warns but does not block when non-waiver document is missing", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredDocuments: [DocumentType.VACCINATION_RECORD] });
+    const result = validateCheckIn(makeReservation(), makeDog({ documents: [] }), makeCustomer(), service);
+    expect(result.isValid).toBe(true);
+    expect(result.alerts.some(a => a.type === "document" && !a.blocksOperation)).toBe(true);
+  });
+});
+
+describe("validateCheckIn – balance", () => {
+  it("does not alert when balance is zero", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer({ balance: 0 }), makeService());
+    expect(result.alerts.filter(a => a.type === "payment")).toHaveLength(0);
+  });
+
+  it("warns (non-blocking) when balance is between 0 and -200", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer({ balance: -100 }), makeService());
+    const paymentAlert = result.alerts.find(a => a.type === "payment");
+    expect(paymentAlert).toBeDefined();
+    expect(paymentAlert?.blocksOperation).toBe(false);
+    expect(paymentAlert?.severity).toBe(FlagSeverity.WARNING);
+  });
+
+  it("shows CRITICAL severity when balance is between -200 and -500", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer({ balance: -300 }), makeService());
+    const paymentAlert = result.alerts.find(a => a.type === "payment");
+    expect(paymentAlert?.severity).toBe(FlagSeverity.CRITICAL);
+    expect(result.isValid).toBe(true);
+  });
+
+  it("blocks check-in when balance is below -500", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer({ balance: -600 }), makeService());
+    expect(result.isValid).toBe(false);
+    expect(result.canOverride).toBe(true);
+  });
+});
+
+describe("validateCheckIn – combined alerts", () => {
+  it("canOverride=false when expired vaccination blocks alongside payment block", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredVaccinations: [VaccinationType.RABIES] });
+    const dog = makeDog({ vaccinations: [makeVaccination(VaccinationType.RABIES, { expired: true })] });
+    const customer = makeCustomer({ balance: -600 });
+    const result = validateCheckIn(makeReservation(), dog, customer, service);
+    expect(result.isValid).toBe(false);
+    expect(result.canOverride).toBe(false);
+  });
+
+  it("canOverride=true when only a payment block is present", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const result = validateCheckIn(makeReservation(), makeDog(), makeCustomer({ balance: -600 }), makeService());
+    expect(result.isValid).toBe(false);
+    expect(result.canOverride).toBe(true);
+  });
+});
+
+// ── validateCheckOut ─────────────────────────────────────────────────────────
+
+describe("validateCheckOut", () => {
+  it("passes when the reservation has a check-in time", async () => {
+    const { validateCheckOut } = await import("@/lib/validations");
+    const reservation = makeReservation({ checkInTime: new Date() });
+    const result = validateCheckOut(reservation, makeCustomer());
+    expect(result.isValid).toBe(true);
+    expect(result.alerts).toHaveLength(0);
+  });
+
+  it("blocks when the reservation has no check-in time", async () => {
+    const { validateCheckOut } = await import("@/lib/validations");
+    const reservation = makeReservation({ checkInTime: undefined });
+    const result = validateCheckOut(reservation, makeCustomer());
+    expect(result.isValid).toBe(false);
+    expect(result.alerts.some(a => a.blocksOperation)).toBe(true);
+  });
+
+  it("canOverride is always false for check-out blocks", async () => {
+    const { validateCheckOut } = await import("@/lib/validations");
+    const reservation = makeReservation({ checkInTime: undefined });
+    const result = validateCheckOut(reservation, makeCustomer());
+    expect(result.canOverride).toBe(false);
   });
 });

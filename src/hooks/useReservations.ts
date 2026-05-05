@@ -47,8 +47,8 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
       city: row.customers?.city ?? undefined,
       state: row.customers?.state ?? undefined,
       balance: row.customers?.balance ?? 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
     },
     dog: {
       id: row.dog_id,
@@ -61,8 +61,8 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
       flags: [],
       vaccinations: [],
       documents: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
     },
     service: {
       id: `svc-${row.service_type}`,
