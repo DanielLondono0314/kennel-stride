@@ -146,14 +146,28 @@ export default function InvoicesPage() {
   const subtotal = form.items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
 
   const handleSave = async () => {
-    if (!form.customer_id || form.items.every((it) => !it.description)) {
-      toast.error("Completa los campos obligatorios");
+    const validItems = form.items
+      .filter((it) => it.description.trim())
+      .map((it) => ({
+        description: it.description,
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+      }));
+
+    const parsed = invoiceSchema.safeParse({
+      customer_id: form.customer_id,
+      due_date: form.due_date,
+      items: validItems,
+      discount: 0,
+      tax: 0,
+      notes: form.notes,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
       return;
     }
     setSaving(true);
-
-    const validItems = form.items.filter((it) => it.description);
-    const total = validItems.reduce((s, it) => s + it.quantity * it.unit_price, 0);
+    const total = parsed.data.items.reduce((s, it) => s + it.quantity * it.unit_price, 0);
 
     const { data: inv, error } = await supabase.from("invoices").insert({
       customer_id: form.customer_id,
