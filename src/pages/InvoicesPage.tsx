@@ -188,7 +188,7 @@ export default function InvoicesPage() {
     }
 
     // Insert items
-    const itemsToInsert = validItems.map((it) => ({
+    const itemsToInsert = parsed.data.items.map((it) => ({
       invoice_id: inv.id,
       description: it.description,
       quantity: it.quantity,
