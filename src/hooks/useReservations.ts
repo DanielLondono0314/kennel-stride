@@ -112,10 +112,17 @@ const RESERVATION_SELECT = `
   staff_members(id, first_name, last_name)
 `;
 
+// Default window prevents loading years of history on first render.
+// Callers can override with explicit fromDate/toDate when they need a wider range.
+const DEFAULT_WINDOW_DAYS = 30;
+
 interface UseReservationsOptions {
   date?: Date;
   status?: ReservationStatus | ReservationStatus[];
   autoRefresh?: boolean;
+  /** Override the default ±30-day window. Pass null to fetch all records (use with care). */
+  fromDate?: Date | null;
+  toDate?: Date | null;
 }
 
 export function useReservations(options: UseReservationsOptions = {}) {
@@ -126,6 +133,8 @@ export function useReservations(options: UseReservationsOptions = {}) {
 
   // Stabilize option deps so callers passing inline arrays don't trigger refetch loops
   const dateKey = options.date?.toDateString();
+  const fromKey = options.fromDate?.toDateString();
+  const toKey   = options.toDate?.toDateString();
   const statusKey = useMemo(
     () => (Array.isArray(options.status) ? [...options.status].sort().join(",") : options.status ?? ""),
     [Array.isArray(options.status) ? options.status.join(",") : options.status]
@@ -141,10 +150,21 @@ export function useReservations(options: UseReservationsOptions = {}) {
       .order("start_date", { ascending: true });
 
     if (options.date) {
+      // Single-day view
       const d = options.date;
       const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
       const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
       query = query.gte("start_date", dayStart).lt("start_date", dayEnd);
+    } else if (options.fromDate !== null || options.toDate !== null) {
+      // Explicit range provided by caller
+      if (options.fromDate) query = query.gte("start_date", options.fromDate.toISOString());
+      if (options.toDate)   query = query.lte("start_date", options.toDate.toISOString());
+    } else if (options.fromDate !== null && options.toDate !== null) {
+      // Default ±30-day window to prevent loading all historical data
+      const now = new Date();
+      const from = new Date(now); from.setDate(from.getDate() - DEFAULT_WINDOW_DAYS);
+      const to   = new Date(now); to.setDate(to.getDate() + DEFAULT_WINDOW_DAYS);
+      query = query.gte("start_date", from.toISOString()).lte("start_date", to.toISOString());
     }
 
     if (options.status) {
@@ -157,7 +177,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
     else setRows((data ?? []) as DbReservationRow[]);
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id, dateKey, statusKey]);
+  }, [organization?.id, dateKey, fromKey, toKey, statusKey]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -170,7 +190,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
     return () => { supabase.removeChannel(channel); };
   }, [fetch, options.autoRefresh, organization?.id]);
 
-  const reservations = rows.map(mapDbToReservation);
+  const reservations = useMemo(() => rows.map(mapDbToReservation), [rows]);
 
   const updateStatus = async (id: string, status: ReservationStatus, extra?: Record<string, unknown>) => {
     const { error } = await supabase

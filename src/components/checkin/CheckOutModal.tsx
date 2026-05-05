@@ -233,7 +233,6 @@ export function CheckOutModal({
       setNotes("");
       setPaymentMethod("cash");
     } catch (err) {
-      console.error("Check-out error:", err);
       toast.error("Error al procesar el check-out");
     } finally {
       setIsSubmitting(false);

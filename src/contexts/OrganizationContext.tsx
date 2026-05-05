@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { toast } from "sonner";
 
 export interface Organization {
   id: string;
@@ -66,7 +67,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     setNotFound(false);
 
     // Load org + current user's role in one round-trip
-    const [{ data: orgData }, { data: memberData }] = await Promise.all([
+    const [orgResult, memberResult] = await Promise.all([
       supabase
         .from("organizations")
         .select("id, slug, name, logo_url, subscription_status, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types")
@@ -79,13 +80,18 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
             .eq("user_id", user.id)
             .eq("organizations.slug", orgSlug)
             .maybeSingle()
-        : Promise.resolve({ data: null }),
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (orgData) {
-      setOrganization(orgData);
+    if (orgResult.error) {
+      toast.error("Error al cargar la organización. Verifica tu conexión.");
+      setOrganization(null);
       setNotFound(false);
-      setCurrentUserRole((memberData?.role as OrgRole) ?? null);
+      setCurrentUserRole(null);
+    } else if (orgResult.data) {
+      setOrganization(orgResult.data as Organization);
+      setNotFound(false);
+      setCurrentUserRole(((memberResult.data as { role?: string } | null)?.role as OrgRole) ?? null);
     } else {
       setOrganization(null);
       setNotFound(true);

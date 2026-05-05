@@ -379,7 +379,7 @@ export interface ValidationAlert {
   severity: FlagSeverity;
   title: string;
   message: string;
-  blocksCheckIn: boolean;
+  blocksOperation: boolean;
   details?: VaccinationDetail | DocumentDetail | FlagDetail | PaymentDetail;
   suggestedAction?: SuggestedAction;
 }

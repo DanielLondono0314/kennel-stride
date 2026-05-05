@@ -5,9 +5,7 @@ const NotFound = () => {
   const location = useLocation();
   const { orgSlug } = useParams<{ orgSlug: string }>();
 
-  useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
+  useEffect(() => {}, [location.pathname]);
 
   const dashboardPath = orgSlug ? `/${orgSlug}/dashboard` : "/";
 

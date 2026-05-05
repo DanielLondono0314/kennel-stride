@@ -86,8 +86,7 @@ export function StaffManagementTab() {
       .order("created_at", { ascending: true });
     if (error) {
       toast.error("Error al cargar personal");
-      console.error(error);
-    } else {
+         } else {
       setStaff(data || []);
     }
     setLoading(false);
@@ -137,13 +136,13 @@ export function StaffManagementTab() {
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id)
         .eq("organization_id", organization.id);
-      if (error) { toast.error("Error al actualizar"); console.error(error); setSaving(false); return; }
+      if (error) { toast.error("Error al actualizar"); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
       const { error } = await supabase
         .from("staff_members")
         .insert({ ...payload, organization_id: organization.id });
-      if (error) { toast.error("Error al crear"); console.error(error); setSaving(false); return; }
+      if (error) { toast.error("Error al crear"); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
     }
     setSaving(false);
@@ -159,7 +158,7 @@ export function StaffManagementTab() {
       .delete()
       .eq("id", deleteTarget.id)
       .eq("organization_id", organization.id);
-    if (error) { toast.error("Error al eliminar"); console.error(error); }
+    if (error) { toast.error("Error al eliminar"); }
     else { toast.success("Empleado eliminado"); }
     setDeleteDialogOpen(false);
     setDeleteTarget(null);
@@ -173,7 +172,7 @@ export function StaffManagementTab() {
       .update({ is_active: !s.is_active, updated_at: new Date().toISOString() })
       .eq("id", s.id)
       .eq("organization_id", organization.id);
-    if (error) { toast.error("Error"); console.error(error); }
+    if (error) { toast.error("Error"); }
     else { toast.success(s.is_active ? "Empleado desactivado" : "Empleado activado"); fetchStaff(); }
   };
 

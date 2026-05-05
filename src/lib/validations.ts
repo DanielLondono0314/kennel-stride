@@ -14,6 +14,11 @@ import {
 import { vaccinationNames, documentNames } from '@/lib/constants';
 import { differenceInDays } from 'date-fns';
 
+// Balance thresholds for check-in blocking. These are business rules configurable
+// per organization in a future settings feature — for now centralized here.
+const BALANCE_BLOCK_THRESHOLD = -500;    // blocks check-in entirely
+const BALANCE_CRITICAL_THRESHOLD = -200; // shows critical warning but doesn't block
+
 /**
  * Validates if a dog can be checked in for a reservation
  * Returns validation result with alerts for vaccines, documents, flags, and payments
@@ -40,7 +45,7 @@ export function validateCheckIn(
         severity: FlagSeverity.CRITICAL,
         title: 'Vacuna Faltante',
         message: `${dog.name} no tiene registro de ${vaccinationNames[requiredVax]}`,
-        blocksCheckIn: true,
+        blocksOperation: true,
         details: {
           vaccinationType: requiredVax,
           vaccineName: vaccinationNames[requiredVax],
@@ -60,7 +65,7 @@ export function validateCheckIn(
         severity: FlagSeverity.CRITICAL,
         title: 'Vacuna Vencida',
         message: `${vaccinationNames[requiredVax]} venció hace ${daysOverdue} días`,
-        blocksCheckIn: true,
+        blocksOperation: true,
         details: {
           vaccinationType: requiredVax,
           vaccineName: vaccinationNames[requiredVax],
@@ -81,7 +86,7 @@ export function validateCheckIn(
         severity: FlagSeverity.WARNING,
         title: 'Vacuna No Verificada',
         message: `${vaccinationNames[requiredVax]} requiere verificación`,
-        blocksCheckIn: false,
+        blocksOperation: false,
         details: {
           vaccinationType: requiredVax,
           vaccineName: vaccinationNames[requiredVax],
@@ -107,7 +112,7 @@ export function validateCheckIn(
         severity: FlagSeverity.WARNING,
         title: 'Documento Faltante',
         message: `${documentNames[requiredDoc]} no encontrado`,
-        blocksCheckIn: requiredDoc === DocumentType.LIABILITY_WAIVER,
+        blocksOperation: requiredDoc === DocumentType.LIABILITY_WAIVER,
         details: {
           documentType: requiredDoc,
           documentName: documentNames[requiredDoc],
@@ -126,7 +131,7 @@ export function validateCheckIn(
         severity: FlagSeverity.WARNING,
         title: 'Documento Pendiente',
         message: `${documentNames[requiredDoc]} aún no firmado`,
-        blocksCheckIn: requiredDoc === DocumentType.LIABILITY_WAIVER,
+        blocksOperation: requiredDoc === DocumentType.LIABILITY_WAIVER,
         details: {
           documentType: requiredDoc,
           documentName: documentNames[requiredDoc],
@@ -145,7 +150,7 @@ export function validateCheckIn(
         severity: FlagSeverity.WARNING,
         title: 'Documento Vencido',
         message: `${documentNames[requiredDoc]} necesita renovación`,
-        blocksCheckIn: requiredDoc === DocumentType.LIABILITY_WAIVER,
+        blocksOperation: requiredDoc === DocumentType.LIABILITY_WAIVER,
         details: {
           documentType: requiredDoc,
           documentName: documentNames[requiredDoc],
@@ -164,13 +169,13 @@ export function validateCheckIn(
   for (const flag of dog.flags) {
     if (flag.resolvedAt) continue; // Skip resolved flags
 
-    let blocksCheckIn = false;
+    let blocksOperation = false;
     if (flag.type === FlagType.VACCINATION_EXPIRED) {
-      blocksCheckIn = true;
+      blocksOperation = true;
     } else if (flag.type === FlagType.DOCUMENT_PENDING) {
-      blocksCheckIn = false; // Already handled above
-    } else if (flag.type === FlagType.PAYMENT_OVERDUE && customer.balance < -500) {
-      blocksCheckIn = true;
+      blocksOperation = false; // Already handled above
+    } else if (flag.type === FlagType.PAYMENT_OVERDUE && customer.balance < BALANCE_BLOCK_THRESHOLD) {
+      blocksOperation = true;
     }
 
     // Skip vaccination and document flags as we handle them separately
@@ -184,7 +189,7 @@ export function validateCheckIn(
       severity: flag.severity,
       title: getFlagTitle(flag.type),
       message: flag.message,
-      blocksCheckIn,
+      blocksOperation,
       details: {
         flagType: flag.type,
         message: flag.message,
@@ -194,8 +199,8 @@ export function validateCheckIn(
 
   // 4. Check customer balance (payment status)
   if (customer.balance < 0) {
-    const severity = customer.balance < -200 ? FlagSeverity.CRITICAL : FlagSeverity.WARNING;
-    const blocksCheckIn = customer.balance < -500;
+    const severity = customer.balance < BALANCE_CRITICAL_THRESHOLD ? FlagSeverity.CRITICAL : FlagSeverity.WARNING;
+    const blocksOperation = customer.balance < BALANCE_BLOCK_THRESHOLD;
     
     alerts.push({
       id: 'payment_balance',
@@ -203,7 +208,7 @@ export function validateCheckIn(
       severity,
       title: 'Saldo Pendiente',
       message: `El cliente tiene un saldo de $${Math.abs(customer.balance).toFixed(2)} pendiente`,
-      blocksCheckIn,
+      blocksOperation,
       details: {
         balance: customer.balance,
       },
@@ -216,7 +221,7 @@ export function validateCheckIn(
   }
 
   // Calculate overall validation result
-  const blockingAlerts = alerts.filter(a => a.blocksCheckIn);
+  const blockingAlerts = alerts.filter(a => a.blocksOperation);
   const isValid = blockingAlerts.length === 0;
   const canOverride = blockingAlerts.every(a => 
     a.type !== 'vaccination' || a.severity !== FlagSeverity.CRITICAL
@@ -258,7 +263,7 @@ export function validateCheckOut(
       severity: FlagSeverity.CRITICAL,
       title: 'No Registrado',
       message: 'Esta reserva no ha sido registrada (check-in)',
-      blocksCheckIn: true,
+      blocksOperation: true,
       details: {
         flagType: FlagType.DOCUMENT_PENDING,
         message: 'Check-in requerido',
@@ -267,7 +272,7 @@ export function validateCheckOut(
   }
 
   return {
-    isValid: alerts.filter(a => a.blocksCheckIn).length === 0,
+    isValid: alerts.filter(a => a.blocksOperation).length === 0,
     canOverride: false,
     alerts,
   };

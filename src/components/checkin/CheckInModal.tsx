@@ -107,7 +107,7 @@ export function CheckInModal({
   if (!reservation) return null;
 
   const { dog, customer, service, location } = reservation;
-  const blockingAlerts = validation?.alerts.filter((a) => a.blocksCheckIn) || [];
+  const blockingAlerts = validation?.alerts.filter((a) => a.blocksOperation) || [];
   const allBlockingOverridden = blockingAlerts.every((a) => selectedOverrides.has(a.id));
   const canProceed = validation?.isValid || (validation?.canOverride && allBlockingOverridden && overrideReason.length > 0);
   const needsOverrideReason = selectedOverrides.size > 0;

@@ -103,7 +103,6 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
       ? await supabase.from("medical_history").update(payload).eq("id", editingId).eq("organization_id", organization.id)
       : await supabase.from("medical_history").insert(payload);
     if (error) {
-      console.error("Medical history save error:", error);
       toast.error(`Error al guardar: ${error.message}`);
       return;
     }

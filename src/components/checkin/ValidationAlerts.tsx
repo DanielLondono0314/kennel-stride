@@ -73,14 +73,14 @@ export function ValidationAlerts({
 
   // Sort alerts: blocking first, then by severity
   const sortedAlerts = [...alerts].sort((a, b) => {
-    if (a.blocksCheckIn !== b.blocksCheckIn) {
-      return a.blocksCheckIn ? -1 : 1;
+    if (a.blocksOperation !== b.blocksOperation) {
+      return a.blocksOperation ? -1 : 1;
     }
     const severityOrder = { critical: 0, warning: 1, info: 2 };
     return severityOrder[a.severity] - severityOrder[b.severity];
   });
 
-  const blockingCount = alerts.filter(a => a.blocksCheckIn).length;
+  const blockingCount = alerts.filter(a => a.blocksOperation).length;
 
   return (
     <div className="space-y-3">
@@ -111,7 +111,7 @@ export function ValidationAlerts({
             >
               <div className="flex items-start gap-3">
                 {/* Override checkbox for blocking alerts */}
-                {alert.blocksCheckIn && canOverride && (
+                {alert.blocksOperation && canOverride && (
                   <div className="pt-0.5">
                     <Checkbox
                       id={`override-${alert.id}`}
@@ -131,7 +131,7 @@ export function ValidationAlerts({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-sm">{alert.title}</h4>
-                    {alert.blocksCheckIn && (
+                    {alert.blocksOperation && (
                       <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-destructive/20 text-destructive">
                         Bloquea
                       </span>
