@@ -34,8 +34,9 @@ export default function JoinPage() {
           setStatus("invalid");
           return;
         }
-        setOrgName(data.org_name ?? "tu equipo");
-        setRole(data.role);
+        const invite = data as { org_name: string; role: string };
+        setOrgName(invite.org_name ?? "tu equipo");
+        setRole(invite.role);
 
         // If already logged in, accept automatically
         if (user) {
@@ -55,7 +56,7 @@ export default function JoinPage() {
       setStatus("invalid");
     } else {
       toast.success(`Bienvenido a ${orgName}!`);
-      navigate(`/${data.slug}/dashboard`, { replace: true });
+      navigate(`/${(data as { slug: string }).slug}/dashboard`, { replace: true });
     }
   };
 

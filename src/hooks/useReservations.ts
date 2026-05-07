@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Reservation, ReservationStatus, ServiceType } from "@/types";
+import { Reservation, ReservationStatus, ServiceType, UserRole } from "@/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 export interface DbReservationRow {
@@ -94,7 +94,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
           firstName: row.staff_members.first_name,
           lastName: row.staff_members.last_name,
           email: "",
-          role: "trainer" as any,
+          role: UserRole.TRAINER,
           createdAt: new Date(),
           updatedAt: new Date(),
         }
@@ -155,12 +155,12 @@ export function useReservations(options: UseReservationsOptions = {}) {
       const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
       const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
       query = query.gte("start_date", dayStart).lt("start_date", dayEnd);
-    } else if (options.fromDate !== null || options.toDate !== null) {
-      // Explicit range provided by caller
+    } else if (options.fromDate !== undefined || options.toDate !== undefined) {
+      // Caller explicitly set range; null means "no bound on that side"
       if (options.fromDate) query = query.gte("start_date", options.fromDate.toISOString());
       if (options.toDate)   query = query.lte("start_date", options.toDate.toISOString());
-    } else if (options.fromDate !== null && options.toDate !== null) {
-      // Default ±30-day window to prevent loading all historical data
+    } else {
+      // Default ±30-day window — neither fromDate nor toDate was specified
       const now = new Date();
       const from = new Date(now); from.setDate(from.getDate() - DEFAULT_WINDOW_DAYS);
       const to   = new Date(now); to.setDate(to.getDate() + DEFAULT_WINDOW_DAYS);

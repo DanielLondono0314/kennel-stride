@@ -13,6 +13,7 @@ import {
   FlagType, FlagSeverity, ReservationStatus, ServiceType,
   type Dog, type Customer, type Service, type Reservation,
 } from "@/types";
+import type { DbReservationRow } from "@/hooks/useReservations";
 
 // ---------------------------------------------------------------------------
 // Helpers & utilities extracted from source files for isolated testing
@@ -30,7 +31,7 @@ function toSlug(name: string): string {
 }
 
 /** Minimal DbReservationRow shape for mapper tests */
-function makeDbRow(overrides: Record<string, unknown> = {}) {
+function makeDbRow(overrides: Partial<DbReservationRow> = {}): DbReservationRow {
   return {
     id: "res-1",
     customer_id: "cust-1",
@@ -100,7 +101,7 @@ describe("Functional – Reservation mapper", () => {
   it("maps DB row to Reservation shape correctly", async () => {
     // Dynamically import to keep Supabase mock self-contained
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow() as any;
+    const row = makeDbRow();
     const res = mapDbToReservation(row);
 
     expect(res.id).toBe("res-1");
@@ -114,7 +115,7 @@ describe("Functional – Reservation mapper", () => {
 
   it("uses fallback values when nested objects are null", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ customers: null, dogs: null, staff_members: null }) as any;
+    const row = makeDbRow({ customers: null, dogs: null, staff_members: null });
     const res = mapDbToReservation(row);
 
     expect(res.customer.firstName).toBe("");
@@ -124,7 +125,7 @@ describe("Functional – Reservation mapper", () => {
 
   it("maps check-in time when present", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ check_in_time: "2026-04-01T12:00:00Z" }) as any;
+    const row = makeDbRow({ check_in_time: "2026-04-01T12:00:00Z" });
     const res = mapDbToReservation(row);
     expect(res.checkInTime).toBeInstanceOf(Date);
   });
@@ -317,28 +318,28 @@ describe("Edge cases – toSlug", () => {
 describe("Edge cases – Reservation mapper", () => {
   it("handles missing weight (null) without crash", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ dogs: { id: "d1", name: "Rex", breed: "Mix", weight: null, gender: "male", color: null, behavior_notes: null, medical_notes: null } }) as any;
+    const row = makeDbRow({ dogs: { id: "d1", name: "Rex", breed: "Mix", weight: null, gender: "male", color: null, behavior_notes: null, medical_notes: null } });
     const res = mapDbToReservation(row);
     expect(res.dog.weight).toBe(0);
   });
 
   it("handles zero total_price", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ total_price: 0 }) as any;
+    const row = makeDbRow({ total_price: 0 });
     const res = mapDbToReservation(row);
     expect(res.totalPrice).toBe(0);
   });
 
   it("handles very large total_price", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ total_price: 999999999 }) as any;
+    const row = makeDbRow({ total_price: 999999999 });
     const res = mapDbToReservation(row);
     expect(res.totalPrice).toBe(999999999);
   });
 
   it("handles female dog gender", async () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
-    const row = makeDbRow({ dogs: { id: "d1", name: "Luna", breed: "Poodle", weight: 10, gender: "female", color: null, behavior_notes: null, medical_notes: null } }) as any;
+    const row = makeDbRow({ dogs: { id: "d1", name: "Luna", breed: "Poodle", weight: 10, gender: "female", color: null, behavior_notes: null, medical_notes: null } });
     const res = mapDbToReservation(row);
     expect(res.dog.gender).toBe("female");
   });
@@ -396,7 +397,7 @@ describe("Performance – Reservation mapper", () => {
     const { mapDbToReservation } = await import("@/hooks/useReservations");
     const rows = Array.from({ length: 1_000 }, (_, i) =>
       makeDbRow({ id: `res-${i}`, total_price: i * 100 })
-    ) as any[];
+    );
 
     const start = performance.now();
     rows.forEach(mapDbToReservation);
@@ -606,5 +607,73 @@ describe("validateCheckOut", () => {
     const reservation = makeReservation({ checkInTime: undefined });
     const result = validateCheckOut(reservation, makeCustomer());
     expect(result.canOverride).toBe(false);
+  });
+});
+
+describe("validateCheckIn – document status branches", () => {
+  it("warns when a required document is present but PENDING", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredDocuments: [DocumentType.LIABILITY_WAIVER] });
+    const dog = makeDog({
+      documents: [{
+        id: "doc-1", dogId: "dog-1", customerId: "cust-1",
+        type: DocumentType.LIABILITY_WAIVER,
+        status: DocumentStatus.PENDING,
+        name: "Waiver",
+        createdAt: new Date(), updatedAt: new Date(),
+      }],
+    });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.alerts.some(a => a.type === "document")).toBe(true);
+  });
+
+  it("warns when a required document is EXPIRED", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const service = makeService({ requiredDocuments: [DocumentType.LIABILITY_WAIVER] });
+    const dog = makeDog({
+      documents: [{
+        id: "doc-1", dogId: "dog-1", customerId: "cust-1",
+        type: DocumentType.LIABILITY_WAIVER,
+        status: DocumentStatus.EXPIRED,
+        name: "Waiver",
+        createdAt: new Date(), updatedAt: new Date(),
+      }],
+    });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), service);
+    expect(result.alerts.some(a => a.type === "document")).toBe(true);
+  });
+});
+
+describe("validateCheckIn – dog flags", () => {
+  it("adds a flag alert for an unresolved BEHAVIOR_ALERT flag", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const dog = makeDog({
+      flags: [{
+        id: "flag-1", dogId: "dog-1",
+        type: FlagType.BEHAVIOR_ALERT,
+        severity: FlagSeverity.WARNING,
+        message: "Agresividad leve",
+        createdAt: new Date(),
+      }],
+    });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), makeService());
+    expect(result.alerts.some(a => a.type === "flag")).toBe(true);
+    expect(result.isValid).toBe(true);
+  });
+
+  it("skips resolved flags", async () => {
+    const { validateCheckIn } = await import("@/lib/validations");
+    const dog = makeDog({
+      flags: [{
+        id: "flag-1", dogId: "dog-1",
+        type: FlagType.BEHAVIOR_ALERT,
+        severity: FlagSeverity.WARNING,
+        message: "Resuelto",
+        resolvedAt: new Date(),
+        createdAt: new Date(),
+      }],
+    });
+    const result = validateCheckIn(makeReservation(), dog, makeCustomer(), makeService());
+    expect(result.alerts.filter(a => a.type === "flag")).toHaveLength(0);
   });
 });

@@ -86,14 +86,15 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!org?.slug) {
+    const orgData = org as { slug?: string } | null;
+    if (!orgData?.slug) {
       toast.error("Error inesperado: no se recibió el slug del centro creado.");
       setLoading(false);
       return;
     }
 
     toast.success("¡Centro creado!");
-    navigate(`/${org.slug}/dashboard`);
+    navigate(`/${orgData.slug}/dashboard`);
   };
 
   return (

@@ -49,7 +49,7 @@ export default function NoticesPage() {
   const fetchNotices = useCallback(async () => {
     if (!organization) return;
     setLoading(true);
-    let query = supabase.from("notices").select("*").eq("is_dismissed", false).eq("organization_id", organization!.id).order("created_at", { ascending: false });
+    const query = supabase.from("notices").select("*").eq("is_dismissed", false).eq("organization_id", organization!.id).order("created_at", { ascending: false });
     const { data } = await query;
     setNotices((data || []) as NoticeRow[]);
     setLoading(false);

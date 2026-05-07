@@ -51,7 +51,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
   const fetchRecords = async () => {
     setLoading(true);
     const { data } = await supabase.from("vaccination_schedule")
-      .select("id, vaccine_name, vaccine_type, date_administered, next_dose_date, batch_number, veterinarian, notes, organization_id, status")
+      .select("id, vaccine_name, vaccine_type, date_administered, next_dose_date, batch_number, veterinarian, notes, organization_id, status, created_at, dog_id, dog_name")
       .eq("dog_id", dogId).order("date_administered", { ascending: false });
     if (data) setRecords(data);
     setLoading(false);

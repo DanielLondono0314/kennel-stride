@@ -87,8 +87,8 @@ export function CheckOutModal({
       const { data } = await supabase
         .from("packages")
         .select("id, name, remaining_credits, total_credits, expires_at, service_type, status")
-        .eq("customer_id", reservation.customer.id)
-        .eq("service_type", reservation.service.type)
+        .eq("customer_id", reservation.customer!.id)
+        .eq("service_type", reservation.service!.type)
         .eq("status", "active")
         .eq("organization_id", organization!.id)
         .gt("remaining_credits", 0)
@@ -146,7 +146,7 @@ export function CheckOutModal({
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
           .insert({
-            customer_id: reservation.customer.id,
+            customer_id: reservation.customer!.id,
             reservation_id: reservation.id,
             status: "paid",
             subtotal: reservation.totalPrice,
@@ -168,7 +168,7 @@ export function CheckOutModal({
           .from("invoice_items")
           .insert({
             invoice_id: invoice.id,
-            description: reservation.service.name,
+            description: reservation.service!.name,
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
@@ -184,7 +184,7 @@ export function CheckOutModal({
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
           .insert({
-            customer_id: reservation.customer.id,
+            customer_id: reservation.customer!.id,
             reservation_id: reservation.id,
             status: "pending",
             subtotal: reservation.totalPrice,
@@ -204,7 +204,7 @@ export function CheckOutModal({
           .from("invoice_items")
           .insert({
             invoice_id: invoice.id,
-            description: reservation.service.name,
+            description: reservation.service!.name,
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
@@ -227,7 +227,7 @@ export function CheckOutModal({
 
       if (resError) throw resError;
 
-      toast.success(`Check-out de ${reservation.dog.name} completado`);
+      toast.success(`Check-out de ${reservation.dog!.name} completado`);
       onConfirm({ reservationId: reservation.id });
       onOpenChange(false);
       setNotes("");

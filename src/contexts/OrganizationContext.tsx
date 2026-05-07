@@ -63,6 +63,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [user, orgSlug]);
 
   async function load() {
+    if (!orgSlug || !user) return;
     setLoading(true);
     setNotFound(false);
 

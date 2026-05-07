@@ -81,7 +81,7 @@ export function StaffManagementTab() {
     if (!organization) return;
     const { data, error } = await supabase
       .from("staff_members")
-      .select("id, first_name, last_name, email, phone, role, is_active, created_at, updated_at, organization_id")
+      .select("id, first_name, last_name, email, phone, role, is_active, created_at, updated_at, organization_id, profile_id")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: true });
     if (error) {
