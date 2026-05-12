@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, ReservationStatus, ServiceType, UserRole } from "@/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -130,6 +130,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
   const [rows, setRows] = useState<DbReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
   // Stabilize option deps so callers passing inline arrays don't trigger refetch loops
   const dateKey = options.date?.toDateString();
@@ -142,7 +143,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
 
   const fetch = useCallback(async () => {
     if (!organization) return;
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     let query = supabase
       .from("reservations")
       .select(RESERVATION_SELECT)
@@ -175,6 +176,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
     const { data, error } = await query;
     if (error) setError(error.message);
     else setRows((data ?? []) as DbReservationRow[]);
+    hasLoadedRef.current = true;
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization?.id, dateKey, fromKey, toKey, statusKey]);
