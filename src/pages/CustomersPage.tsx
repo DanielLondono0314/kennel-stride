@@ -49,6 +49,7 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [customers, setCustomers] = useState<DbCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
