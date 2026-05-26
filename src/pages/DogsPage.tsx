@@ -61,6 +61,7 @@ export default function DogsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const PAGE_SIZE = 50;
 
