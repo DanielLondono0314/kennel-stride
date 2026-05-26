@@ -18,9 +18,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
+import { ImportDataModal } from "@/components/import/ImportDataModal";
 
 export interface DbCustomer {
   id: string;
