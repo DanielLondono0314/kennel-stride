@@ -19,7 +19,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2, Upload } from "lucide-react";
+import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
