@@ -18,9 +18,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
+import { ImportDataModal } from "@/components/import/ImportDataModal";
 
 export interface DbCustomer {
   id: string;
@@ -48,6 +49,7 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [customers, setCustomers] = useState<DbCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -155,14 +157,27 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold">Clientes</h1>
           <p className="text-muted-foreground">Gestiona la información de tus clientes y sus mascotas</p>
         </div>
-        <Button
-          className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto"
-          onClick={() => { setEditingCustomer(null); setModalOpen(true); }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo cliente
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar
+          </Button>
+          <Button
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+            onClick={() => { setEditingCustomer(null); setModalOpen(true); }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo cliente
+          </Button>
+        </div>
       </div>
+
+      <ImportDataModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        initialTab="customers"
+        onImported={() => fetchCustomers(true)}
+      />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

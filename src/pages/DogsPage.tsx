@@ -19,7 +19,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2, Upload } from "lucide-react";
+import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -60,6 +61,7 @@ export default function DogsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const PAGE_SIZE = 50;
 
@@ -171,11 +173,24 @@ export default function DogsPage() {
           <h1 className="text-2xl font-bold">Perros</h1>
           <p className="text-muted-foreground">Administra los perfiles de las mascotas registradas</p>
         </div>
-        <Button className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto" onClick={handleNewDog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo perro
-        </Button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar
+          </Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewDog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo perro
+          </Button>
+        </div>
       </div>
+
+      <ImportDataModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        initialTab="dogs"
+        onImported={() => fetchDogs(true)}
+      />
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
