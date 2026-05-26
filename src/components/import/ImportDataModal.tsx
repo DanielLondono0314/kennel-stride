@@ -172,8 +172,8 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
       .from("customers")
       .select("id, email, phone, first_name, last_name")
       .eq("organization_id", organization.id);
-    const byEmail = new Map((customers ?? []).map(c => [c.email.toLowerCase(), c.id]));
-    const byPhone = new Map((customers ?? []).map(c => [c.phone, c.id]).filter(([k]) => !!k));
+    const byEmail = new Map<string, string>((customers ?? []).map(c => [c.email.toLowerCase(), c.id] as [string, string]));
+    const byPhone = new Map<string, string>((customers ?? []).filter(c => !!c.phone).map(c => [c.phone, c.id] as [string, string]));
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
