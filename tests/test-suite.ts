@@ -154,10 +154,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-vi.mock("@/integrations/lovable", () => ({
-  lovable: { auth: { signInWithOAuth: vi.fn() } },
-}));
-
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: vi.fn().mockReturnValue({ session: null, user: null, loading: false }),
   AuthProvider: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
