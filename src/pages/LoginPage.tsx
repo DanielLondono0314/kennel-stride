@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,18 +75,20 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
-    const redirectUri = invite
+    const redirectTo = invite
       ? `${window.location.origin}/login?invite=${invite}`
-      : window.location.origin + "/login";
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: redirectUri,
+      : `${window.location.origin}/login`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
     });
-    if (result.error) {
-      toast.error(result.error instanceof Error ? result.error.message : String(result.error));
+
+    if (error) {
+      toast.error(error.message);
       setGoogleLoading(false);
     }
-    if (result.redirected) return;
-    setGoogleLoading(false);
+    // No setGoogleLoading(false) on success — browser redirects to Google
   };
 
   return (
