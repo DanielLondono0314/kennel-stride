@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.organization_invitations (
   organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   email text NOT NULL,
   role app_role NOT NULL DEFAULT 'admin',
-  token text UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token text UNIQUE NOT NULL DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   invited_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   expires_at timestamptz NOT NULL DEFAULT now() + interval '7 days',
   accepted_at timestamptz,
