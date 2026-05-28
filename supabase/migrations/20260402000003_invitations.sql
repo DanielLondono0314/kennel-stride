@@ -1,3 +1,6 @@
+-- pgcrypto is required for gen_random_bytes() used in token generation
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Organization invitations: allows admins to invite team members by email
 CREATE TABLE IF NOT EXISTS public.organization_invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
