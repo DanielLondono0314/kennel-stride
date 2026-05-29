@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Reservation } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { deductPackageCredit } from "@/hooks/queries/usePackages";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -130,17 +131,9 @@ export function CheckOutModal({
 
       // 1. Handle payment
       if (paymentMethod === "package" && availablePackage) {
-        const newCredits = availablePackage.remaining_credits - 1;
-        const { error } = await supabase
-          .from("packages")
-          .update({
-            remaining_credits: newCredits,
-            status: newCredits === 0 ? "depleted" : "active",
-            updated_at: now,
-          })
-          .eq("id", availablePackage.id);
-
-        if (error) throw error;
+        // Descuento atómico vía RPC: piso en 0 + log de auditoría en la misma
+        // transacción. Si otro check-out agotó el crédito, el RPC lanza error.
+        await deductPackageCredit({ packageId: availablePackage.id, reason: "check-out" });
       } else if (paymentMethod === "cash" || paymentMethod === "card") {
         // Create paid invoice
         const { data: invoice, error: invoiceError } = await supabase

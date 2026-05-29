@@ -164,7 +164,7 @@ export default function PackagesPage() {
   const handleDeductCredit = async (pkg: any) => {
     if (pkg.remaining_credits <= 0) { toast.error("No hay créditos disponibles"); return; }
     try {
-      await deductCredit.mutateAsync({ packageId: pkg.id, remaining: pkg.remaining_credits });
+      await deductCredit.mutateAsync({ packageId: pkg.id, reason: "ajuste manual" });
       toast.success(`Crédito descontado (${pkg.remaining_credits - 1} restantes)`);
     } catch {
       toast.error("Error al descontar crédito");
