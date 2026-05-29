@@ -1,8 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createQueryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OrgGuard } from "@/components/auth/OrgGuard";
@@ -37,63 +39,66 @@ const StaffPage            = lazy(() => import("./pages/StaffPage"));
 const DogProfilePage       = lazy(() => import("./pages/DogProfilePage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const App = () => {
+  const [queryClient] = useState(createQueryClient);
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner position="top-right" />
-      <BrowserRouter>
-        <AuthProvider>
-          <ErrorBoundary>
-            <Suspense fallback={<div className="min-h-screen bg-background" />}>
-              <Routes>
-                {/* Public */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/join" element={<JoinPage />} />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner position="top-right" />
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                <Routes>
+                  {/* Public */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/join" element={<JoinPage />} />
 
-                {/* Auth required, no org needed */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/onboarding" element={<OnboardingPage />} />
-                  <Route path="/billing" element={<BillingPage />} />
-                </Route>
-
-                {/* Auth + org + subscription required */}
-                <Route path="/:orgSlug" element={<OrgGuard />}>
-                  <Route element={<AppLayout />}>
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                    <Route path="dashboard"        element={<Dashboard />} />
-                    <Route path="customers"        element={<CustomersPage />} />
-                    <Route path="customers/:id"    element={<CustomerProfilePage />} />
-                    <Route path="dogs"             element={<DogsPage />} />
-                    <Route path="dogs/:id"         element={<DogProfilePage />} />
-                    <Route path="requests"         element={<RequestsPage />} />
-                    <Route path="calendar"         element={<CalendarPage />} />
-                    <Route path="notices"          element={<NoticesPage />} />
-                    <Route path="facility"         element={<FacilityPage />} />
-                    <Route path="report-cards"     element={<ReportCardsPage />} />
-                    <Route path="packages"         element={<PackagesPage />} />
-                    <Route path="invoices"         element={<InvoicesPage />} />
-                    <Route path="reports"          element={<ReportsPage />} />
-                    <Route path="campaigns"        element={<CampaignsPage />} />
-                    <Route path="clinic"           element={<ClinicPage />} />
-                    <Route path="staff"            element={<StaffPage />} />
-                    <Route path="settings"         element={<SettingsPage />} />
+                  {/* Auth required, no org needed */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route path="/billing" element={<BillingPage />} />
                   </Route>
-                </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+                  {/* Auth + org + subscription required */}
+                  <Route path="/:orgSlug" element={<OrgGuard />}>
+                    <Route element={<AppLayout />}>
+                      <Route index element={<Navigate to="dashboard" replace />} />
+                      <Route path="dashboard"        element={<Dashboard />} />
+                      <Route path="customers"        element={<CustomersPage />} />
+                      <Route path="customers/:id"    element={<CustomerProfilePage />} />
+                      <Route path="dogs"             element={<DogsPage />} />
+                      <Route path="dogs/:id"         element={<DogProfilePage />} />
+                      <Route path="requests"         element={<RequestsPage />} />
+                      <Route path="calendar"         element={<CalendarPage />} />
+                      <Route path="notices"          element={<NoticesPage />} />
+                      <Route path="facility"         element={<FacilityPage />} />
+                      <Route path="report-cards"     element={<ReportCardsPage />} />
+                      <Route path="packages"         element={<PackagesPage />} />
+                      <Route path="invoices"         element={<InvoicesPage />} />
+                      <Route path="reports"          element={<ReportsPage />} />
+                      <Route path="campaigns"        element={<CampaignsPage />} />
+                      <Route path="clinic"           element={<ClinicPage />} />
+                      <Route path="staff"            element={<StaffPage />} />
+                      <Route path="settings"         element={<SettingsPage />} />
+                    </Route>
+                  </Route>
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
+  );
+};
 
 export default App;
