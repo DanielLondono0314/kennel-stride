@@ -27,6 +27,7 @@ import {
 import { Users, LogIn, LogOut, Moon, Activity, Plus, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
+import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 
 export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
@@ -237,6 +238,8 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      <OnboardingChecklist />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         <KPICard label="Esperados" value={kpis.expected} icon={Users} variant="info" />
