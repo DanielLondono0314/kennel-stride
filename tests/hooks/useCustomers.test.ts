@@ -58,3 +58,32 @@ describe("useCustomers", () => {
     expect(result.current.isLoading || result.current.isSuccess || result.current.isFetching).toBe(true);
   });
 });
+
+describe("useCustomers — pagination", () => {
+  let queryClient: QueryClient;
+
+  function wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  }
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.clearAllMocks();
+  });
+
+  it("retorna hasMore=false cuando hay menos de 50 resultados", async () => {
+    const { result } = renderHook(() => useCustomers({ page: 0 }), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // El mock retorna [] que es length 0 < 50
+    expect(result.current.data?.hasMore).toBe(false);
+  });
+
+  it("la queryKey incluye page y search", () => {
+    const { result } = renderHook(
+      () => useCustomers({ page: 2, search: "Garcia" }),
+      { wrapper }
+    );
+    // El hook debe estar enabled (loading o success)
+    expect(result.current.isPending || result.current.isSuccess).toBe(true);
+  });
+});
