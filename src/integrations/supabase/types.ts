@@ -365,12 +365,15 @@ export type Database = {
           created_at: string
           customer_id: string
           gender: string
+          has_allergies: boolean
           id: string
+          is_aggressive: boolean
           is_neutered: boolean
           medical_notes: string | null
           microchip_number: string | null
           name: string
           notes: string | null
+          on_medication: boolean
           organization_id: string | null
           photo_url: string | null
           updated_at: string
@@ -384,12 +387,15 @@ export type Database = {
           created_at?: string
           customer_id: string
           gender?: string
+          has_allergies?: boolean
           id?: string
+          is_aggressive?: boolean
           is_neutered?: boolean
           medical_notes?: string | null
           microchip_number?: string | null
           name: string
           notes?: string | null
+          on_medication?: boolean
           organization_id?: string | null
           photo_url?: string | null
           updated_at?: string
@@ -403,12 +409,15 @@ export type Database = {
           created_at?: string
           customer_id?: string
           gender?: string
+          has_allergies?: boolean
           id?: string
+          is_aggressive?: boolean
           is_neutered?: boolean
           medical_notes?: string | null
           microchip_number?: string | null
           name?: string
           notes?: string | null
+          on_medication?: boolean
           organization_id?: string | null
           photo_url?: string | null
           updated_at?: string

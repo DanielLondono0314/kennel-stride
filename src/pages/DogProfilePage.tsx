@@ -89,7 +89,7 @@ export default function DogProfilePage() {
       .eq("id", id)
       .eq("organization_id", organization!.id)
       .single();
-    if (data) setDog(data as unknown as DbDog);
+    if (data) setDog(data as DbDog);
   };
 
   const fetchReservations = async () => {

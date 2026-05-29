@@ -14,8 +14,6 @@ export interface DbDog {
   color: string | null;
   gender: string;
   is_neutered: boolean;
-  // NOTA: estas 3 columnas NO existen en ninguna migración del esquema `dogs`
-  // (drift código↔BD pre-existente). El mapeo desde la BD usa `as unknown as DbDog`.
   is_aggressive: boolean;
   has_allergies: boolean;
   on_medication: boolean;
@@ -60,7 +58,7 @@ export function useDogs({ page = 0, search = "" } = {}) {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { dogs: (data ?? []) as unknown as DbDog[], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
+      return { dogs: (data ?? []) as DbDog[], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
     },
   });
 }
