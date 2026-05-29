@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useNotices, useDismissNotice, useMarkNoticeRead, useMarkAllNoticesRead } from "@/hooks/queries/useNotices";
+import { useNotices, useDismissNotice, useMarkNoticeRead, useMarkAllNoticesRead, useNoticesRealtime } from "@/hooks/queries/useNotices";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,21 +28,23 @@ const severityConfig: Record<string, { icon: typeof AlertTriangle; className: st
 
 export default function NoticesPage() {
   const navigate = useOrgNavigate();
+  const queryClient = useQueryClient();
   const { organization } = useOrganization();
   const [severityFilter, setSeverityFilter] = useState("all");
   const [showRead, setShowRead] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: notices = [], isLoading } = useNotices();
+  useNoticesRealtime();
   const dismissNotice = useDismissNotice();
   const markReadMutation = useMarkNoticeRead();
   const markAllReadMutation = useMarkAllNoticesRead();
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Trigger backend check functions
     await supabase.rpc("check_expiring_packages");
     await supabase.rpc("check_overdue_invoices");
+    await queryClient.invalidateQueries({ queryKey: ["notices", organization?.id] });
     setRefreshing(false);
     toast.success("Avisos actualizados");
   };

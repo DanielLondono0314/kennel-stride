@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useReservations } from "@/hooks/useReservations";
-import { useNotices, useDismissNotice, useMarkNoticeRead } from "@/hooks/queries/useNotices";
+import { useNotices, useDismissNotice, useMarkNoticeRead, useNoticesRealtime } from "@/hooks/queries/useNotices";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { OpsTabs, OpsTab } from "@/components/dashboard/OpsTabs";
 import { OpsTable } from "@/components/dashboard/OpsTable";
@@ -50,6 +50,7 @@ export default function Dashboard() {
 
   // Notices from React Query hook
   const { data: notices = [] } = useNotices();
+  useNoticesRealtime();
   const dismissNotice = useDismissNotice();
   const markRead = useMarkNoticeRead();
 
@@ -68,7 +69,7 @@ export default function Dashboard() {
       ).length,
       goingHome: today.filter((r) =>
         r.status === ReservationStatus.READY ||
-        r.status === ReservationStatus.CHECKED_IN
+        (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)
       ).length,
       overnight: reservations.filter((r) => r.status === ReservationStatus.IN_PROGRESS).length,
       total: today.length,

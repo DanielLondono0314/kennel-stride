@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -130,4 +131,31 @@ export function useMarkAllNoticesRead() {
       queryClient.invalidateQueries({ queryKey: noticeKeys(organization?.id).all });
     },
   });
+}
+
+export function useNoticesRealtime() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const channel = supabase
+      .channel(`notices-realtime-${organization.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notices",
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["notices", organization.id] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [organization?.id, queryClient]);
 }
