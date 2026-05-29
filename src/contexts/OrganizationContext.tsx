@@ -28,6 +28,8 @@ interface OrganizationContextType {
   loading: boolean;
   /** True when the DB query completed but the slug was not found */
   notFound: boolean;
+  /** True when the DB query returned an error (network / schema issue) */
+  loadError: boolean;
   isSubscriptionActive: boolean;
   /** Role of the currently authenticated user in this org */
   currentUserRole: OrgRole | null;
@@ -40,6 +42,7 @@ const OrganizationContext = createContext<OrganizationContextType>({
   organization: null,
   loading: true,
   notFound: false,
+  loadError: false,
   isSubscriptionActive: false,
   currentUserRole: null,
   isAdmin: false,
@@ -53,6 +56,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [currentUserRole, setCurrentUserRole] = useState<OrgRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!user || !orgSlug) {
@@ -66,6 +70,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     if (!orgSlug || !user) return;
     setLoading(true);
     setNotFound(false);
+    setLoadError(false);
 
     // Load org + current user's role in one round-trip
     const [orgResult, memberResult] = await Promise.all([
@@ -88,6 +93,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       toast.error("Error al cargar la organización. Verifica tu conexión.");
       setOrganization(null);
       setNotFound(false);
+      setLoadError(true);
       setCurrentUserRole(null);
     } else if (orgResult.data) {
       setOrganization(orgResult.data as Organization);
@@ -110,7 +116,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const isAdmin = currentUserRole === "admin";
 
   return (
-    <OrganizationContext.Provider value={{ organization, loading, notFound, isSubscriptionActive, currentUserRole, isAdmin, refetch: load }}>
+    <OrganizationContext.Provider value={{ organization, loading, notFound, loadError, isSubscriptionActive, currentUserRole, isAdmin, refetch: load }}>
       {children}
     </OrganizationContext.Provider>
   );
