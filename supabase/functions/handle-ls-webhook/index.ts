@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LemonSqueezy Webhook Handler
@@ -10,6 +11,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   subscription_cancelled  → org status: cancelled
 //   subscription_resumed    → org status: active
 //   order_created           → record payment on packages
+//
+// Idempotency: every event is recorded in public.processed_webhooks keyed by a
+// stable event id. Duplicate deliveries (LemonSqueezy retries on non-2xx) are
+// acknowledged with 200 without reprocessing. See migration
+// 20260529050000_webhook_idempotency.sql.
 //
 // Required environment variables (set in Supabase dashboard):
 //   LEMONSQUEEZY_WEBHOOK_SECRET  — signing secret from LS dashboard
@@ -41,6 +47,43 @@ async function verifySignature(body: string, signature: string, secret: string):
   );
 
   return crypto.subtle.verify("HMAC", key, sigBytes, msgData);
+}
+
+/** SHA-256 hex digest, used as an idempotency fallback when LS omits an id. */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Derive a stable id for this delivery so retries dedupe correctly.
+ * Prefer an explicit LS-provided id; otherwise hash the verified raw body.
+ * The signature is excluded so identical payloads always map to the same id.
+ */
+async function deriveEventId(payload: Record<string, unknown>, rawBody: string): Promise<string> {
+  const meta = (payload?.meta ?? {}) as Record<string, unknown>;
+  const explicit = meta.webhook_id ?? meta.event_id ?? meta.id;
+  if (explicit) return `ls_${String(explicit)}`;
+  return `ls_sha256_${await sha256Hex(rawBody)}`;
+}
+
+/** Run an update, log any error, and report whether a row was actually matched. */
+async function runUpdate(
+  label: string,
+  builder: PromiseLike<{ error: unknown; data: unknown }>,
+): Promise<void> {
+  const { error, data } = await builder;
+  if (error) {
+    console.error(`[${label}] update failed:`, error);
+    return;
+  }
+  const rows = Array.isArray(data) ? data.length : 0;
+  if (rows === 0) {
+    console.warn(`[${label}] update matched no rows`);
+  }
 }
 
 serve(async (req) => {
@@ -76,10 +119,38 @@ serve(async (req) => {
     const data = payload.data ?? {};
     const attributes = data.attributes ?? {};
 
-    const supabase = createClient(
+    const supabase: SupabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // [E3] Idempotency guard. Claim this event by inserting its id; if the row
+    // already exists, ON CONFLICT DO NOTHING returns zero rows and we ack without
+    // reprocessing. We claim BEFORE handling so a retry arriving while the first
+    // is still in-flight cannot double-apply.
+    const eventId = await deriveEventId(payload, rawBody);
+    const { data: claimed, error: claimErr } = await supabase
+      .from("processed_webhooks")
+      .upsert({ event_id: eventId }, { onConflict: "event_id", ignoreDuplicates: true })
+      .select("event_id");
+
+    if (claimErr) {
+      // Do NOT 200 here: if we cannot record the event, returning success would
+      // drop it permanently. Let LS retry.
+      console.error("Failed to record webhook idempotency key:", claimErr);
+      return new Response(JSON.stringify({ error: "Idempotency store unavailable" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!claimed || claimed.length === 0) {
+      console.log(`Duplicate webhook ${eventId} (${eventName}) ignored`);
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     switch (eventName) {
 
@@ -95,14 +166,27 @@ serve(async (req) => {
         const orgId: string = payload.meta?.custom_data?.org_id ?? "";
 
         if (orgId) {
-          await supabase
-            .from("organizations")
-            .update({
-              ls_customer_id: lsCustomerId,
-              ls_subscription_id: lsSubscriptionId,
-              subscription_status: status,
-            })
-            .eq("id", orgId);
+          await runUpdate(
+            "subscription_created",
+            supabase
+              .from("organizations")
+              .update({
+                ls_customer_id: lsCustomerId,
+                ls_subscription_id: lsSubscriptionId,
+                subscription_status: status,
+              })
+              .eq("id", orgId)
+              .select("id"),
+          );
+        } else {
+          // [E3] Without org_id we cannot link the subscription to an organization.
+          // This almost always means the checkout URL was built without
+          // checkout[custom][org_id]. Log loudly with identifiers for triage.
+          console.error(
+            `subscription_created received WITHOUT custom_data.org_id — ` +
+            `cannot link subscription. ls_subscription_id=${lsSubscriptionId} ` +
+            `ls_customer_id=${lsCustomerId}`,
+          );
         }
         break;
       }
@@ -116,30 +200,42 @@ serve(async (req) => {
         if (lsStatus === "cancelled" || lsStatus === "expired") appStatus = "cancelled";
         else if (lsStatus === "paused") appStatus = "cancelled";
 
-        await supabase
-          .from("organizations")
-          .update({ subscription_status: appStatus })
-          .eq("ls_subscription_id", lsSubscriptionId);
+        await runUpdate(
+          "subscription_updated",
+          supabase
+            .from("organizations")
+            .update({ subscription_status: appStatus })
+            .eq("ls_subscription_id", lsSubscriptionId)
+            .select("id"),
+        );
         break;
       }
 
       // Subscription explicitly cancelled
       case "subscription_cancelled": {
         const lsSubscriptionId = String(data.id);
-        await supabase
-          .from("organizations")
-          .update({ subscription_status: "cancelled" })
-          .eq("ls_subscription_id", lsSubscriptionId);
+        await runUpdate(
+          "subscription_cancelled",
+          supabase
+            .from("organizations")
+            .update({ subscription_status: "cancelled" })
+            .eq("ls_subscription_id", lsSubscriptionId)
+            .select("id"),
+        );
         break;
       }
 
       // Subscription resumed after cancellation
       case "subscription_resumed": {
         const lsSubscriptionId = String(data.id);
-        await supabase
-          .from("organizations")
-          .update({ subscription_status: "active" })
-          .eq("ls_subscription_id", lsSubscriptionId);
+        await runUpdate(
+          "subscription_resumed",
+          supabase
+            .from("organizations")
+            .update({ subscription_status: "active" })
+            .eq("ls_subscription_id", lsSubscriptionId)
+            .select("id"),
+        );
         break;
       }
 
@@ -151,14 +247,22 @@ serve(async (req) => {
         // If custom_data carries an internal package ID, link it
         const packageId: string = payload.meta?.custom_data?.package_id ?? "";
         if (packageId) {
-          await supabase
-            .from("packages")
-            .update({
-              ls_order_id: lsOrderId,
-              ls_variant_id: variantId,
-              status: "active",
-            })
-            .eq("id", packageId);
+          await runUpdate(
+            "order_created",
+            supabase
+              .from("packages")
+              .update({
+                ls_order_id: lsOrderId,
+                ls_variant_id: variantId,
+                status: "active",
+              })
+              .eq("id", packageId)
+              .select("id"),
+          );
+        } else {
+          console.warn(
+            `order_created received WITHOUT custom_data.package_id — order not linked. ls_order_id=${lsOrderId}`,
+          );
         }
         break;
       }
