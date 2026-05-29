@@ -22,6 +22,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
 interface CampaignRow {
   id: string;
@@ -83,7 +84,7 @@ export default function CampaignsPage() {
   const [form, setForm] = useState(defaultForm);
   const [detailCampaign, setDetailCampaign] = useState<CampaignRow | null>(null);
 
-  const { data: campaigns = [], isLoading } = useCampaigns();
+  const { data: campaigns = [], isLoading, isError, refetch } = useCampaigns();
   const deleteCampaign = useDeleteCampaign();
 
   const openCreate = () => {
@@ -281,7 +282,9 @@ export default function CampaignsPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {isLoading ? (
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Plus, Search, FileText, Send, Pencil, Trash2, Dog } from "lucide-react";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +66,7 @@ export default function ReportCardsPage() {
   const [detailData, setDetailData] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data, isLoading } = useReportCards({ page });
+  const { data, isLoading, isError, refetch } = useReportCards({ page });
   // The hook returns cards with a limited select; the page needs full rows.
   // Cast to any[] — DB columns are present at runtime even if not in TS select.
   const reportCards = (data?.cards ?? []) as any[];
@@ -192,7 +193,9 @@ export default function ReportCardsPage() {
       </div>
 
       {/* Cards grid */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState onRetry={() => refetch()} />
+      ) : isLoading ? (
         <CardGridSkeleton count={6} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -19,6 +19,7 @@ import {
   CheckCheck, X, ChevronRight, RefreshCw, Trash2,
 } from "lucide-react";
 import { Notice, NoticeSeverity } from "@/types";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
 const severityConfig: Record<string, { icon: typeof AlertTriangle; className: string; label: string }> = {
   critical: { icon: AlertTriangle, className: "notice-critical", label: "Crítico" },
@@ -34,7 +35,7 @@ export default function NoticesPage() {
   const [showRead, setShowRead] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: notices = [], isLoading } = useNotices();
+  const { data: notices = [], isLoading, isError, refetch } = useNotices();
   useNoticesRealtime();
   const dismissNotice = useDismissNotice();
   const markReadMutation = useMarkNoticeRead();
@@ -215,7 +216,9 @@ export default function NoticesPage() {
       </div>
 
       {/* Notices list */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">

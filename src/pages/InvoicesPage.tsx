@@ -26,6 +26,7 @@ import {
   Clock, AlertTriangle, CheckCircle2, CreditCard, Trash2,
 } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -73,7 +74,7 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(0);
   const [allInvoices, setAllInvoices] = useState<(InvoiceRow & { customer?: InvoiceCustomer })[]>([]);
 
-  const { data: invData, isLoading } = useInvoices({ page, status: statusFilter !== "all" ? statusFilter : "all" });
+  const { data: invData, isLoading, isError, refetch } = useInvoices({ page, status: statusFilter !== "all" ? statusFilter : "all" });
   const { data: customers = [] } = useInvoiceCustomers();
   const markPaid = useMarkInvoicePaid();
   const cancelInvoice = useCancelInvoice();
@@ -316,7 +317,9 @@ export default function InvoicesPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {isLoading && page === 0 ? (
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading && page === 0 ? (
             <div className="p-4">
               <TableSkeleton rows={5} columns={5} />
             </div>

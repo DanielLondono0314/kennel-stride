@@ -24,6 +24,7 @@ import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload }
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
 interface DbDog {
   id: string;
@@ -64,7 +65,7 @@ export default function DogsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data, isLoading, isFetching } = useDogs({ page, search: debouncedSearch });
+  const { data, isLoading, isFetching, isError, refetch } = useDogs({ page, search: debouncedSearch });
   const dogs = data?.dogs ?? [];
   const hasMore = data?.hasMore ?? false;
   const deleteDog = useDeleteDog();
@@ -173,7 +174,9 @@ export default function DogsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError ? (
+              <TableRow><TableCell colSpan={6} className="py-4 px-4"><QueryErrorState onRetry={() => refetch()} /></TableCell></TableRow>
+            ) : isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
             ) : dogs.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
@@ -230,7 +233,9 @@ export default function DogsPage() {
 
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState onRetry={() => refetch()} />
+        ) : isLoading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
         ) : dogs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron perros</p>

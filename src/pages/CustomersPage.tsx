@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
 export type { DbCustomer };
 
@@ -44,7 +45,7 @@ export default function CustomersPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data, isLoading, isFetching } = useCustomers({ page, search: debouncedSearch });
+  const { data, isLoading, isFetching, isError, refetch } = useCustomers({ page, search: debouncedSearch });
   const [allCustomers, setAllCustomers] = useState<DbCustomer[]>([]);
   const hasMore = data?.hasMore ?? false;
 
@@ -141,7 +142,13 @@ export default function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isError ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-4 px-4">
+                  <QueryErrorState onRetry={() => refetch()} />
+                </TableCell>
+              </TableRow>
+            ) : isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-4 px-4">
                   <CardGridSkeleton count={6} />
@@ -247,7 +254,9 @@ export default function CustomersPage() {
 
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState onRetry={() => refetch()} />
+        ) : isLoading ? (
           <CardGridSkeleton count={6} />
         ) : allCustomers.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron clientes</p>

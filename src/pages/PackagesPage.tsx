@@ -26,6 +26,7 @@ import {
   TrendingDown, AlertTriangle, CheckCircle2, XCircle,
 } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -89,7 +90,7 @@ export default function PackagesPage() {
     notes: "",
   });
 
-  const { data: pkgData, isLoading } = usePackages({ page: 0, search, status: statusFilter });
+  const { data: pkgData, isLoading, isError, refetch } = usePackages({ page: 0, search, status: statusFilter });
   const packages = pkgData?.packages ?? [];
   const { data: allCustomersData } = useQuery({
     queryKey: ["customers-for-form", organization?.id],
@@ -289,7 +290,9 @@ export default function PackagesPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {isLoading ? (
+          {isError ? (
+            <QueryErrorState onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="p-4">
               <TableSkeleton rows={5} columns={5} />
             </div>
