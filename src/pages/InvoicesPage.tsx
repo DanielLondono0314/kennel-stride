@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
@@ -29,38 +30,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { invoiceSchema } from "@/lib/schemas";
-
-interface InvoiceRow {
-  id: string;
-  invoice_number: string;
-  customer_id: string;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  status: string;
-  payment_method: string | null;
-  due_date: string;
-  paid_at: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
-interface InvoiceItemRow {
-  id: string;
-  invoice_id: string;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total: number;
-}
-
-interface CustomerRow {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-}
+import {
+  useInvoices, useInvoiceCustomers, useMarkInvoicePaid, useCancelInvoice,
+  InvoiceRow, InvoiceItemRow, InvoiceCustomer,
+} from "@/hooks/queries/useInvoices";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }> = {
   draft: { label: "Borrador", variant: "outline", icon: FileText },
@@ -80,14 +53,12 @@ const paymentMethodLabels: Record<string, string> = {
 
 export default function InvoicesPage() {
   const { organization } = useOrganization();
-  const [invoices, setInvoices] = useState<(InvoiceRow & { customer?: CustomerRow })[]>([]);
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [detailInvoice, setDetailInvoice] = useState<(InvoiceRow & { customer?: CustomerRow }) | null>(null);
+  const [detailInvoice, setDetailInvoice] = useState<(InvoiceRow & { customer?: InvoiceCustomer }) | null>(null);
   const [detailItems, setDetailItems] = useState<InvoiceItemRow[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -99,42 +70,35 @@ export default function InvoicesPage() {
     items: [{ description: "", quantity: 1, unit_price: 0 }] as { description: string; quantity: number; unit_price: number }[],
   });
 
-  const PAGE_SIZE = 50;
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [allInvoices, setAllInvoices] = useState<(InvoiceRow & { customer?: InvoiceCustomer })[]>([]);
 
-  const fetchData = async (reset = true) => {
-    if (!organization) return;
-    if (reset) setLoading(true); else setLoadingMore(true);
-    const currentPage = reset ? 0 : page + 1;
-    const from = currentPage * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+  const { data: invData, isLoading } = useInvoices({ page, status: statusFilter !== "all" ? statusFilter : "all" });
+  const { data: customers = [] } = useInvoiceCustomers();
+  const markPaid = useMarkInvoicePaid();
+  const cancelInvoice = useCancelInvoice();
 
-    const [invRes, custRes] = await Promise.all([
-      supabase.from("invoices")
-        .select("*")
-        .eq("organization_id", organization!.id)
-        .order("created_at", { ascending: false })
-        .range(from, to),
-      reset
-        ? supabase.from("customers").select("id, first_name, last_name, email").eq("organization_id", organization!.id)
-        : Promise.resolve({ data: customers } as any),
-    ]);
-    const custs = (custRes.data || customers) as CustomerRow[];
-    if (reset) setCustomers(custs);
-    const newInvs = (invRes.data || []).map((inv: any) => ({
+  // Acumular facturas al cargar más páginas
+  useEffect(() => {
+    if (!invData?.invoices) return;
+    const enriched = invData.invoices.map((inv) => ({
       ...inv,
-      customer: custs.find((c) => c.id === inv.customer_id),
+      customer: customers.find((c) => c.id === inv.customer_id),
     }));
-    setInvoices((prev) => reset ? newInvs : [...prev, ...newInvs]);
-    setHasMore((invRes.data || []).length === PAGE_SIZE);
-    setPage(currentPage);
-    setLoading(false);
-    setLoadingMore(false);
-  };
+    if (page === 0) {
+      setAllInvoices(enriched);
+    } else {
+      setAllInvoices((prev) => [...prev, ...enriched]);
+    }
+  }, [invData?.invoices, customers, page]);
 
-  useEffect(() => { fetchData(true); }, [organization?.id]);
+  // Reset al cambiar filtro de status
+  useEffect(() => {
+    setPage(0);
+    setAllInvoices([]);
+  }, [statusFilter]);
+
+  const hasMore = invData?.hasMore ?? false;
 
   const openCreate = () => {
     setForm({
@@ -223,47 +187,40 @@ export default function InvoicesPage() {
     }
 
     toast.success("Factura creada");
-    setSaving(false);
+    queryClient.invalidateQueries({ queryKey: ["invoices", organization?.id] });
+    setPage(0);
     setModalOpen(false);
-    fetchData();
+    setSaving(false);
   };
 
   const handleMarkPaid = async (inv: InvoiceRow, method: string) => {
-    const { error } = await supabase.from("invoices").update({
-      status: "paid",
-      payment_method: method,
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq("id", inv.id);
-    
-    if (error) toast.error("Error al marcar como pagada");
-    else {
+    try {
+      await markPaid.mutateAsync({ id: inv.id, method });
       toast.success(`Factura marcada como pagada (${paymentMethodLabels[method] || method})`);
-      fetchData();
+      setPage(0);
+    } catch {
+      toast.error("Error al marcar como pagada");
     }
   };
 
   const handleCancel = async (inv: InvoiceRow) => {
-    const { error } = await supabase.from("invoices").update({
-      status: "cancelled",
-      updated_at: new Date().toISOString(),
-    }).eq("id", inv.id);
-    
-    if (error) toast.error("Error");
-    else {
+    try {
+      await cancelInvoice.mutateAsync(inv.id);
       toast.success("Factura cancelada");
-      fetchData();
+      setPage(0);
+    } catch {
+      toast.error("Error al cancelar");
     }
   };
 
-  const openDetail = async (inv: InvoiceRow & { customer?: CustomerRow }) => {
+  const openDetail = async (inv: InvoiceRow & { customer?: InvoiceCustomer }) => {
     setDetailInvoice(inv);
     const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
     setDetailItems((data || []) as InvoiceItemRow[]);
     setDetailOpen(true);
   };
 
-  const filtered = invoices.filter((inv) => {
+  const filtered = allInvoices.filter((inv) => {
     const matchSearch = !search ||
       inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
       inv.customer?.first_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -273,9 +230,9 @@ export default function InvoicesPage() {
   });
 
   // KPIs
-  const totalPending = invoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
-  const totalPaid = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
-  const overdueCount = invoices.filter((i) => i.status === "overdue").length;
+  const totalPending = allInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
+  const totalPaid = allInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
+  const overdueCount = allInvoices.filter((i) => i.status === "overdue").length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -330,7 +287,7 @@ export default function InvoicesPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div>
               <div>
-                <p className="text-2xl font-bold">{invoices.length}</p>
+                <p className="text-2xl font-bold">{allInvoices.length}</p>
                 <p className="text-xs text-muted-foreground">Total Facturas</p>
               </div>
             </div>
@@ -359,7 +316,7 @@ export default function InvoicesPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
+          {isLoading && page === 0 ? (
             <div className="p-4">
               <TableSkeleton rows={5} columns={5} />
             </div>
@@ -438,10 +395,9 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
-      {hasMore && !loading && (
+      {hasMore && !isLoading && (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={() => fetchData(false)} disabled={loadingMore}>
-            {loadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
             Cargar más
           </Button>
         </div>
