@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,9 @@ const paymentMethodLabels: Record<string, string> = {
 
 export default function InvoicesPage() {
   const { organization } = useOrganization();
+  const canCreateInvoice = usePermission("create_invoice");
+  const canMarkPaid = usePermission("mark_invoice_paid");
+  const canCancelInvoice = usePermission("cancel_invoice");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -242,7 +246,7 @@ export default function InvoicesPage() {
           <h1 className="text-2xl font-bold">Facturación</h1>
           <p className="text-muted-foreground">Gestión de facturas y pagos</p>
         </div>
-        <Button onClick={openCreate} className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto">
+        <Button onClick={openCreate} disabled={!canCreateInvoice} className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nueva Factura
         </Button>
@@ -376,16 +380,22 @@ export default function InvoicesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleMarkPaid(inv, "cash")}>
-                                <DollarSign className="h-4 w-4 mr-2" />Pago Efectivo
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleMarkPaid(inv, "card")}>
-                                <CreditCard className="h-4 w-4 mr-2" />Pago Tarjeta
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleCancel(inv)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />Cancelar
-                              </DropdownMenuItem>
+                              {canMarkPaid && (
+                                <DropdownMenuItem onClick={() => handleMarkPaid(inv, "cash")}>
+                                  <DollarSign className="h-4 w-4 mr-2" />Pago Efectivo
+                                </DropdownMenuItem>
+                              )}
+                              {canMarkPaid && (
+                                <DropdownMenuItem onClick={() => handleMarkPaid(inv, "card")}>
+                                  <CreditCard className="h-4 w-4 mr-2" />Pago Tarjeta
+                                </DropdownMenuItem>
+                              )}
+                              {canCancelInvoice && <DropdownMenuSeparator />}
+                              {canCancelInvoice && (
+                                <DropdownMenuItem onClick={() => handleCancel(inv)} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />Cancelar
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}

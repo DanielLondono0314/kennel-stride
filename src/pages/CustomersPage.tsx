@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, DbCustomer } from "@/hooks/queries/useCustomers";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ export type { DbCustomer };
 
 export default function CustomersPage() {
   const { organization } = useOrganization();
+  const canDelete = usePermission("delete_customer");
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -235,13 +237,15 @@ export default function CustomersPage() {
                         <DropdownMenuItem onClick={() => { setEditingCustomer(customer); setModalOpen(true); }}>
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteId(customer.id)}
-                        >
-                          Eliminar
-                        </DropdownMenuItem>
+                        {canDelete && <DropdownMenuSeparator />}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteId(customer.id)}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -304,13 +308,15 @@ export default function CustomersPage() {
                         <DropdownMenuItem onClick={() => { setEditingCustomer(customer); setModalOpen(true); }}>
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteId(customer.id)}
-                        >
-                          Eliminar
-                        </DropdownMenuItem>
+                        {canDelete && <DropdownMenuSeparator />}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteId(customer.id)}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -360,7 +366,7 @@ export default function CustomersPage() {
         onSave={handleSave}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId && canDelete} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { useDogs, useDeleteDog } from "@/hooks/queries/useDogs";
 import { DogModal } from "@/components/dogs/DogModal";
@@ -51,6 +52,7 @@ interface DbDog {
 
 export default function DogsPage() {
   const { organization } = useOrganization();
+  const canDelete = usePermission("delete_dog");
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -221,7 +223,9 @@ export default function DogsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                      {canDelete && (
+                        <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -272,7 +276,9 @@ export default function DogsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                      {canDelete && (
+                        <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -316,7 +322,7 @@ export default function DogsPage() {
 
       <DogModal dog={editingDog} open={modalOpen} onOpenChange={setModalOpen} onSave={handleSave} />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId && canDelete} onOpenChange={(o) => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar perro?</AlertDialogTitle>

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppNavLink } from "./AppNavLink";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePermission } from "@/hooks/usePermission";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -36,6 +37,9 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const { organization } = useOrganization();
   const base = `/${orgSlug}`;
+  const canViewReports = usePermission("view_reports");
+  const canSendCampaigns = usePermission("send_campaign");
+  const canManageSettings = usePermission("manage_settings");
 
   return (
     <aside
@@ -102,13 +106,19 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
             Analytics
           </p>
         )}
-        <AppNavLink to={`${base}/reports`}    icon={BarChart3}  label="Reportes"  collapsed={collapsed} onClick={onMobileClose} />
-        <AppNavLink to={`${base}/campaigns`}  icon={Megaphone}  label="Campañas"  collapsed={collapsed} onClick={onMobileClose} />
+        {canViewReports && (
+          <AppNavLink to={`${base}/reports`}    icon={BarChart3}  label="Reportes"  collapsed={collapsed} onClick={onMobileClose} />
+        )}
+        {canSendCampaigns && (
+          <AppNavLink to={`${base}/campaigns`}  icon={Megaphone}  label="Campañas"  collapsed={collapsed} onClick={onMobileClose} />
+        )}
       </nav>
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2">
-        <AppNavLink to={`${base}/settings`} icon={Settings} label="Configuración" collapsed={collapsed} onClick={onMobileClose} />
+        {canManageSettings && (
+          <AppNavLink to={`${base}/settings`} icon={Settings} label="Configuración" collapsed={collapsed} onClick={onMobileClose} />
+        )}
         <Button
           variant="ghost"
           size="sm"
