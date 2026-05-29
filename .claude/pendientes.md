@@ -1,5 +1,5 @@
                                        
-  Lista de tareas pre-producción (sin Supabase CLI)                                                
+  Lista de tareas pre-producción (sin Supabase CLI)aaa                                                
                                                                                                       
   1. Desplegar las Edge Functions (CRÍTICO)                                                           
                                                                                                       
