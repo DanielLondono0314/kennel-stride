@@ -1,13 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// [M-1] Restrict CORS to configured origin instead of wildcard
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface Customer {
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+interface CustomerRow {
   id: string;
   first_name: string;
   last_name: string;
@@ -20,97 +28,129 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // [C-1] Require a valid Supabase JWT — reject unauthenticated callers
+  // 1. Validar JWT del caller
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Missing or invalid Authorization header" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Authorization header requerido" }, 401);
   }
 
+  const userClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  if (authError || !user) {
+    return jsonResponse({ error: "No autorizado" }, 401);
+  }
+
+  const adminClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   try {
-    // Validate the caller's JWT using the anon key client
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json();
+    const campaignId: string = body?.campaignId;
+    if (!campaignId) return jsonResponse({ error: "campaignId requerido" }, 400);
 
-    const { campaignId } = await req.json();
-
-    // Service role client for admin operations after auth is confirmed
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Fetch campaign
-    const { data: campaign, error: campErr } = await supabase
+    // 2. Cargar campaña
+    const { data: campaign, error: campErr } = await adminClient
       .from("campaigns")
       .select("*")
       .eq("id", campaignId)
       .single();
 
     if (campErr || !campaign) {
-      return new Response(JSON.stringify({ error: "Campaign not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Campaña no encontrada" }, 404);
     }
 
-    // [C-2] All segment queries are scoped to the campaign's organization only.
-    // This prevents cross-org data leakage where org A could email org B's customers.
+    // 3. CRÍTICO: verificar que el caller es miembro de la org de la campaña
+    const { data: membership } = await adminClient
+      .from("organization_members")
+      .select("role")
+      .eq("organization_id", campaign.organization_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!membership) {
+      return jsonResponse({ error: "No autorizado para esta organización" }, 403);
+    }
+
     const orgId: string = campaign.organization_id;
 
-    let query = supabase
-      .from("customers")
-      .select("id, first_name, last_name, email, dogs(name)")
-      .eq("organization_id", orgId);
+    // 4. Construir query de destinatarios según segmento
+    let recipients: CustomerRow[] = [];
 
-    const now = new Date();
-    if (campaign.segment_type === "new") {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
-      query = query.gte("created_at", thirtyDaysAgo);
+    if (campaign.segment_type === "all") {
+      const { data } = await adminClient
+        .from("customers")
+        .select("id, first_name, last_name, email, dogs(name)")
+        .eq("organization_id", orgId);
+      recipients = (data ?? []) as CustomerRow[];
+    } else if (campaign.segment_type === "new") {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data } = await adminClient
+        .from("customers")
+        .select("id, first_name, last_name, email, dogs(name)")
+        .eq("organization_id", orgId)
+        .gte("created_at", thirtyDaysAgo);
+      recipients = (data ?? []) as CustomerRow[];
     } else if (campaign.segment_type === "inactive") {
-      // [C-4] "inactive" filtering requires a subquery/RPC against reservations.
-      // Sending to all customers without that filter would violate data isolation.
-      // This must be implemented as a proper DB-side function before enabling.
-      return new Response(
-        JSON.stringify({ error: "Segment 'inactive' is not yet implemented. Use 'all', 'new', or 'vip'." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const { data: inactiveIds } = await adminClient
+        .rpc("get_inactive_customer_ids", { p_organization_id: orgId, p_days: 30 });
+      if (inactiveIds && inactiveIds.length > 0) {
+        const { data } = await adminClient
+          .from("customers")
+          .select("id, first_name, last_name, email, dogs(name)")
+          .in("id", inactiveIds as string[]);
+        recipients = (data ?? []) as CustomerRow[];
+      }
     } else if (campaign.segment_type === "vip") {
-      // Top customers by positive balance within this org
-      query = query.order("balance", { ascending: false }).limit(50);
+      // VIP = clientes con >= 5 reservas completadas en el último año
+      const oneYearAgo = new Date(Date.now() - 365 * 86400000).toISOString();
+      const { data: vipData } = await adminClient
+        .from("reservations")
+        .select("customer_id")
+        .eq("organization_id", orgId)
+        .eq("status", "completed")
+        .gte("start_date", oneYearAgo);
+
+      if (vipData) {
+        const countByCustomer: Record<string, number> = {};
+        for (const r of vipData) {
+          countByCustomer[r.customer_id] = (countByCustomer[r.customer_id] ?? 0) + 1;
+        }
+        const vipIds = Object.entries(countByCustomer)
+          .filter(([, count]) => count >= 5)
+          .map(([id]) => id);
+
+        if (vipIds.length > 0) {
+          const { data } = await adminClient
+            .from("customers")
+            .select("id, first_name, last_name, email, dogs(name)")
+            .in("id", vipIds);
+          recipients = (data ?? []) as CustomerRow[];
+        }
+      }
+    } else {
+      return jsonResponse({ error: `Segmento desconocido: ${campaign.segment_type}` }, 400);
     }
-    // Implicit "all" segment: no additional filter beyond organization_id
 
-    const { data: customers } = await query;
-    const recipients = (customers || []).filter((c: Customer) => c.email);
-
+    recipients = recipients.filter((c) => c.email);
     if (recipients.length === 0) {
-      return new Response(JSON.stringify({ error: "No recipients found for this segment" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "No hay destinatarios para este segmento" }, 400);
     }
 
+    // 5. Enviar según canal
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
     let delivered = 0;
     let failed = 0;
 
-    if (RESEND_API_KEY && campaign.channel === "email") {
-      for (const customer of recipients as Customer[]) {
-        const dogName = customer.dogs?.[0]?.name || "tu mascota";
+    if (campaign.channel === "email" && RESEND_API_KEY) {
+      for (const customer of recipients) {
+        const dogName = customer.dogs?.[0]?.name ?? "tu mascota";
         const personalizedMessage = campaign.message_template
           .replace(/{nombre}/g, customer.first_name)
           .replace(/{perro}/g, dogName)
@@ -133,31 +173,32 @@ serve(async (req: Request) => {
         if (res.ok) delivered++;
         else failed++;
       }
-    } else {
-      // No email provider configured — record as sent with real count
-      delivered = recipients.length;
+    } else if (campaign.channel === "sms" || campaign.channel === "whatsapp") {
+      // SMS/WhatsApp no están implementados — no simular entrega falsa
+      return jsonResponse({
+        error: `El canal ${campaign.channel} no está configurado. Configura un proveedor de SMS/WhatsApp para usar este canal.`,
+      }, 400);
+    } else if (!RESEND_API_KEY && campaign.channel === "email") {
+      return jsonResponse({
+        error: "RESEND_API_KEY no configurado. Configura el secret en Supabase para enviar emails.",
+      }, 400);
     }
 
-    const statsSent = delivered + failed;
-
-    await supabase.from("campaigns").update({
+    await adminClient.from("campaigns").update({
       status: "sent",
       sent_at: new Date().toISOString(),
-      stats_sent: statsSent,
+      stats_sent: delivered + failed,
       stats_delivered: delivered,
       stats_opened: 0,
       stats_clicked: 0,
       updated_at: new Date().toISOString(),
     }).eq("id", campaignId);
 
-    return new Response(
-      JSON.stringify({ success: true, sent: statsSent, delivered, failed }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ success: true, sent: delivered + failed, delivered, failed });
+
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // No devolver detalles internos al cliente
+    console.error("send-campaign error:", err);
+    return jsonResponse({ error: "Error interno del servidor" }, 500);
   }
 });

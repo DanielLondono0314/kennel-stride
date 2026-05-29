@@ -410,7 +410,7 @@ export default function CampaignsPage() {
                   <SelectContent>
                     <SelectItem value="all">Todos los clientes</SelectItem>
                     <SelectItem value="new">Clientes nuevos</SelectItem>
-                    <SelectItem value="inactive">Inactivos 30+ días</SelectItem>
+                    <SelectItem value="inactive" disabled>Inactivos 30+ días (próximamente)</SelectItem>
                     <SelectItem value="vip">VIP (mayor gasto)</SelectItem>
                     <SelectItem value="custom">Personalizado</SelectItem>
                   </SelectContent>
