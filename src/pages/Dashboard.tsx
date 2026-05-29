@@ -101,7 +101,7 @@ export default function Dashboard() {
       ).length,
       goingHome: today.filter((r) =>
         r.status === ReservationStatus.READY ||
-        (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)
+        r.status === ReservationStatus.CHECKED_IN
       ).length,
       overnight: reservations.filter((r) => r.status === ReservationStatus.IN_PROGRESS).length,
       total: today.length,
@@ -143,8 +143,13 @@ export default function Dashboard() {
       );
     }
     if (serviceFilter !== "all") filtered = filtered.filter((r) => r.service?.type === serviceFilter);
+    if (flagFilter !== "all") {
+      filtered = filtered.filter((r) =>
+        r.dog?.flags?.some((f) => f.type === flagFilter)
+      );
+    }
     return filtered;
-  }, [activeTab, reservations, searchQuery, serviceFilter]);
+  }, [activeTab, reservations, searchQuery, serviceFilter, flagFilter]);
 
   // --- Action handlers ---
   const handleCheckIn = (id: string) => {
@@ -170,8 +175,16 @@ export default function Dashboard() {
     setSelectedReservation(null);
   };
 
-  const handleCheckOutConfirm = (_data: { reservationId: string }) => {
+  const handleCheckOutConfirm = async (data: { reservationId: string }) => {
+    const { error } = await checkOut(data.reservationId);
     setCheckOutModalOpen(false);
+    if (error) {
+      toast.error("Error al registrar check-out");
+    } else {
+      toast.success("Check-out completado", {
+        description: `${selectedReservation?.dog?.name} ha salido del centro.`,
+      });
+    }
     setSelectedReservation(null);
   };
 
