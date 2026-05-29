@@ -139,39 +139,25 @@ export function NewReservationModal({
       staffId = staffRow?.id ?? null;
     }
 
-    const { data: reservation, error } = await supabase.from("reservations").insert({
-      customer_id: customerId,
-      dog_id: dogId,
-      service_type: serviceType,
-      service_name: serviceName,
-      start_date: new Date(startDate).toISOString(),
-      end_date: new Date(endDate).toISOString(),
-      total_price: totalPrice ? parseFloat(totalPrice) : 0,
-      notes: notes || "",
-      status: "requested",
-      organization_id: organization!.id,
-      staff_id: staffId,
-    }).select("id").single();
+    // H2/H5: creación transaccional vía RPC. Rechaza solapamiento para el mismo
+    // perro (anti doble-booking) y crea reserva + notice atómicamente.
+    const { error } = await supabase.rpc("create_reservation" as any, {
+      p_customer_id: customerId,
+      p_dog_id: dogId,
+      p_service_type: serviceType,
+      p_service_name: serviceName,
+      p_start: new Date(startDate).toISOString(),
+      p_end: new Date(endDate).toISOString(),
+      p_total_price: totalPrice ? parseFloat(totalPrice) : 0,
+      p_notes: notes || "",
+      p_staff_id: staffId,
+    });
 
     if (error) {
       setSaving(false);
-      toast.error("Error al crear reserva");
+      // El RPC lanza mensajes claros (solapamiento, pertenencia inválida).
+      toast.error(error.message || "Error al crear reserva");
       return;
-    }
-
-    // Create an automatic notice for the new reservation request
-    const customer = customers.find((c) => c.id === customerId);
-    const dog = dogs.find((d) => d.id === dogId);
-    if (customer && dog && reservation) {
-      await supabase.from("notices").insert({
-        title: "Nueva solicitud de reserva",
-        message: `${customer.first_name} ${customer.last_name} ha solicitado ${serviceName} para ${dog.name}.`,
-        severity: "info",
-        entity_type: "reservation",
-        entity_id: reservation.id,
-        auto_generated: true,
-        organization_id: organization!.id,
-      });
     }
 
     setSaving(false);
