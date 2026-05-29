@@ -16,14 +16,16 @@ CREATE TABLE IF NOT EXISTS public.package_credit_log (
 
 ALTER TABLE public.package_credit_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Org members can read credit log" ON public.package_credit_log;
 CREATE POLICY "Org members can read credit log"
   ON public.package_credit_log FOR SELECT TO authenticated
   USING (organization_id IN (SELECT public.get_user_org_ids()));
 
+DROP POLICY IF EXISTS "Authenticated can insert credit log" ON public.package_credit_log;
 CREATE POLICY "Authenticated can insert credit log"
   ON public.package_credit_log FOR INSERT TO authenticated
   WITH CHECK (organization_id IN (SELECT public.get_user_org_ids()));
 
-CREATE INDEX idx_credit_log_package ON public.package_credit_log(package_id);
-CREATE INDEX idx_credit_log_org     ON public.package_credit_log(organization_id);
-CREATE INDEX idx_credit_log_created ON public.package_credit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_credit_log_package ON public.package_credit_log(package_id);
+CREATE INDEX IF NOT EXISTS idx_credit_log_org     ON public.package_credit_log(organization_id);
+CREATE INDEX IF NOT EXISTS idx_credit_log_created ON public.package_credit_log(created_at DESC);
