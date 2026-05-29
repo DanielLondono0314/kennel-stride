@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useNotices, useDismissNotice, useMarkNoticeRead } from "@/hooks/queries/useNotices";
+import { useNotices, useDismissNotice, useMarkNoticeRead, useMarkAllNoticesRead } from "@/hooks/queries/useNotices";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,7 @@ export default function NoticesPage() {
   const { data: notices = [], isLoading } = useNotices();
   const dismissNotice = useDismissNotice();
   const markReadMutation = useMarkNoticeRead();
+  const markAllReadMutation = useMarkAllNoticesRead();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -49,16 +50,10 @@ export default function NoticesPage() {
     markReadMutation.mutate(id);
   };
 
-  const markAllRead = async () => {
-    if (!organization) return;
-    await supabase
-      .from("notices")
-      .update({ is_read: true })
-      .eq("organization_id", organization.id)
-      .eq("is_read", false);
-    // Invalidate is handled by the mutation but we need a full refetch here
-    markReadMutation.mutate("__all__");
-    toast.success("Todos marcados como leídos");
+  const markAllRead = () => {
+    markAllReadMutation.mutate(undefined, {
+      onSuccess: () => toast.success("Todos marcados como leídos"),
+    });
   };
 
   const dismiss = (id: string) => {

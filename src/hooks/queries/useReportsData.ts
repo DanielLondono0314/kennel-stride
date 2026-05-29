@@ -37,7 +37,7 @@ export function useReportsData(range: DateRange) {
         supabase.from("invoices").select("id, total, status, created_at, customer_id, payment_method").eq("organization_id", orgId).gte("created_at", dateFrom),
         supabase.from("customers").select("id, created_at, city").eq("organization_id", orgId).gte("created_at", dateFrom),
         supabase.from("packages").select("id, status, total_credits, remaining_credits, price, created_at").eq("organization_id", orgId),
-        supabase.from("facility_units").select("id, type, is_occupied").eq("organization_id", orgId),
+        supabase.from("facility_units").select("id, unit_type, status").eq("organization_id", orgId),
         supabase.from("report_cards").select("id, rating, session_date").eq("organization_id", orgId).gte("session_date", dateFrom),
         supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", orgId).gte("start_date", dateFrom),
       ]);

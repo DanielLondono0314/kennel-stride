@@ -99,3 +99,35 @@ export function useMarkNoticeRead() {
     },
   });
 }
+
+export function useMarkAllNoticesRead() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("notices")
+        .update({ is_read: true })
+        .eq("organization_id", organization!.id)
+        .eq("is_dismissed", false)
+        .eq("is_read", false);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: noticeKeys(organization?.id).active });
+      const prev = queryClient.getQueryData<Notice[]>(noticeKeys(organization?.id).active);
+      queryClient.setQueryData(
+        noticeKeys(organization?.id).active,
+        (old: Notice[] | undefined) => (old ?? []).map((n) => ({ ...n, isRead: true }))
+      );
+      return { prev };
+    },
+    onError: (_err, _v, ctx) => {
+      queryClient.setQueryData(noticeKeys(organization?.id).active, ctx?.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: noticeKeys(organization?.id).all });
+    },
+  });
+}

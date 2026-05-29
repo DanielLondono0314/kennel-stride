@@ -21,7 +21,7 @@ export function useReportCards({ page = 0 } = {}) {
       const { data, error, count } = await supabase
         .from("report_cards")
         .select(`
-          id, dog_id, staff_id, session_date, rating, notes, photos, created_at,
+          *,
           dogs(id, name, photo_url, customers(id, first_name, last_name)),
           staff_members(id, first_name, last_name)
         `, { count: "exact" })
