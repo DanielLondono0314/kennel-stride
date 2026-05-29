@@ -1,6 +1,7 @@
 import { Component, ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sentry } from "@/lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -9,17 +10,21 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  eventId: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, eventId: null };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error) {
-    console.error("Uncaught error:", error);
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    const eventId = Sentry.captureException(error, {
+      extra: { componentStack: info.componentStack },
+    });
+    this.setState({ eventId: eventId ?? null });
   }
 
   render() {
@@ -34,7 +39,19 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-muted-foreground">
               {this.state.error?.message || "Error inesperado de la aplicación."}
             </p>
-            <Button onClick={() => window.location.reload()}>Recargar página</Button>
+            {this.state.eventId && (
+              <p className="text-xs text-muted-foreground">
+                Referencia: {this.state.eventId}
+              </p>
+            )}
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => this.setState({ hasError: false, error: null, eventId: null })}>
+                Intentar de nuevo
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Recargar página
+              </Button>
+            </div>
           </div>
         </div>
       );

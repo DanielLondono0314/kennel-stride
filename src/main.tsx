@@ -6,6 +6,9 @@ import "@fontsource/inter/700.css";
 import App from "./App.tsx";
 import "./index.css";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import { initSentry } from "./lib/sentry.ts";
+
+initSentry();
 
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
