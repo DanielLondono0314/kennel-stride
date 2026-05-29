@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo } from "react";
 
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useReservations } from "@/hooks/useReservations";
+import { useNotices, useDismissNotice, useMarkNoticeRead } from "@/hooks/queries/useNotices";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { OpsTabs, OpsTab } from "@/components/dashboard/OpsTabs";
 import { OpsTable } from "@/components/dashboard/OpsTable";
@@ -25,20 +26,6 @@ import {
 import { Users, LogIn, LogOut, Moon, Activity, Plus, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
-
-function mapDbNotice(n: any): Notice {
-  return {
-    id: n.id,
-    title: n.title,
-    message: n.message,
-    severity: (n.severity as NoticeSeverity) ?? NoticeSeverity.INFO,
-    isRead: n.is_read ?? false,
-    entityType: n.entity_type ?? undefined,
-    entityId: n.entity_id ?? undefined,
-    suggestedActions: n.suggested_actions ?? undefined,
-    createdAt: new Date(n.created_at),
-  };
-}
 
 export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
@@ -60,31 +47,10 @@ export default function Dashboard() {
     autoRefresh: true,
   });
 
-  // Notices from Supabase
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const fetchNotices = useCallback(async () => {
-    if (!organization) return;
-    const { data } = await supabase
-      .from("notices")
-      .select("*")
-      .eq("organization_id", organization.id)
-      .eq("is_dismissed", false)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setNotices(data.map(mapDbNotice));
-  }, [organization?.id]);
-
-  useEffect(() => { fetchNotices(); }, [fetchNotices]);
-
-  // Real-time subscription for notices
-  useEffect(() => {
-    if (!organization) return;
-    const channel = supabase
-      .channel(`notices-dashboard-${organization.id}-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notices", filter: `organization_id=eq.${organization.id}` }, fetchNotices)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchNotices, organization?.id]);
+  // Notices from React Query hook
+  const { data: notices = [] } = useNotices();
+  const dismissNotice = useDismissNotice();
+  const markRead = useMarkNoticeRead();
 
   // KPIs based on today's reservations
   const kpis = useMemo(() => {
@@ -219,18 +185,8 @@ export default function Dashboard() {
     setCancelTargetId(null);
   };
 
-  const handleDismissNotice = async (noticeId: string) => {
-    await supabase
-      .from("notices")
-      .update({ is_dismissed: true })
-      .eq("id", noticeId);
-    setNotices((prev) => prev.filter((n) => n.id !== noticeId));
-  };
-
-  const handleMarkNoticeRead = async (noticeId: string) => {
-    await supabase.from("notices").update({ is_read: true }).eq("id", noticeId);
-    setNotices((prev) => prev.map((n) => (n.id === noticeId ? { ...n, isRead: true } : n)));
-  };
+  const handleDismissNotice = (noticeId: string) => dismissNotice.mutate(noticeId);
+  const handleMarkNoticeRead = (noticeId: string) => markRead.mutate(noticeId);
 
   const handleNoticeAction = (action: string, params?: Record<string, string>) => {
     switch (action) {

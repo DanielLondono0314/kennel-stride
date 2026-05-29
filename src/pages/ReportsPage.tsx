@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useOrganization } from "@/contexts/OrganizationContext";
+import { useState, useMemo } from "react";
+import { useReportsData, DateRange } from "@/hooks/queries/useReportsData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +9,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
-import { format, subMonths, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-type DateRange = "30d" | "90d" | "6m" | "1y";
 
 const COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 20%)", "hsl(142, 76%, 36%)",
@@ -21,58 +18,20 @@ const COLORS = [
 ];
 
 export default function ReportsPage() {
-  const { organization } = useOrganization();
-  const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<DateRange>("30d");
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
-  const [reportCards, setReportCards] = useState<any[]>([]);
-  const [reservations, setReservations] = useState<any[]>([]);
 
-  const dateFrom = useMemo(() => {
-    const now = new Date();
-    switch (range) {
-      case "30d": return subDays(now, 30);
-      case "90d": return subDays(now, 90);
-      case "6m": return subMonths(now, 6);
-      case "1y": return subMonths(now, 12);
-    }
-  }, [range]);
+  const { data, isLoading } = useReportsData(range);
 
-  useEffect(() => {
-    const fetch = async () => {
-      if (!organization) return;
-      setLoading(true);
-      const [invR, custR, pkgR, unitR, rcR, resR] = await Promise.all([
-        supabase.from("invoices").select("*").eq("organization_id", organization!.id),
-        supabase.from("customers").select("*").eq("organization_id", organization!.id),
-        supabase.from("packages").select("*").eq("organization_id", organization!.id),
-        supabase.from("facility_units").select("*").eq("organization_id", organization!.id),
-        supabase.from("report_cards").select("*").eq("organization_id", organization!.id),
-        supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", organization!.id),
-      ]);
-      setInvoices(invR.data || []);
-      setCustomers(custR.data || []);
-      setPackages(pkgR.data || []);
-      setUnits(unitR.data || []);
-      setReportCards(rcR.data || []);
-      setReservations(resR.data || []);
-      setLoading(false);
-    };
-    fetch();
-  }, [organization?.id]);
+  const invoices = data?.invoices ?? [];
+  const newCustomers = data?.newCustomers ?? [];
+  const packages = data?.packages ?? [];
+  const units = data?.units ?? [];
+  const reportCards = data?.reportCards ?? [];
+  const reservations = data?.reservations ?? [];
 
-  const filteredInvoices = useMemo(
-    () => invoices.filter((i) => new Date(i.created_at) >= dateFrom),
-    [invoices, dateFrom]
-  );
-
-  const filteredReservations = useMemo(
-    () => reservations.filter((r) => new Date(r.start_date) >= dateFrom),
-    [reservations, dateFrom]
-  );
+  // Data already filtered server-side — use directly
+  const filteredInvoices = invoices;
+  const filteredReservations = reservations;
 
   // Reservations by service type
   const reservationsByService = useMemo(() => {
@@ -105,8 +64,8 @@ export default function ReportsPage() {
   // KPIs
   const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
   const totalPending = filteredInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
-  const activeCustomers = customers.length;
-  const occupiedKennels = units.filter((u) => u.status === "occupied").length;
+  const activeCustomers = newCustomers.length;
+  const occupiedKennels = units.filter((u: any) => u.status === "occupied").length;
   const totalKennels = units.length;
   const occupancyRate = totalKennels > 0 ? Math.round((occupiedKennels / totalKennels) * 100) : 0;
   const totalReservations = filteredReservations.length;
@@ -145,22 +104,21 @@ export default function ReportsPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [packages]);
 
-  // Top customers
+  // Top customers — built from invoices with customer_id
   const topCustomers = useMemo(() => {
     const spending: Record<string, { name: string; total: number }> = {};
     filteredInvoices
       .filter((i) => i.status === "paid")
       .forEach((inv) => {
-        const cust = customers.find((c) => c.id === inv.customer_id);
-        if (!cust) return;
-        const key = cust.id;
-        if (!spending[key]) spending[key] = { name: `${cust.first_name} ${cust.last_name}`, total: 0 };
+        const key = inv.customer_id;
+        if (!key) return;
+        if (!spending[key]) spending[key] = { name: inv.customer_id, total: 0 };
         spending[key].total += Number(inv.total);
       });
     return Object.values(spending).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [filteredInvoices, customers]);
+  }, [filteredInvoices]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -218,7 +176,7 @@ export default function ReportsPage() {
               <div className="p-2 rounded-lg bg-primary/10"><Users className="h-5 w-5 text-primary" /></div>
               <div>
                 <p className="text-2xl font-bold">{activeCustomers}</p>
-                <p className="text-xs text-muted-foreground">Clientes Registrados</p>
+                <p className="text-xs text-muted-foreground">Clientes Nuevos</p>
               </div>
             </div>
           </CardContent>
@@ -335,7 +293,7 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{units.filter((u) => u.status === "maintenance").length}</p>
+                  <p className="text-3xl font-bold">{units.filter((u: any) => u.status === "maintenance").length}</p>
                   <p className="text-sm text-muted-foreground mt-1">En Mantenimiento</p>
                 </div>
               </CardContent>
@@ -415,7 +373,7 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{customers.filter((c) => new Date(c.created_at) >= dateFrom).length}</p>
+                  <p className="text-3xl font-bold">{newCustomers.length}</p>
                   <p className="text-sm text-muted-foreground mt-1">Clientes Nuevos (período)</p>
                 </div>
               </CardContent>

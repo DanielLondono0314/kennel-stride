@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { usePackages, useCreatePackage, useUpdatePackage, useDeductCredit } from "@/hooks/queries/usePackages";
+import { useCustomers } from "@/hooks/queries/useCustomers";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -69,9 +70,6 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 
 export default function PackagesPage() {
   const { organization } = useOrganization();
-  const [packages, setPackages] = useState<(PackageRow & { customer?: CustomerRow })[]>([]);
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,26 +87,14 @@ export default function PackagesPage() {
     notes: "",
   });
 
-  const fetchData = async () => {
-    if (!organization) return;
-    setLoading(true);
-    const [pkgRes, custRes] = await Promise.all([
-      supabase.from("packages").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, first_name, last_name, email, phone").eq("organization_id", organization!.id),
-    ]);
-    
-    const custs = (custRes.data || []) as CustomerRow[];
-    setCustomers(custs);
-    
-    const pkgs = (pkgRes.data || []).map((p: any) => ({
-      ...p,
-      customer: custs.find((c) => c.id === p.customer_id),
-    }));
-    setPackages(pkgs);
-    setLoading(false);
-  };
+  const { data: pkgData, isLoading } = usePackages({ page: 0, search, status: statusFilter });
+  const packages = pkgData?.packages ?? [];
+  const { data: custData } = useCustomers({ page: 0, search: "" });
+  const customers = custData?.customers ?? [];
 
-  useEffect(() => { fetchData(); }, [organization?.id]);
+  const createPkg = useCreatePackage();
+  const updatePkg = useUpdatePackage();
+  const deductCredit = useDeductCredit();
 
   const openCreate = () => {
     setEditingPkg(null);
@@ -139,82 +125,57 @@ export default function PackagesPage() {
   };
 
   const handleSave = async () => {
-    if (!form.customer_id || !form.name) {
-      toast.error("Completa los campos obligatorios");
-      return;
-    }
+    if (!form.customer_id || !form.name) { toast.error("Completa los campos obligatorios"); return; }
     setSaving(true);
-
-    if (editingPkg) {
-      const { error } = await supabase.from("packages").update({
-        name: form.name,
-        service_type: form.service_type,
-        total_credits: form.total_credits,
-        price: form.price,
-        expires_at: form.expires_at,
-        notes: form.notes,
-        updated_at: new Date().toISOString(),
-      }).eq("id", editingPkg.id);
-      
-      if (error) toast.error("Error al actualizar");
-      else toast.success("Paquete actualizado");
-    } else {
-      const { error } = await supabase.from("packages").insert({
-        customer_id: form.customer_id,
-        name: form.name,
-        service_type: form.service_type,
-        total_credits: form.total_credits,
-        remaining_credits: form.total_credits,
-        price: form.price,
-        expires_at: form.expires_at,
-        notes: form.notes,
-        organization_id: organization!.id,
-      });
-      
-      if (error) toast.error("Error al crear paquete");
-      else toast.success("Paquete creado");
+    try {
+      if (editingPkg) {
+        await updatePkg.mutateAsync({ id: editingPkg.id, ...form });
+        toast.success("Paquete actualizado");
+      } else {
+        await createPkg.mutateAsync({ ...form, purchase_date: new Date().toISOString() });
+        toast.success("Paquete creado");
+      }
+      setModalOpen(false);
+      setEditingPkg(null);
+    } catch {
+      toast.error("Error al guardar paquete");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    setModalOpen(false);
-    fetchData();
   };
 
-  const handleDeductCredit = async (pkg: PackageRow) => {
-    if (pkg.remaining_credits <= 0) {
-      toast.error("No hay créditos disponibles");
-      return;
-    }
-    const { error } = await supabase.from("packages").update({
-      remaining_credits: pkg.remaining_credits - 1,
-      updated_at: new Date().toISOString(),
-    }).eq("id", pkg.id);
-    
-    if (error) toast.error("Error al descontar crédito");
-    else {
+  const handleDeductCredit = async (pkg: any) => {
+    if (pkg.remaining_credits <= 0) { toast.error("No hay créditos disponibles"); return; }
+    try {
+      await deductCredit.mutateAsync({ packageId: pkg.id, remaining: pkg.remaining_credits });
       toast.success(`Crédito descontado (${pkg.remaining_credits - 1} restantes)`);
-      fetchData();
+    } catch {
+      toast.error("Error al descontar crédito");
     }
   };
 
-  const filteredPackages = packages.filter((p) => {
-    const matchesSearch = !search || 
+  // The hook returns packages with embedded customers relation (pkg.customers)
+  // Filter client-side for customer name search
+  const filteredPackages = packages.filter((p: any) => {
+    const customerName = p.customers
+      ? `${p.customers.first_name} ${p.customers.last_name}`.toLowerCase()
+      : "";
+    const matchesSearch = !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.customer?.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      p.customer?.last_name.toLowerCase().includes(search.toLowerCase());
+      customerName.includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // KPIs
-  const activeCount = packages.filter((p) => p.status === "active").length;
-  const totalCreditsRemaining = packages.filter((p) => p.status === "active").reduce((s, p) => s + p.remaining_credits, 0);
-  const expiringCount = packages.filter((p) => {
+  const activeCount = packages.filter((p: any) => p.status === "active").length;
+  const totalCreditsRemaining = packages.filter((p: any) => p.status === "active").reduce((s: number, p: any) => s + p.remaining_credits, 0);
+  const expiringCount = packages.filter((p: any) => {
     if (p.status !== "active") return false;
     const days = (new Date(p.expires_at).getTime() - Date.now()) / 86400000;
     return days <= 7 && days >= 0;
   }).length;
-  const totalRevenue = packages.reduce((s, p) => s + Number(p.price), 0);
+  const totalRevenue = packages.reduce((s: number, p: any) => s + Number(p.price), 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -312,7 +273,7 @@ export default function PackagesPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
@@ -337,11 +298,17 @@ export default function PackagesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPackages.map((pkg) => {
+                {filteredPackages.map((pkg: any) => {
                   const daysLeft = Math.ceil((new Date(pkg.expires_at).getTime() - Date.now()) / 86400000);
                   const isExpiringSoon = daysLeft <= 7 && daysLeft >= 0;
                   const cfg = statusConfig[pkg.status] || statusConfig.active;
-                  
+                  // Support both embedded customers (from hook) and flat customer (from old shape)
+                  const customerName = pkg.customers
+                    ? `${pkg.customers.first_name} ${pkg.customers.last_name}`
+                    : pkg.customer
+                    ? `${pkg.customer.first_name} ${pkg.customer.last_name}`
+                    : "—";
+
                   return (
                     <TableRow key={pkg.id}>
                       <TableCell>
@@ -353,7 +320,7 @@ export default function PackagesPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{pkg.customer?.first_name} {pkg.customer?.last_name}</span>
+                          <span>{customerName}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -446,7 +413,7 @@ export default function PackagesPage() {
                 </Select>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label>Nombre del Paquete *</Label>
               <Input

@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useNotices, useDismissNotice, useMarkNoticeRead } from "@/hooks/queries/useNotices";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -16,20 +17,7 @@ import {
   Bell, Loader2, AlertTriangle, AlertCircle, Info,
   CheckCheck, X, ChevronRight, RefreshCw, Trash2,
 } from "lucide-react";
-
-interface NoticeRow {
-  id: string;
-  title: string;
-  message: string;
-  severity: string;
-  entity_type: string;
-  entity_id: string | null;
-  suggested_actions: any[];
-  is_read: boolean;
-  is_dismissed: boolean;
-  auto_generated: boolean;
-  created_at: string;
-}
+import { Notice, NoticeSeverity } from "@/types";
 
 const severityConfig: Record<string, { icon: typeof AlertTriangle; className: string; label: string }> = {
   critical: { icon: AlertTriangle, className: "notice-critical", label: "Crítico" },
@@ -40,58 +28,25 @@ const severityConfig: Record<string, { icon: typeof AlertTriangle; className: st
 export default function NoticesPage() {
   const navigate = useOrgNavigate();
   const { organization } = useOrganization();
-  const [notices, setNotices] = useState<NoticeRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState("all");
   const [showRead, setShowRead] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchNotices = useCallback(async () => {
-    if (!organization) return;
-    setLoading(true);
-    const query = supabase.from("notices").select("*").eq("is_dismissed", false).eq("organization_id", organization!.id).order("created_at", { ascending: false });
-    const { data } = await query;
-    setNotices((data || []) as NoticeRow[]);
-    setLoading(false);
-  }, [organization?.id]);
-
-  useEffect(() => { fetchNotices(); }, [fetchNotices]);
-
-  // Subscribe to realtime notices — filtered by org so other orgs' notices never arrive
-  useEffect(() => {
-    if (!organization) return;
-    const channel = supabase
-      .channel(`notices-${organization.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notices",
-          filter: `organization_id=eq.${organization.id}`,
-        },
-        (payload) => {
-          setNotices((prev) => [payload.new as NoticeRow, ...prev]);
-          toast.info("Nuevo aviso", { description: (payload.new as NoticeRow).title });
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [organization?.id]);
+  const { data: notices = [], isLoading } = useNotices();
+  const dismissNotice = useDismissNotice();
+  const markReadMutation = useMarkNoticeRead();
 
   const handleRefresh = async () => {
     setRefreshing(true);
     // Trigger backend check functions
     await supabase.rpc("check_expiring_packages");
     await supabase.rpc("check_overdue_invoices");
-    await fetchNotices();
     setRefreshing(false);
     toast.success("Avisos actualizados");
   };
 
-  const markRead = async (id: string) => {
-    await supabase.from("notices").update({ is_read: true }).eq("id", id);
-    setNotices((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+  const markRead = (id: string) => {
+    markReadMutation.mutate(id);
   };
 
   const markAllRead = async () => {
@@ -101,20 +56,19 @@ export default function NoticesPage() {
       .update({ is_read: true })
       .eq("organization_id", organization.id)
       .eq("is_read", false);
-    setNotices((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    // Invalidate is handled by the mutation but we need a full refetch here
+    markReadMutation.mutate("__all__");
     toast.success("Todos marcados como leídos");
   };
 
-  const dismiss = async (id: string) => {
-    await supabase.from("notices").update({ is_dismissed: true }).eq("id", id);
-    setNotices((prev) => prev.filter((n) => n.id !== id));
+  const dismiss = (id: string) => {
+    dismissNotice.mutate(id);
   };
 
   const dismissAll = async () => {
-    const readIds = notices.filter((n) => n.is_read).map((n) => n.id);
+    const readIds = notices.filter((n) => n.isRead).map((n) => n.id);
     if (readIds.length === 0) return;
-    await supabase.from("notices").update({ is_dismissed: true }).in("id", readIds);
-    setNotices((prev) => prev.filter((n) => !n.is_read));
+    await Promise.all(readIds.map((id) => dismissNotice.mutateAsync(id)));
     toast.success("Avisos leídos eliminados");
   };
 
@@ -168,13 +122,13 @@ export default function NoticesPage() {
 
   const filtered = notices.filter((n) => {
     if (severityFilter !== "all" && n.severity !== severityFilter) return false;
-    if (!showRead && n.is_read) return false;
+    if (!showRead && n.isRead) return false;
     return true;
   });
 
-  const unreadCount = notices.filter((n) => !n.is_read).length;
-  const criticalCount = notices.filter((n) => n.severity === "critical" && !n.is_read).length;
-  const warningCount = notices.filter((n) => n.severity === "warning" && !n.is_read).length;
+  const unreadCount = notices.filter((n) => !n.isRead).length;
+  const criticalCount = notices.filter((n) => n.severity === NoticeSeverity.CRITICAL && !n.isRead).length;
+  const warningCount = notices.filter((n) => n.severity === NoticeSeverity.WARNING && !n.isRead).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -263,7 +217,7 @@ export default function NoticesPage() {
       </div>
 
       {/* Notices list */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -276,7 +230,7 @@ export default function NoticesPage() {
           {filtered.map((notice) => {
             const config = severityConfig[notice.severity] || severityConfig.info;
             const Icon = config.icon;
-            const actions = Array.isArray(notice.suggested_actions) ? notice.suggested_actions : [];
+            const actions = Array.isArray(notice.suggestedActions) ? notice.suggestedActions : [];
 
             return (
               <div
@@ -284,7 +238,7 @@ export default function NoticesPage() {
                 className={cn(
                   "p-4 rounded-lg bg-card border transition-all hover:shadow-sm",
                   config.className,
-                  !notice.is_read && "ring-1 ring-primary/20"
+                  !notice.isRead && "ring-1 ring-primary/20"
                 )}
               >
                 <div className="flex items-start gap-4">
@@ -296,20 +250,17 @@ export default function NoticesPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{notice.title}</h4>
-                          {!notice.is_read && (
+                          {!notice.isRead && (
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Nuevo</Badge>
-                          )}
-                          {notice.auto_generated && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{notice.message}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className="text-xs text-muted-foreground whitespace-nowrap mr-1">
-                          {formatDistanceToNow(new Date(notice.created_at), { addSuffix: true, locale: es })}
+                          {formatDistanceToNow(notice.createdAt, { addSuffix: true, locale: es })}
                         </span>
-                        {!notice.is_read && (
+                        {!notice.isRead && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => markRead(notice.id)} title="Marcar como leído">
                             <CheckCheck className="h-3.5 w-3.5" />
                           </Button>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useReportCards, useCreateReportCard } from "@/hooks/queries/useReportCards";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -48,9 +50,9 @@ const SERVICE_ICONS: Record<string, string> = {
 
 export default function ReportCardsPage() {
   const { organization } = useOrganization();
-  const [reportCards, setReportCards] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+  const [page] = useState(0);
   const [trainers, setTrainers] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterTrainer, setFilterTrainer] = useState("all");
   const [filterService, setFilterService] = useState("all");
@@ -62,21 +64,21 @@ export default function ReportCardsPage() {
   const [detailData, setDetailData] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [organization?.id]);
+  const { data, isLoading } = useReportCards({ page });
+  // The hook returns cards with a limited select; the page needs full rows.
+  // Cast to any[] — DB columns are present at runtime even if not in TS select.
+  const reportCards = (data?.cards ?? []) as any[];
 
-  async function loadData() {
+  useEffect(() => {
     if (!organization) return;
-    setLoading(true);
-    const [rcRes, trRes] = await Promise.all([
-      supabase.from("report_cards").select("*").eq("organization_id", organization!.id).order("session_date", { ascending: false }),
-      supabase.from("staff_members").select("id, first_name, last_name").eq("is_active", true).eq("organization_id", organization!.id).order("first_name"),
-    ]);
-    if (rcRes.data) setReportCards(rcRes.data);
-    if (trRes.data) setTrainers(trRes.data);
-    setLoading(false);
-  }
+    supabase
+      .from("staff_members")
+      .select("id, first_name, last_name")
+      .eq("is_active", true)
+      .eq("organization_id", organization.id)
+      .order("first_name")
+      .then(({ data }) => { if (data) setTrainers(data); });
+  }, [organization?.id]);
 
   function getTrainerName(id: string | null) {
     if (!id) return "Sin asignar";
@@ -86,7 +88,7 @@ export default function ReportCardsPage() {
 
   const filtered = useMemo(() => {
     return reportCards.filter((rc) => {
-      if (search && !rc.dog_name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !rc.dog_name?.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterTrainer !== "all" && rc.trainer_id !== filterTrainer) return false;
       if (filterService !== "all" && rc.service_type !== filterService) return false;
       if (filterStatus === "sent" && !rc.is_sent) return false;
@@ -117,7 +119,7 @@ export default function ReportCardsPage() {
       toast.error("Error eliminando report card");
     } else {
       toast.success("Report card eliminado");
-      loadData();
+      queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });
     }
     setDeleteId(null);
   }
@@ -131,7 +133,7 @@ export default function ReportCardsPage() {
       toast.error("Error enviando report card");
     } else {
       toast.success(`Report card de ${rc.dog_name} enviado al dueño`);
-      loadData();
+      queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });
     }
   }
 
@@ -189,7 +191,7 @@ export default function ReportCardsPage() {
       </div>
 
       {/* Cards grid */}
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
@@ -277,7 +279,12 @@ export default function ReportCardsPage() {
       )}
 
       {/* Modals */}
-      <ReportCardModal open={modalOpen} onOpenChange={setModalOpen} editData={editData} onSaved={loadData} />
+      <ReportCardModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        editData={editData}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] })}
+      />
       <ReportCardDetail open={detailOpen} onOpenChange={setDetailOpen} reportCard={detailData} trainerName={detailData ? getTrainerName(detailData.trainer_id) : undefined} />
 
       {/* Delete confirm */}

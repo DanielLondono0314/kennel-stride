@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useCampaigns, useDeleteCampaign } from "@/hooks/queries/useCampaigns";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -71,8 +73,7 @@ const defaultForm = {
 
 export default function CampaignsPage() {
   const { organization } = useOrganization();
-  const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
@@ -82,15 +83,8 @@ export default function CampaignsPage() {
   const [form, setForm] = useState(defaultForm);
   const [detailCampaign, setDetailCampaign] = useState<CampaignRow | null>(null);
 
-  const fetchData = async () => {
-    if (!organization) return;
-    setLoading(true);
-    const { data } = await supabase.from("campaigns").select("*").eq("organization_id", organization!.id).order("created_at", { ascending: false });
-    setCampaigns((data || []) as CampaignRow[]);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchData(); }, [organization?.id]);
+  const { data: campaigns = [], isLoading } = useCampaigns();
+  const deleteCampaign = useDeleteCampaign();
 
   const openCreate = () => {
     setEditId(null);
@@ -141,7 +135,7 @@ export default function CampaignsPage() {
 
     setSaving(false);
     setModalOpen(false);
-    fetchData();
+    queryClient.invalidateQueries({ queryKey: ["campaigns", organization?.id] });
   };
 
   const handleSend = async (c: CampaignRow) => {
@@ -168,7 +162,7 @@ export default function CampaignsPage() {
       });
     } finally {
       setSending(null);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["campaigns", organization?.id] });
     }
   };
 
@@ -180,29 +174,29 @@ export default function CampaignsPage() {
     if (error) toast.error("Error");
     else {
       toast.success("Campaña cancelada");
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ["campaigns", organization?.id] });
     }
   };
 
   const handleDelete = async (c: CampaignRow) => {
-    const { error } = await supabase.from("campaigns").delete().eq("id", c.id);
-    if (error) toast.error("Error al eliminar");
-    else {
+    try {
+      await deleteCampaign.mutateAsync(c.id);
       toast.success("Campaña eliminada");
-      fetchData();
+    } catch {
+      toast.error("Error al eliminar");
     }
   };
 
-  const filtered = campaigns.filter((c) => {
+  const filtered = (campaigns as CampaignRow[]).filter((c) => {
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   // KPIs
-  const totalSent = campaigns.filter((c) => c.status === "sent").length;
+  const totalSent = (campaigns as CampaignRow[]).filter((c) => c.status === "sent").length;
   const avgOpen = totalSent > 0
-    ? Math.round(campaigns.filter((c) => c.status === "sent").reduce((s, c) => s + (c.stats_sent > 0 ? (c.stats_opened / c.stats_sent) * 100 : 0), 0) / totalSent)
+    ? Math.round((campaigns as CampaignRow[]).filter((c) => c.status === "sent").reduce((s, c) => s + (c.stats_sent > 0 ? (c.stats_opened / c.stats_sent) * 100 : 0), 0) / totalSent)
     : 0;
 
   return (
@@ -258,7 +252,7 @@ export default function CampaignsPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><Users className="h-5 w-5 text-warning" /></div>
               <div>
-                <p className="text-2xl font-bold">{campaigns.reduce((s, c) => s + c.stats_sent, 0)}</p>
+                <p className="text-2xl font-bold">{(campaigns as CampaignRow[]).reduce((s, c) => s + c.stats_sent, 0)}</p>
                 <p className="text-xs text-muted-foreground">Total Enviados</p>
               </div>
             </div>
@@ -287,7 +281,7 @@ export default function CampaignsPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useDogs, useDeleteDog } from "@/hooks/queries/useDogs";
 import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { Input } from "@/components/ui/input";
@@ -19,11 +20,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Trash2, Upload } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload } from "lucide-react";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface DbDog {
   id: string;
@@ -49,61 +49,25 @@ interface DbDog {
 }
 
 export default function DogsPage() {
-  const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
-  const [dogs, setDogs] = useState<DbDog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const PAGE_SIZE = 50;
+  useEffect(() => {
+    const timer = setTimeout(() => { setDebouncedSearch(searchQuery); setPage(0); }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const fetchDogs = async (reset = true) => {
-    if (!organization) return;
-    const currentPage = reset ? 0 : page;
-    if (reset) {
-      setLoading(true);
-      setPage(0);
-    } else {
-      setLoadingMore(true);
-    }
-
-    const from = currentPage * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const { data, error } = await supabase
-      .from("dogs")
-      .select("*, customers(id, first_name, last_name)")
-      .eq("organization_id", organization!.id)
-      .order("name")
-      .range(from, to);
-
-    if (!error && data) {
-      setDogs((prev) => reset ? data as any : [...prev, ...(data as any)]);
-      setHasMore(data.length === PAGE_SIZE);
-      if (!reset) setPage(currentPage + 1);
-    }
-    setLoading(false);
-    setLoadingMore(false);
-  };
-
-  useEffect(() => { fetchDogs(true); }, [organization?.id]);
-
-  const filteredDogs = useMemo(() => {
-    if (!searchQuery) return dogs;
-    const q = searchQuery.toLowerCase();
-    return dogs.filter(
-      (d) => d.name.toLowerCase().includes(q) || d.breed.toLowerCase().includes(q) ||
-        d.customers?.first_name.toLowerCase().includes(q) || d.customers?.last_name.toLowerCase().includes(q)
-    );
-  }, [dogs, searchQuery]);
+  const { data, isLoading, isFetching } = useDogs({ page, search: debouncedSearch });
+  const dogs = data?.dogs ?? [];
+  const hasMore = data?.hasMore ?? false;
+  const deleteDog = useDeleteDog();
 
   const getAge = (birthDate?: string | null) => {
     if (!birthDate) return "—";
@@ -150,18 +114,16 @@ export default function DogsPage() {
     } else {
       toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
       setModalOpen(false);
-      fetchDogs(true);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const { error } = await supabase.from("dogs").delete().eq("id", deleteId);
-    if (error) {
-      toast.error("Error al eliminar");
-    } else {
-      toast.success("Perro eliminado");
-      fetchDogs(true);
+    try {
+      await deleteDog.mutateAsync(deleteId);
+      toast.success("Mascota eliminada");
+    } catch {
+      toast.error("Error al eliminar mascota");
     }
     setDeleteId(null);
   };
@@ -189,7 +151,7 @@ export default function DogsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         initialTab="dogs"
-        onImported={() => fetchDogs(true)}
+        onImported={() => { setPage(0); setDebouncedSearch(""); }}
       />
 
       <div className="relative max-w-md">
@@ -211,11 +173,11 @@ export default function DogsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
-            ) : filteredDogs.length === 0 ? (
+            ) : dogs.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
-            ) : filteredDogs.map((dog) => (
+            ) : dogs.map((dog) => (
               <TableRow key={dog.id} className="cursor-pointer" onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -268,11 +230,11 @@ export default function DogsPage() {
 
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
-        {loading ? (
+        {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
-        ) : filteredDogs.length === 0 ? (
+        ) : dogs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron perros</p>
-        ) : filteredDogs.map((dog) => (
+        ) : dogs.map((dog) => (
           <Card
             key={dog.id}
             className="cursor-pointer"
@@ -339,10 +301,10 @@ export default function DogsPage() {
         ))}
       </div>
 
-      {hasMore && !searchQuery && (
+      {hasMore && (
         <div className="flex justify-center pt-2">
-          <Button variant="outline" onClick={() => fetchDogs(false)} disabled={loadingMore}>
-            {loadingMore ? "Cargando..." : "Cargar más"}
+          <Button variant="outline" onClick={() => setPage((p) => p + 1)} disabled={isFetching}>
+            {isFetching ? "Cargando..." : "Cargar más"}
           </Button>
         </div>
       )}

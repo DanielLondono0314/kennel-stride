@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, DbCustomer } from "@/hooks/queries/useCustomers";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,129 +22,58 @@ import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 
-export interface DbCustomer {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip_code: string | null;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  notes: string | null;
-  balance: number;
-  created_at: string;
-  updated_at: string;
-  dog_count?: number;
-}
+export type { DbCustomer };
 
 export default function CustomersPage() {
-  const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [customers, setCustomers] = useState<DbCustomer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const PAGE_SIZE = 50;
-
-  const fetchCustomers = async (reset = true) => {
-    if (!organization) return;
-    const currentPage = reset ? 0 : page;
-    if (reset) {
-      setLoading(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
       setPage(0);
-    } else {
-      setLoadingMore(true);
-    }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-    const from = currentPage * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+  const { data, isLoading, isFetching } = useCustomers({ page, search: debouncedSearch });
+  const customers = data?.customers ?? [];
+  const hasMore = data?.hasMore ?? false;
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*, dogs(id)")
-      .eq("organization_id", organization!.id)
-      .order("first_name")
-      .range(from, to);
+  const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+  const deleteCustomer = useDeleteCustomer();
 
-    if (!error && data) {
-      const mapped = data.map((c: any) => ({
-        ...c,
-        dog_count: c.dogs?.length ?? 0,
-      }));
-      setCustomers((prev) => reset ? mapped : [...prev, ...mapped]);
-      setHasMore(data.length === PAGE_SIZE);
-      if (!reset) setPage(currentPage + 1);
-    }
-    setLoading(false);
-    setLoadingMore(false);
-  };
-
-  useEffect(() => { fetchCustomers(true); }, [organization?.id]);
-
-  const filtered = useMemo(() => {
-    if (!searchQuery) return customers;
-    const q = searchQuery.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.first_name.toLowerCase().includes(q) ||
-        c.last_name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.phone.includes(q)
-    );
-  }, [customers, searchQuery]);
-
-  const handleSave = async (data: Partial<DbCustomer>) => {
-    const payload = {
-      first_name: data.first_name!,
-      last_name: data.last_name!,
-      email: data.email!,
-      phone: data.phone!,
-      address: data.address || null,
-      city: data.city || null,
-      state: data.state || null,
-      zip_code: data.zip_code || null,
-      emergency_contact_name: data.emergency_contact_name || null,
-      emergency_contact_phone: data.emergency_contact_phone || null,
-      notes: data.notes || null,
-      updated_at: new Date().toISOString(),
-    };
-
-    let error;
-    if (data.id) {
-      ({ error } = await supabase.from("customers").update(payload).eq("id", data.id));
-    } else {
-      ({ error } = await supabase.from("customers").insert({ ...payload, organization_id: organization!.id }));
-    }
-
-    if (error) {
-      toast.error("Error al guardar cliente");
-    } else {
-      toast.success(data.id ? "Cliente actualizado" : "Cliente registrado");
+  const handleSave = async (formData: Partial<DbCustomer>) => {
+    try {
+      if (editingCustomer) {
+        await updateCustomer.mutateAsync({ id: editingCustomer.id, ...formData });
+        toast.success("Cliente actualizado");
+      } else {
+        await createCustomer.mutateAsync(formData as any);
+        toast.success("Cliente creado");
+      }
       setModalOpen(false);
-      fetchCustomers(true);
+      setEditingCustomer(null);
+    } catch {
+      toast.error("Error al guardar cliente");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const { error } = await supabase.from("customers").delete().eq("id", deleteId);
-    if (error) {
-      toast.error("Error al eliminar cliente");
-    } else {
+    try {
+      await deleteCustomer.mutateAsync(deleteId);
       toast.success("Cliente eliminado");
-      fetchCustomers(true);
+    } catch {
+      toast.error("Error al eliminar cliente");
     }
     setDeleteId(null);
   };
@@ -176,7 +104,7 @@ export default function CustomersPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         initialTab="customers"
-        onImported={() => fetchCustomers(true)}
+        onImported={() => { setPage(0); setDebouncedSearch(""); }}
       />
 
       <div className="relative max-w-md">
@@ -203,19 +131,19 @@ export default function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   Cargando...
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : customers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   No se encontraron clientes
                 </TableCell>
               </TableRow>
-            ) : filtered.map((customer) => {
+            ) : customers.map((customer) => {
               const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
               const hasBalance = customer.balance !== 0;
               const isOwing = customer.balance < 0;
@@ -309,11 +237,11 @@ export default function CustomersPage() {
 
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
-        {loading ? (
+        {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
-        ) : filtered.length === 0 ? (
+        ) : customers.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron clientes</p>
-        ) : filtered.map((customer) => {
+        ) : customers.map((customer) => {
           const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
           const hasBalance = customer.balance !== 0;
           const isOwing = customer.balance < 0;
@@ -398,10 +326,10 @@ export default function CustomersPage() {
         })}
       </div>
 
-      {hasMore && !searchQuery && (
+      {hasMore && (
         <div className="flex justify-center pt-2">
-          <Button variant="outline" onClick={() => fetchCustomers(false)} disabled={loadingMore}>
-            {loadingMore ? "Cargando..." : "Cargar más"}
+          <Button variant="outline" onClick={() => setPage((p) => p + 1)} disabled={isFetching}>
+            {isFetching ? "Cargando..." : "Cargar más"}
           </Button>
         </div>
       )}
