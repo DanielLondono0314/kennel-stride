@@ -45,8 +45,17 @@ export default function CustomersPage() {
   }, [searchQuery]);
 
   const { data, isLoading, isFetching } = useCustomers({ page, search: debouncedSearch });
-  const customers = data?.customers ?? [];
+  const [allCustomers, setAllCustomers] = useState<DbCustomer[]>([]);
   const hasMore = data?.hasMore ?? false;
+
+  useEffect(() => {
+    if (!data?.customers) return;
+    if (page === 0) {
+      setAllCustomers(data.customers);
+    } else {
+      setAllCustomers((prev) => [...prev, ...data.customers]);
+    }
+  }, [data?.customers, page]);
 
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -138,13 +147,13 @@ export default function CustomersPage() {
                   <CardGridSkeleton count={6} />
                 </TableCell>
               </TableRow>
-            ) : customers.length === 0 ? (
+            ) : allCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   No se encontraron clientes
                 </TableCell>
               </TableRow>
-            ) : customers.map((customer) => {
+            ) : allCustomers.map((customer) => {
               const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
               const hasBalance = customer.balance !== 0;
               const isOwing = customer.balance < 0;
@@ -240,9 +249,9 @@ export default function CustomersPage() {
       <div className="md:hidden space-y-3">
         {isLoading ? (
           <CardGridSkeleton count={6} />
-        ) : customers.length === 0 ? (
+        ) : allCustomers.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron clientes</p>
-        ) : customers.map((customer) => {
+        ) : allCustomers.map((customer) => {
           const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
           const hasBalance = customer.balance !== 0;
           const isOwing = customer.balance < 0;

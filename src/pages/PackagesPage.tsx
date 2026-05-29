@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePackages, useCreatePackage, useUpdatePackage, useDeductCredit } from "@/hooks/queries/usePackages";
-import { useCustomers } from "@/hooks/queries/useCustomers";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -90,8 +91,22 @@ export default function PackagesPage() {
 
   const { data: pkgData, isLoading } = usePackages({ page: 0, search, status: statusFilter });
   const packages = pkgData?.packages ?? [];
-  const { data: custData } = useCustomers({ page: 0, search: "" });
-  const customers = custData?.customers ?? [];
+  const { data: allCustomersData } = useQuery({
+    queryKey: ["customers-for-form", organization?.id],
+    enabled: !!organization?.id,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, first_name, last_name, email, phone")
+        .eq("organization_id", organization!.id)
+        .order("first_name", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const customers = allCustomersData ?? [];
 
   const createPkg = useCreatePackage();
   const updatePkg = useUpdatePackage();
