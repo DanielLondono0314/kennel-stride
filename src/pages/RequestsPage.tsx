@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useUrlState } from "@/hooks/useUrlState";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useReservations } from "@/hooks/useReservations";
@@ -62,9 +63,9 @@ interface StaffMember {
 export default function RequestsPage() {
   const { organization } = useOrganization();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState("");
-  const [serviceFilter, setServiceFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<RequestTab>("pending");
+  const [activeTab, setActiveTab] = useUrlState<RequestTab>("tab", "pending");
+  const [searchQuery, setSearchQuery] = useUrlState("q", "");
+  const [serviceFilter, setServiceFilter] = useUrlState("service", "all");
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [approveModalOpen, setApproveModalOpen] = useState(false);

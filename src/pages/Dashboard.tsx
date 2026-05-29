@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useUrlState } from "@/hooks/useUrlState";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,10 +31,10 @@ import { NewReservationModal } from "@/components/reservations/NewReservationMod
 export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
-  const [activeTab, setActiveTab] = useState<OpsTab>("expected");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [serviceFilter, setServiceFilter] = useState<ServiceType | "all">("all");
-  const [flagFilter, setFlagFilter] = useState<FlagType | "all">("all");
+  const [activeTab, setActiveTab] = useUrlState<OpsTab>("tab", "expected");
+  const [searchQuery, setSearchQuery] = useUrlState("q", "");
+  const [serviceFilter, setServiceFilter] = useUrlState<ServiceType | "all">("service", "all");
+  const [flagFilter, setFlagFilter] = useUrlState<FlagType | "all">("flag", "all");
 
   const [checkInModalOpen, setCheckInModalOpen] = useState(false);
   const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
