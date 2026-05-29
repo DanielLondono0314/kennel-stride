@@ -39,34 +39,50 @@ export interface InvoiceCustomer {
 function invoiceKeys(orgId: string | undefined) {
   return {
     all: ["invoices", orgId] as const,
-    list: (page: number, status: string) => ["invoices", orgId, "list", page, status] as const,
+    list: (page: number, status: string, search: string) =>
+      ["invoices", orgId, "list", page, status, search] as const,
     customers: ["invoices-customers", orgId] as const,
     items: (invoiceId: string) => ["invoice-items", invoiceId] as const,
   };
 }
 
-export function useInvoices({ page = 0, status = "all" } = {}) {
+export function useInvoices({ page = 0, status = "all", search = "" } = {}) {
   const { organization } = useOrganization();
 
   return useQuery({
-    queryKey: invoiceKeys(organization?.id).list(page, status),
+    queryKey: invoiceKeys(organization?.id).list(page, status, search),
     enabled: !!organization?.id,
     queryFn: async () => {
       let query = supabase
         .from("invoices")
-        .select("*", { count: "exact" })
+        .select(`*, customers!inner(id, first_name, last_name, email)`, { count: "exact" })
         .eq("organization_id", organization!.id)
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (status !== "all") query = query.eq("status", status);
 
+      if (search.trim()) {
+        query = query.or(
+          `invoice_number.ilike.%${search.trim()}%,customers.first_name.ilike.%${search.trim()}%,customers.last_name.ilike.%${search.trim()}%`
+        );
+      }
+
       const { data, error, count } = await query;
       if (error) throw error;
+
+      const invoices = (data as any[] ?? []).map((inv) => {
+        const { customers: c, ...rest } = inv;
+        return {
+          ...rest,
+          customer: c ?? undefined,
+        } as InvoiceRow & { customer?: InvoiceCustomer };
+      });
+
       return {
-        invoices: (data ?? []) as InvoiceRow[],
+        invoices,
         total: count ?? 0,
-        hasMore: (data?.length ?? 0) === PAGE_SIZE,
+        hasMore: invoices.length === PAGE_SIZE,
       };
     },
   });

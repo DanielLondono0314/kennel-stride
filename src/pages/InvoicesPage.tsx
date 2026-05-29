@@ -60,6 +60,7 @@ export default function InvoicesPage() {
   const canCancelInvoice = usePermission("cancel_invoice");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,7 +79,21 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(0);
   const [allInvoices, setAllInvoices] = useState<(InvoiceRow & { customer?: InvoiceCustomer })[]>([]);
 
-  const { data: invData, isLoading, isError, refetch } = useInvoices({ page, status: statusFilter !== "all" ? statusFilter : "all" });
+  // Debounce search input before sending to server
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+      setAllInvoices([]);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: invData, isLoading, isError, refetch } = useInvoices({
+    page,
+    status: statusFilter !== "all" ? statusFilter : "all",
+    search: debouncedSearch,
+  });
   const { data: customers = [] } = useInvoiceCustomers();
   const markPaid = useMarkInvoicePaid();
   const cancelInvoice = useCancelInvoice();
@@ -86,16 +101,12 @@ export default function InvoicesPage() {
   // Acumular facturas al cargar más páginas
   useEffect(() => {
     if (!invData?.invoices) return;
-    const enriched = invData.invoices.map((inv) => ({
-      ...inv,
-      customer: customers.find((c) => c.id === inv.customer_id),
-    }));
     if (page === 0) {
-      setAllInvoices(enriched);
+      setAllInvoices(invData.invoices);
     } else {
-      setAllInvoices((prev) => [...prev, ...enriched]);
+      setAllInvoices((prev) => [...prev, ...invData.invoices]);
     }
-  }, [invData?.invoices, customers, page]);
+  }, [invData?.invoices, page]);
 
   // Reset al cambiar filtro de status
   useEffect(() => {
@@ -225,15 +236,6 @@ export default function InvoicesPage() {
     setDetailOpen(true);
   };
 
-  const filtered = allInvoices.filter((inv) => {
-    const matchSearch = !search ||
-      inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      inv.customer?.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      inv.customer?.last_name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || inv.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
   // KPIs
   const totalPending = allInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
   const totalPaid = allInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
@@ -327,7 +329,7 @@ export default function InvoicesPage() {
             <div className="p-4">
               <TableSkeleton rows={5} columns={5} />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : allInvoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mb-4 opacity-50" />
               <p className="font-medium">No hay facturas</p>
@@ -346,7 +348,7 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((inv) => {
+                {allInvoices.map((inv) => {
                   const cfg = statusConfig[inv.status] || statusConfig.pending;
                   const StatusIcon = cfg.icon;
                   return (
