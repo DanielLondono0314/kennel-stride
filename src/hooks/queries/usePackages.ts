@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useAuth } from "@/contexts/AuthContext";
 
 const PAGE_SIZE = 50;
 
@@ -56,30 +55,26 @@ export function usePackages({ page = 0, search = "", status = "all" } = {}) {
   });
 }
 
+/**
+ * Descuento atómico de un crédito vía el RPC `deduct_package_credit`
+ * (SECURITY DEFINER). El RPC aplica el piso en 0 (UPDATE ... WHERE
+ * remaining_credits > 0) y escribe el log de auditoría en la misma
+ * transacción, eliminando el lost-update del read-modify-write en cliente.
+ */
+export async function deductPackageCredit({ packageId, reason }: { packageId: string; reason?: string }) {
+  const { error } = await supabase.rpc("deduct_package_credit" as any, {
+    p_package_id: packageId,
+    p_reason: reason ?? null,
+  });
+  if (error) throw error;
+}
+
 export function useDeductCredit() {
   const queryClient = useQueryClient();
   const { organization } = useOrganization();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ packageId, remaining, reason }: { packageId: string; remaining: number; reason?: string }) => {
-      const { error } = await supabase
-        .from("packages")
-        .update({ remaining_credits: remaining - 1, updated_at: new Date().toISOString() })
-        .eq("id", packageId)
-        .eq("organization_id", organization!.id);
-      if (error) throw error;
-
-      await supabase.from("package_credit_log").insert({
-        package_id: packageId,
-        organization_id: organization!.id,
-        user_id: user?.id ?? null,
-        action: "deduct",
-        credits_before: remaining,
-        credits_after: remaining - 1,
-        reason: reason ?? null,
-      });
-    },
+    mutationFn: deductPackageCredit,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packageKeys(organization?.id).all });
     },
@@ -94,7 +89,7 @@ export function useCreatePackage() {
     mutationFn: async (input: Partial<DbPackage>) => {
       const { data, error } = await supabase
         .from("packages")
-        .insert({ ...input, organization_id: organization!.id, remaining_credits: input.total_credits })
+        .insert({ ...input, organization_id: organization!.id, remaining_credits: input.total_credits } as any)
         .select()
         .single();
       if (error) throw error;

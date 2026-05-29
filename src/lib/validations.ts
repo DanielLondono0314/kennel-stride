@@ -16,6 +16,14 @@ import { differenceInDays } from 'date-fns';
 
 // Balance thresholds for check-in blocking. These are business rules configurable
 // per organization in a future settings feature — for now centralized here.
+//
+// CONVENTION: `customer.balance` follows the accounts-receivable sign used by the
+// DB trigger in 20260529060000_customer_balance_trigger.sql, where the value equals
+// `-(SUM of totals of the customer's unpaid invoices)`. A NEGATIVE balance therefore
+// means the customer OWES money; 0 means nothing is owed. The thresholds below are
+// expressed in that same sign space (more negative = larger debt), so a customer who
+// owes more than $500 (balance < -500) is blocked, and one owing more than $200
+// (balance < -200) triggers a critical — but non-blocking — warning.
 const BALANCE_BLOCK_THRESHOLD = -500;    // blocks check-in entirely
 const BALANCE_CRITICAL_THRESHOLD = -200; // shows critical warning but doesn't block
 

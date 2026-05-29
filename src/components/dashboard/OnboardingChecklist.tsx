@@ -48,7 +48,7 @@ export function OnboardingChecklist() {
         p_org_id: organization!.id,
       });
       if (error) throw error;
-      return data as OnboardingStatus;
+      return data as unknown as OnboardingStatus;
     },
   });
 

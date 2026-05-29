@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -156,11 +176,11 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          ls_customer_id: string | null
           notes: string | null
           organization_id: string | null
           phone: string
           state: string | null
-          stripe_customer_id: string | null
           updated_at: string
           user_id: string | null
           zip_code: string | null
@@ -176,11 +196,11 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          ls_customer_id?: string | null
           notes?: string | null
           organization_id?: string | null
           phone?: string
           state?: string | null
-          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
           zip_code?: string | null
@@ -196,11 +216,11 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          ls_customer_id?: string | null
           notes?: string | null
           organization_id?: string | null
           phone?: string
           state?: string | null
-          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
           zip_code?: string | null
@@ -601,14 +621,14 @@ export type Database = {
           due_date: string
           id: string
           invoice_number: string
+          ls_order_id: string | null
+          ls_payment_id: string | null
           notes: string | null
           organization_id: string | null
           paid_at: string | null
           payment_method: string | null
           reservation_id: string | null
           status: string
-          stripe_invoice_id: string | null
-          stripe_payment_intent_id: string | null
           subtotal: number
           tax: number
           total: number
@@ -621,14 +641,14 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_number?: string
+          ls_order_id?: string | null
+          ls_payment_id?: string | null
           notes?: string | null
           organization_id?: string | null
           paid_at?: string | null
           payment_method?: string | null
           reservation_id?: string | null
           status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -641,14 +661,14 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_number?: string
+          ls_order_id?: string | null
+          ls_payment_id?: string | null
           notes?: string | null
           organization_id?: string | null
           paid_at?: string | null
           payment_method?: string | null
           reservation_id?: string | null
           status?: string
-          stripe_invoice_id?: string | null
-          stripe_payment_intent_id?: string | null
           subtotal?: number
           tax?: number
           total?: number
@@ -948,14 +968,14 @@ export type Database = {
           email: string | null
           id: string
           logo_url: string | null
+          ls_customer_id: string | null
+          ls_subscription_id: string | null
           name: string
           opening_time: string | null
           owner_id: string | null
           phone: string | null
           service_types: Json
           slug: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
           subscription_status: string
           timezone: string | null
           trial_ends_at: string
@@ -969,14 +989,14 @@ export type Database = {
           email?: string | null
           id?: string
           logo_url?: string | null
+          ls_customer_id?: string | null
+          ls_subscription_id?: string | null
           name: string
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
           service_types?: Json
           slug: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_status?: string
           timezone?: string | null
           trial_ends_at?: string
@@ -990,14 +1010,14 @@ export type Database = {
           email?: string | null
           id?: string
           logo_url?: string | null
+          ls_customer_id?: string | null
+          ls_subscription_id?: string | null
           name?: string
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
           service_types?: Json
           slug?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
           subscription_status?: string
           timezone?: string | null
           trial_ends_at?: string
@@ -1005,12 +1025,75 @@ export type Database = {
         }
         Relationships: []
       }
+      package_credit_log: {
+        Row: {
+          action: string
+          created_at: string
+          credits_after: number
+          credits_before: number
+          id: string
+          organization_id: string
+          package_id: string
+          reason: string | null
+          reservation_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          credits_after: number
+          credits_before: number
+          id?: string
+          organization_id: string
+          package_id: string
+          reason?: string | null
+          reservation_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          credits_after?: number
+          credits_before?: number
+          id?: string
+          organization_id?: string
+          package_id?: string
+          reason?: string | null
+          reservation_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_credit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_credit_log_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_credit_log_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           created_at: string
           customer_id: string
           expires_at: string
           id: string
+          ls_order_id: string | null
+          ls_variant_id: string | null
           name: string
           notes: string | null
           organization_id: string | null
@@ -1019,8 +1102,6 @@ export type Database = {
           remaining_credits: number
           service_type: string
           status: string
-          stripe_payment_id: string | null
-          stripe_product_id: string | null
           total_credits: number
           updated_at: string
         }
@@ -1029,6 +1110,8 @@ export type Database = {
           customer_id: string
           expires_at: string
           id?: string
+          ls_order_id?: string | null
+          ls_variant_id?: string | null
           name: string
           notes?: string | null
           organization_id?: string | null
@@ -1037,8 +1120,6 @@ export type Database = {
           remaining_credits?: number
           service_type?: string
           status?: string
-          stripe_payment_id?: string | null
-          stripe_product_id?: string | null
           total_credits?: number
           updated_at?: string
         }
@@ -1047,6 +1128,8 @@ export type Database = {
           customer_id?: string
           expires_at?: string
           id?: string
+          ls_order_id?: string | null
+          ls_variant_id?: string | null
           name?: string
           notes?: string | null
           organization_id?: string | null
@@ -1055,8 +1138,6 @@ export type Database = {
           remaining_credits?: number
           service_type?: string
           status?: string
-          stripe_payment_id?: string | null
-          stripe_product_id?: string | null
           total_credits?: number
           updated_at?: string
         }
@@ -1076,6 +1157,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processed_webhooks: {
+        Row: {
+          event_id: string
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          processed_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1271,6 +1367,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_units"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1424,13 +1527,41 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
       check_expiring_packages: { Args: never; Returns: undefined }
+      check_expiring_packages_all_orgs: { Args: never; Returns: undefined }
       check_overdue_invoices: { Args: never; Returns: undefined }
+      check_overdue_invoices_all_orgs: { Args: never; Returns: undefined }
       create_organization: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
       }
+      create_reservation: {
+        Args: {
+          p_customer_id: string
+          p_dog_id: string
+          p_end: string
+          p_notes?: string
+          p_service_name: string
+          p_service_type: string
+          p_staff_id?: string
+          p_start: string
+          p_total_price: number
+        }
+        Returns: string
+      }
+      deduct_package_credit: {
+        Args: { p_package_id: string; p_reason?: string }
+        Returns: number
+      }
+      get_active_org_ids: { Args: never; Returns: string[] }
+      get_admin_org_ids: { Args: never; Returns: string[] }
+      get_finance_writer_org_ids: { Args: never; Returns: string[] }
+      get_inactive_customer_ids: {
+        Args: { p_days?: number; p_organization_id: string }
+        Returns: string[]
+      }
       get_invitation_by_token: { Args: { p_token: string }; Returns: Json }
       get_my_first_org_slug: { Args: never; Returns: string }
+      get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
       get_user_org_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
@@ -1438,6 +1569,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recompute_customer_balance: {
+        Args: { p_customer_id: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -1567,9 +1702,13 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "front_desk", "trainer", "manager"],
     },
   },
 } as const
+
