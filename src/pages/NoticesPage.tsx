@@ -43,8 +43,9 @@ export default function NoticesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await supabase.rpc("check_expiring_packages");
-    await supabase.rpc("check_overdue_invoices");
+    // M1: los avisos se generan server-side (pg_cron / Edge programada que llama
+    // a check_*_all_orgs como service_role). El cliente ya NO dispara los escaneos
+    // check_* (eran SECURITY DEFINER con escritura, spameables); solo refresca la vista.
     await queryClient.invalidateQueries({ queryKey: ["notices", organization?.id] });
     setRefreshing(false);
     toast.success("Avisos actualizados");
