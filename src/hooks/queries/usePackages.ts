@@ -89,7 +89,7 @@ export function useCreatePackage() {
     mutationFn: async (input: Partial<DbPackage>) => {
       const { data, error } = await supabase
         .from("packages")
-        .insert({ ...input, organization_id: organization!.id, remaining_credits: input.total_credits })
+        .insert({ ...input, organization_id: organization!.id, remaining_credits: input.total_credits } as any)
         .select()
         .single();
       if (error) throw error;

@@ -64,7 +64,7 @@ export default function RequestsPage() {
   const { organization } = useOrganization();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useUrlState<RequestTab>("tab", "pending");
-  const [searchQuery, setSearchQuery] = useUrlState("q", "");
+  const [searchQuery, setSearchQuery] = useUrlState<string>("q", "");
   const [serviceFilter, setServiceFilter] = useUrlState("service", "all");
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);

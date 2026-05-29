@@ -35,7 +35,7 @@ export function useCreateCampaign() {
     mutationFn: async (input: Record<string, unknown>) => {
       const { data, error } = await supabase
         .from("campaigns")
-        .insert({ ...input, organization_id: organization!.id, status: "draft" })
+        .insert({ ...input, organization_id: organization!.id, status: "draft" } as any)
         .select()
         .single();
       if (error) throw error;

@@ -42,7 +42,7 @@ export function useCreateReportCard() {
     mutationFn: async (input: Record<string, unknown>) => {
       const { data, error } = await supabase
         .from("report_cards")
-        .insert({ ...input, organization_id: organization!.id })
+        .insert({ ...input, organization_id: organization!.id } as any)
         .select()
         .single();
       if (error) throw error;

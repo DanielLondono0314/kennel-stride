@@ -33,7 +33,7 @@ export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useUrlState<OpsTab>("tab", "expected");
-  const [searchQuery, setSearchQuery] = useUrlState("q", "");
+  const [searchQuery, setSearchQuery] = useUrlState<string>("q", "");
   const [serviceFilter, setServiceFilter] = useUrlState<ServiceType | "all">("service", "all");
   const [flagFilter, setFlagFilter] = useUrlState<FlagType | "all">("flag", "all");
 
