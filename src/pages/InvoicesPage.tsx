@@ -24,6 +24,7 @@ import {
   FileText, Plus, Search, Loader2, MoreHorizontal, DollarSign,
   Clock, AlertTriangle, CheckCircle2, CreditCard, Trash2,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -359,7 +360,9 @@ export default function InvoicesPage() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="p-4">
+              <TableSkeleton rows={5} columns={5} />
+            </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mb-4 opacity-50" />

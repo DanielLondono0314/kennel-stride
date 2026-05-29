@@ -21,6 +21,7 @@ import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload } 
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
+import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
 
 export type { DbCustomer };
 
@@ -133,8 +134,8 @@ export default function CustomersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  Cargando...
+                <TableCell colSpan={5} className="py-4 px-4">
+                  <CardGridSkeleton count={6} />
                 </TableCell>
               </TableRow>
             ) : customers.length === 0 ? (
@@ -238,7 +239,7 @@ export default function CustomersPage() {
       {/* Mobile card list */}
       <div className="md:hidden space-y-3">
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Cargando...</p>
+          <CardGridSkeleton count={6} />
         ) : customers.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron clientes</p>
         ) : customers.map((customer) => {

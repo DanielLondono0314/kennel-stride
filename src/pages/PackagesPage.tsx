@@ -24,6 +24,7 @@ import {
   Package, Plus, Search, CreditCard, Calendar, User, Loader2, MoreHorizontal,
   TrendingDown, AlertTriangle, CheckCircle2, XCircle,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -274,8 +275,8 @@ export default function PackagesPage() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="p-4">
+              <TableSkeleton rows={5} columns={5} />
             </div>
           ) : filteredPackages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
