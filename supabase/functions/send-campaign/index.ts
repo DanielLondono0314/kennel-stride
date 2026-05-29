@@ -149,6 +149,8 @@ serve(async (req: Request) => {
     let failed = 0;
 
     if (campaign.channel === "email" && RESEND_API_KEY) {
+      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
+      const fromName = Deno.env.get("RESEND_FROM_NAME") ?? "KennelOps";
       for (const customer of recipients) {
         const dogName = customer.dogs?.[0]?.name ?? "tu mascota";
         const personalizedMessage = campaign.message_template
@@ -163,7 +165,7 @@ serve(async (req: Request) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "KennelOps <noreply@kennelops.com>",
+            from: `${fromName} <${fromEmail}>`,
             to: [customer.email],
             subject: campaign.name,
             text: personalizedMessage,
