@@ -33,12 +33,13 @@ export default defineConfig(() => ({
           if (id.includes("@tanstack/react-query-devtools")) {
             return "vendor-devtools";
           }
-          // react core + router — pequeño, pero separarlo evita re-descarga
-          if (
-            id.includes("react-dom") ||
-            id.includes("react-router") ||
-            id.includes("scheduler")
-          ) {
+          // React core + react-dom + scheduler + router DEBEN ir en el MISMO chunk.
+          // Bug previo: `react` (core) no casaba ninguna condición y caía a "vendor",
+          // mientras `react-dom` iba a "vendor-react" → react-dom leía
+          // React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED de undefined.
+          // El regex captura el paquete `react` core (sin atrapar react-query,
+          // react-hook-form, etc., que deben quedar en "vendor").
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
             return "vendor-react";
           }
           // todo lo demás de node_modules va a vendor genérico
