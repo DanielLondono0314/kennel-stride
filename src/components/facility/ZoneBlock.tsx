@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { X, GripVertical, Pencil, Check } from "lucide-react";
+import { X, GripVertical, Pencil, Check, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KennelGrid } from "./KennelGrid";
@@ -28,6 +28,7 @@ interface ZoneData {
 
 interface ZoneBlockProps {
   zone: ZoneData;
+  zoom?: number;
   units: FacilityUnit[];
   onMove: (id: string, x: number, y: number) => void;
   onResize: (id: string, w: number, h: number) => void;
@@ -35,18 +36,29 @@ interface ZoneBlockProps {
   onRename: (id: string, name: string) => void;
   onUnitClick: (unit: any) => void;
   onAddUnit: (zoneId: string) => void;
+  onSetKennelCount: (zoneId: string, count: number) => void;
 }
 
-export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, onUnitClick, onAddUnit }: ZoneBlockProps) {
+export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, onRename, onUnitClick, onAddUnit, onSetKennelCount }: ZoneBlockProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(zone.name);
+  const [countInput, setCountInput] = useState(String(units.length));
   const dragRef = useRef({ startX: 0, startY: 0, origX: 0, origY: 0 });
   const resizeRef = useRef({ startX: 0, startY: 0, origW: 0, origH: 0 });
 
   const ztConfig = ZONE_TYPES.find((z) => z.type === zone.zone_type);
   const Icon = ztConfig?.icon;
+
+  // Keep the count input in sync when units change externally
+  useEffect(() => { setCountInput(String(units.length)); }, [units.length]);
+
+  const commitCount = () => {
+    const n = parseInt(countInput, 10);
+    if (Number.isNaN(n) || n === units.length) { setCountInput(String(units.length)); return; }
+    onSetKennelCount(zone.id, n);
+  };
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     if (isEditing) return;
@@ -56,8 +68,8 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
     dragRef.current = { startX: e.clientX, startY: e.clientY, origX: zone.x, origY: zone.y };
 
     const handleMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - dragRef.current.startX;
-      const dy = ev.clientY - dragRef.current.startY;
+      const dx = (ev.clientX - dragRef.current.startX) / zoom;
+      const dy = (ev.clientY - dragRef.current.startY) / zoom;
       onMove(zone.id, Math.max(0, dragRef.current.origX + dx), Math.max(0, dragRef.current.origY + dy));
     };
     const handleUp = () => {
@@ -67,7 +79,7 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
     };
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-  }, [zone.id, zone.x, zone.y, onMove, isEditing]);
+  }, [zone.id, zone.x, zone.y, onMove, isEditing, zoom]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,8 +88,8 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
     resizeRef.current = { startX: e.clientX, startY: e.clientY, origW: zone.width, origH: zone.height };
 
     const handleMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - resizeRef.current.startX;
-      const dy = ev.clientY - resizeRef.current.startY;
+      const dx = (ev.clientX - resizeRef.current.startX) / zoom;
+      const dy = (ev.clientY - resizeRef.current.startY) / zoom;
       onResize(zone.id, Math.max(150, resizeRef.current.origW + dx), Math.max(100, resizeRef.current.origH + dy));
     };
     const handleUp = () => {
@@ -87,7 +99,7 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
     };
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-  }, [zone.id, zone.width, zone.height, onResize]);
+  }, [zone.id, zone.width, zone.height, onResize, zoom]);
 
   const handleSaveName = () => {
     onRename(zone.id, editName);
@@ -157,12 +169,35 @@ export function ZoneBlock({ zone, units, onMove, onResize, onDelete, onRename, o
         {zone.zone_type === "kennels" ? (
           <div>
             <KennelGrid units={units} onUnitClick={onUnitClick} />
-            <button
-              onClick={(e) => { e.stopPropagation(); onAddUnit(zone.id); }}
-              className="mt-1 w-full text-[9px] text-muted-foreground hover:text-foreground border border-dashed border-muted-foreground/30 hover:border-muted-foreground/60 rounded px-1 py-0.5 transition-colors"
-            >
-              + Agregar perrera
-            </button>
+            <div className="mt-1 flex items-center justify-center gap-1 border-t border-muted-foreground/15 pt-1">
+              <span className="text-[9px] text-muted-foreground mr-0.5">Perreras</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onSetKennelCount(zone.id, units.length - 1); }}
+                className="flex items-center justify-center w-4 h-4 rounded border border-muted-foreground/30 text-muted-foreground hover:bg-muted-foreground/10 disabled:opacity-40"
+                disabled={units.length === 0}
+                aria-label="Quitar perrera"
+              >
+                <Minus className="h-2.5 w-2.5" />
+              </button>
+              <input
+                type="number"
+                min={0}
+                value={countInput}
+                onChange={(e) => setCountInput(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onBlur={commitCount}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}
+                className="w-9 h-4 text-center text-[9px] tabular-nums rounded border border-muted-foreground/30 bg-background px-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); onSetKennelCount(zone.id, units.length + 1); }}
+                className="flex items-center justify-center w-4 h-4 rounded border border-muted-foreground/30 text-muted-foreground hover:bg-muted-foreground/10"
+                aria-label="Agregar perrera"
+              >
+                <Plus className="h-2.5 w-2.5" />
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">

@@ -6,7 +6,8 @@ import { FacilityToolbar, ZoneTypeConfig, ZONE_TYPES } from "@/components/facili
 import { ZoneBlock } from "@/components/facility/ZoneBlock";
 import { FacilitySummary } from "@/components/facility/FacilitySummary";
 import { KennelAssignmentModal } from "@/components/facility/KennelAssignmentModal";
-import { Map, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Map, Loader2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 
 interface FacilityZone {
   id: string;
@@ -44,7 +45,12 @@ export default function FacilityPage() {
   const [selectedUnit, setSelectedUnit] = useState<FacilityUnit | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [dogs, setDogs] = useState<Array<{ id: string; name: string }>>([]);
+  const [zoom, setZoom] = useState(1);
   const { toast } = useToast();
+
+  const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)));
+  const zoomReset = () => setZoom(1);
 
   // Load data
   const fetchData = useCallback(async () => {
@@ -189,6 +195,63 @@ export default function FacilityPage() {
     toast({ title: "Perrera agregada", description: nextName });
   };
 
+  // Set the exact number of kennels in a zone (adds or removes available ones)
+  const handleSetKennelCount = async (zoneId: string, target: number) => {
+    if (!organization) return;
+    const zoneUnits = units
+      .filter((u) => u.zone_id === zoneId)
+      .sort((a, b) => a.position_index - b.position_index);
+    const current = zoneUnits.length;
+    const clamped = Math.max(0, Math.min(100, Math.floor(target)));
+    if (clamped === current) return;
+
+    if (clamped > current) {
+      // Add units
+      const maxIndex = zoneUnits.reduce((m, u) => Math.max(m, u.position_index), -1);
+      const inserts = Array.from({ length: clamped - current }, (_, i) => {
+        const idx = maxIndex + 1 + i;
+        return {
+          zone_id: zoneId,
+          name: `Perrera ${String(idx + 1).padStart(2, "0")}`,
+          unit_type: "kennel",
+          position_index: idx,
+          status: "available",
+          organization_id: organization!.id,
+        };
+      });
+      const { error } = await supabase.from("facility_units").insert(inserts);
+      if (error) { toast({ title: "Error al agregar perreras", description: error.message, variant: "destructive" }); return; }
+    } else {
+      // Remove units — only available ones, highest position_index first
+      const removable = zoneUnits
+        .filter((u) => u.status === "available")
+        .sort((a, b) => b.position_index - a.position_index);
+      const toRemove = current - clamped;
+      if (removable.length < toRemove) {
+        toast({
+          title: "No se puede reducir",
+          description: `Hay perreras ocupadas o en mantenimiento. Libéralas primero. Mínimo posible: ${current - removable.length}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const ids = removable.slice(0, toRemove).map((u) => u.id);
+      const { error } = await supabase.from("facility_units").delete().in("id", ids);
+      if (error) { toast({ title: "Error al quitar perreras", description: error.message, variant: "destructive" }); return; }
+    }
+    fetchData();
+    toast({ title: "Perreras actualizadas", description: `Ahora hay ${clamped}` });
+  };
+
+  // Delete a single kennel unit
+  const handleDeleteUnit = async (unitId: string) => {
+    const { error } = await supabase.from("facility_units").delete().eq("id", unitId);
+    if (error) { toast({ title: "Error al eliminar perrera", description: error.message, variant: "destructive" }); return; }
+    setModalOpen(false);
+    fetchData();
+    toast({ title: "Perrera eliminada" });
+  };
+
   // Set maintenance
   const handleSetMaintenance = async (unitId: string) => {
     const { error } = await supabase.from("facility_units").update({
@@ -214,6 +277,26 @@ export default function FacilityPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Mapa de Instalaciones</h1>
           <p className="text-xs text-muted-foreground">Diseña y gestiona las zonas de tu centro canino</p>
+        </div>
+
+        {/* Zoom controls */}
+        <div className="ml-auto flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={zoomOut} title="Alejar">
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <button
+            onClick={zoomReset}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground w-12 text-center tabular-nums"
+            title="Restablecer zoom"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={zoomIn} title="Acercar">
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={zoomReset} title="Ajustar">
+            <Maximize className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -248,11 +331,20 @@ export default function FacilityPage() {
             </div>
           )}
 
-          <div className="relative" style={{ minWidth: 1200, minHeight: 800 }}>
+          <div
+            className="relative"
+            style={{
+              minWidth: 1200,
+              minHeight: 800,
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+            }}
+          >
             {zones.map((zone) => (
               <ZoneBlock
                 key={zone.id}
                 zone={zone}
+                zoom={zoom}
                 units={units.filter((u) => u.zone_id === zone.id)}
                 onMove={handleMoveZone}
                 onResize={handleResizeZone}
@@ -260,6 +352,7 @@ export default function FacilityPage() {
                 onRename={handleRenameZone}
                 onUnitClick={handleUnitClick}
                 onAddUnit={handleAddUnit}
+                onSetKennelCount={handleSetKennelCount}
               />
             ))}
           </div>
@@ -278,6 +371,7 @@ export default function FacilityPage() {
         onAssign={handleAssign}
         onRelease={handleRelease}
         onSetMaintenance={handleSetMaintenance}
+        onDeleteUnit={handleDeleteUnit}
       />
     </div>
   );
