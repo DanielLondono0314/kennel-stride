@@ -37,7 +37,7 @@ export function useMyDay() {
         .order("start_date", { ascending: true });
       if (error) throw error;
 
-      return (res ?? []).map((r: any): FeedItem => ({
+      const reservationItems: FeedItem[] = (res ?? []).map((r: any): FeedItem => ({
         kind: "reservation",
         id: r.id,
         title: r.service_name,
@@ -52,6 +52,35 @@ export function useMyDay() {
           medication: !!r.dogs?.on_medication,
         },
       }));
+
+      const { data: tasks, error: tErr } = await supabase
+        .from("tasks")
+        .select("id, title, type, status, due_at, dog_id, dogs(name, is_aggressive, has_allergies, on_medication)")
+        .eq("organization_id", organization!.id)
+        .eq("assignee_staff_id", staff!.id)
+        .gte("due_at", start.toISOString())
+        .lte("due_at", end.toISOString());
+      if (tErr) throw tErr;
+
+      const taskItems: FeedItem[] = (tasks ?? []).map((t: any): FeedItem => ({
+        kind: "task",
+        id: t.id,
+        title: t.title,
+        dogName: t.dogs?.name ?? null,
+        dogId: t.dog_id,
+        time: t.due_at,
+        bucket: t.status === "in_progress" ? "in_progress" : t.status === "pending" ? "pending" : "done",
+        status: t.status,
+        flags: {
+          aggressive: !!t.dogs?.is_aggressive,
+          allergies: !!t.dogs?.has_allergies,
+          medication: !!t.dogs?.on_medication,
+        },
+      }));
+
+      return [...reservationItems, ...taskItems].sort((a, b) =>
+        (a.time ?? "9").localeCompare(b.time ?? "9")
+      );
     },
   });
 }
