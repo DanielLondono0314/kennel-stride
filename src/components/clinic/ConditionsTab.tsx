@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
+import { ListSkeleton } from "@/components/shared/TableSkeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -96,7 +97,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground text-sm">Cargando...</p>
+        <ListSkeleton rows={3} />
       ) : records.length === 0 ? (
         <Card><CardContent className="py-12 text-center"><Activity className="h-10 w-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No hay condiciones médicas registradas.</p></CardContent></Card>
       ) : (
@@ -116,8 +117,8 @@ export function ConditionsTab({ dogId, dogName }: Props) {
                         <CheckCircle className="h-4 w-4 mr-1" /> Resolver
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Editar registro"><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Eliminar registro"><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-1">

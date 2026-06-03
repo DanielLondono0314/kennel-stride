@@ -78,13 +78,13 @@ export function CalendarHeader({
       <div className="flex items-center gap-3">
         {/* Navigation */}
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" onClick={handlePrevious}>
+          <Button variant="outline" size="icon" onClick={handlePrevious} aria-label="Periodo anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={handleToday}>
             Hoy
           </Button>
-          <Button variant="outline" size="icon" onClick={handleNext}>
+          <Button variant="outline" size="icon" onClick={handleNext} aria-label="Periodo siguiente">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

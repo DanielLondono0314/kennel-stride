@@ -7,6 +7,7 @@ import { Reservation, ReservationStatus, ServiceType, FlagSeverity } from "@/typ
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { FlagIndicators } from "@/components/shared/FlagIndicators";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -251,12 +252,7 @@ export default function RequestsPage() {
   };
 
   const renderTable = (list: Reservation[], isPending: boolean) => {
-    if (loading) return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        Cargando solicitudes...
-      </div>
-    );
+    if (loading) return <TableSkeleton rows={5} columns={5} />;
     if (list.length === 0) return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
         <Inbox className="h-10 w-10" />

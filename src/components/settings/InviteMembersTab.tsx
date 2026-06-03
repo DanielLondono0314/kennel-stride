@@ -200,7 +200,7 @@ export function InviteMembersTab() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {!accepted && !expired && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyLink(inv.token)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyLink(inv.token)} aria-label="Copiar enlace de invitación">
                           <Copy className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -209,6 +209,7 @@ export function InviteMembersTab() {
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => handleDelete(inv.id)}
+                        aria-label="Cancelar invitación"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

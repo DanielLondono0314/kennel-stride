@@ -377,7 +377,7 @@ export default function InvoicesPage() {
                         {(inv.status === "pending" || inv.status === "overdue") && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Acciones de factura">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -470,7 +470,7 @@ export default function InvoicesPage() {
                     {idx === 0 && <Label className="text-xs">Precio</Label>}
                     <Input type="number" min={0} step={0.01} value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", parseFloat(e.target.value) || 0)} />
                   </div>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeItem(idx)} disabled={form.items.length <= 1} aria-label="Eliminar línea">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

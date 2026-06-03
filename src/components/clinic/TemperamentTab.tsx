@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -98,7 +99,19 @@ export function TemperamentTab({ dogId, dogName }: Props) {
     setSaving(false);
   };
 
-  if (loading) return <p className="text-muted-foreground text-sm mt-4">Cargando...</p>;
+  if (loading) return (
+    <div className="mt-4 space-y-4">
+      <Skeleton className="h-6 w-48" />
+      <div className="rounded-xl border bg-card p-6 space-y-6">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-2 w-full rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="mt-4 space-y-6">

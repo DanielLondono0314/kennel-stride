@@ -85,6 +85,7 @@ export function OnboardingChecklist() {
             size="icon"
             className="h-7 w-7 text-muted-foreground shrink-0 ml-3"
             onClick={handleDismiss}
+            aria-label="Descartar checklist de bienvenida"
             title="Ocultar checklist"
           >
             <X className="h-4 w-4" />

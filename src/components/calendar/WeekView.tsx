@@ -174,7 +174,7 @@ export function WeekView({
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "absolute left-1 right-1 rounded-md border-l-4 px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden",
+                            "absolute left-1 right-1 rounded-md border px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden",
                             colorClass
                           )}
                           style={{ top: `${top}px`, height: `${height}px` }}

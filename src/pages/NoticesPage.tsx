@@ -263,11 +263,11 @@ export default function NoticesPage() {
                           {formatDistanceToNow(notice.createdAt, { addSuffix: true, locale: es })}
                         </span>
                         {!notice.isRead && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => markRead(notice.id)} title="Marcar como leído">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => markRead(notice.id)} title="Marcar como leído" aria-label="Marcar aviso como leído">
                             <CheckCheck className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dismiss(notice.id)} title="Eliminar">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dismiss(notice.id)} title="Eliminar" aria-label="Eliminar aviso">
                           <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>

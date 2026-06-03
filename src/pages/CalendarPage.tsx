@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { CalendarHeader, CalendarView } from "@/components/calendar/CalendarHeader";
 import { WeekView } from "@/components/calendar/WeekView";
@@ -83,8 +84,9 @@ export default function CalendarPage() {
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-24 text-muted-foreground">
-          Cargando calendario...
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-[520px] w-full rounded-lg" />
         </div>
       ) : view === "week" ? (
         <WeekView

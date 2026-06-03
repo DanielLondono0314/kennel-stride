@@ -8,6 +8,7 @@ import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton, ListSkeleton } from "@/components/shared/TableSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -179,7 +180,7 @@ export default function DogsPage() {
             {isError ? (
               <TableRow><TableCell colSpan={6} className="py-4 px-4"><QueryErrorState onRetry={() => refetch()} /></TableCell></TableRow>
             ) : isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
             ) : dogs.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
             ) : dogs.map((dog) => (
@@ -219,7 +220,7 @@ export default function DogsPage() {
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Acciones del perro"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
@@ -240,7 +241,7 @@ export default function DogsPage() {
         {isError ? (
           <QueryErrorState onRetry={() => refetch()} />
         ) : isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Cargando...</p>
+          <ListSkeleton rows={4} />
         ) : dogs.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No se encontraron perros</p>
         ) : dogs.map((dog) => (
@@ -272,7 +273,7 @@ export default function DogsPage() {
                 <div onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Acciones del perro"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>

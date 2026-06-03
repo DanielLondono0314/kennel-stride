@@ -121,7 +121,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                   onClick={() => toggleRow(reservation.id)}
                 >
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={isExpanded ? "Contraer fila" : "Expandir fila"}>
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
@@ -197,7 +197,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Acciones de reserva">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

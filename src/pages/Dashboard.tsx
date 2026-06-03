@@ -16,6 +16,7 @@ import { QuickFilters } from "@/components/dashboard/QuickFilters";
 import { CheckInModal } from "@/components/checkin/CheckInModal";
 import { CheckOutModal } from "@/components/checkin/CheckOutModal";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -272,9 +273,7 @@ export default function Dashboard() {
             onClearFilters={() => { setSearchQuery(""); setServiceFilter("all"); setFlagFilter("all"); }}
           />
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              Cargando reservas...
-            </div>
+            <TableSkeleton rows={6} columns={5} />
           ) : (
             <OpsTable
               reservations={filteredReservations}

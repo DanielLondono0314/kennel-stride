@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Stethoscope, Syringe, Bug, AlertTriangle,
   Brain, FileText, ChevronRight, ArrowLeft,
@@ -81,7 +82,17 @@ export default function ClinicPage() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="text-sm text-muted-foreground p-4">Cargando...</p>
+            <div className="p-4 space-y-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : filteredDogs.length === 0 ? (
             <p className="text-sm text-muted-foreground p-4">No hay perros registrados.</p>
           ) : filteredDogs.map((dog) => (

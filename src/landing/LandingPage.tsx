@@ -7,29 +7,31 @@ import {
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DESIGN SYSTEM
-   Primary:  #1D4ED8  (trust blue)
-   Accent:   #F97316  (warm orange — dog-friendly energy)
-   Green:    #059669  (health / success)
-   Navy bg:  #0D2137  (footer / CTA sections)
-   Body bg:  #F8FAFF  (barely-blue off-white)
+   DESIGN SYSTEM — alineado con la app (PRODUCT.md / DESIGN.md): slate + amber
+   Primary:   #1b2b4d  (slate — estructura, igual que --primary de la app)
+   Accent:    #f59e0b  (amber — acción, igual que --accent)
+   Accent tx: #b45309  (amber profundo — texto-acento sobre claro, AA-safe)
+   Success:   #16a34a  (verde — salud / éxito, igual que --success)
+   Navy bg:   #0f172a  (footer / secciones oscuras, igual que sidebar de la app)
+   Body bg:   #f8fafc  (off-white frío, igual que --background)
 ───────────────────────────────────────────────────────────────────────────── */
 const c = {
-  navy:        '#0D2137',
-  navyMid:     '#1A3A5C',
-  blue:        '#1D4ED8',
-  blueBright:  '#2563EB',
-  blueLight:   '#EFF6FF',
-  orange:      '#F97316',
-  orangeLight: '#FFF4ED',
-  green:       '#059669',
-  greenLight:  '#F0FDF4',
-  text:        '#0F172A',
+  navy:        '#0f172a',   // app sidebar night (secciones oscuras)
+  navyMid:     '#1b2b4d',   // app --primary (slate)
+  blue:        '#1b2b4d',   // color estructural de marca = app --primary
+  blueBright:  '#26406e',   // slate más claro (hover)
+  blueLight:   '#eef2f8',   // superficie slate-tinted
+  orange:      '#f59e0b',   // app --accent (amber)
+  orangeLight: '#fef6e7',   // superficie amber-tinted
+  accentDeep:  '#b45309',   // amber profundo para TEXTO-acento sobre claro (AA)
+  green:       '#16a34a',   // app --success
+  greenLight:  '#f0fdf4',
+  text:        '#0f172a',   // app --foreground
   textMid:     '#334155',
-  muted:       '#64748B',
-  border:      '#E2E8F0',
-  bg:          '#F8FAFF',
-  white:       '#FFFFFF',
+  muted:       '#6b7280',   // app --muted-foreground
+  border:      '#e5e7eb',   // app --border
+  bg:          '#f8fafc',   // app --background
+  white:       '#ffffff',
 };
 
 /* ─── Data ─────────────────────────────────────────────────────────────────── */
@@ -98,8 +100,8 @@ const TESTIMONIALS = [
     location: 'Madrid, España',
     quote: 'Pasamos de gestionar 3 hojas de cálculo y un registro en papel a controlarlo todo desde una pantalla. Las reservas subieron un 40% desde que dejamos de hacer doble reserva en los boxes.',
     initials: 'SK',
-    aBg: '#DBEAFE',
-    aText: '#1E40AF',
+    aBg: '#e2e8f0',
+    aText: '#1b2b4d',
   },
   {
     name: 'Marcos Delgado',
@@ -107,8 +109,8 @@ const TESTIMONIALS = [
     location: 'Barcelona, España',
     quote: 'Solo el planificador de clases ya vale la pena. Los dueños reservan online, veo el listado completo con el historial de cada perro y la facturación corre sola al terminar.',
     initials: 'MD',
-    aBg: '#FED7AA',
-    aText: '#9A3412',
+    aBg: '#fde9c8',
+    aText: '#b45309',
   },
   {
     name: 'Jennifer Tran',
@@ -512,18 +514,18 @@ function NavBar() {
             className="text-sm font-semibold no-underline px-5 py-2.5 rounded-lg cursor-pointer"
             style={{
               backgroundColor: c.blue, color: '#fff',
-              boxShadow: '0 4px 12px rgba(29,78,216,0.28)',
+              boxShadow: '0 4px 12px rgba(27,43,77,0.28)',
               transition: 'background-color 0.2s, transform 0.15s, box-shadow 0.15s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1E40AF';
+              e.currentTarget.style.backgroundColor = '#26406e';
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(29,78,216,0.35)';
+              e.currentTarget.style.boxShadow = '0 8px 20px rgba(27,43,77,0.35)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = c.blue;
               e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(29,78,216,0.28)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(27,43,77,0.28)';
             }}
           >
             Empezar gratis
@@ -601,7 +603,7 @@ function Hero() {
         style={{
           top: -100, right: -100, width: 600, height: 600,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(29,78,216,0.09) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(27,43,77,0.09) 0%, transparent 65%)',
         }}
       />
 
@@ -638,7 +640,7 @@ function Hero() {
                 }}
               >
                 Gestiona tu centro canino<br />
-                <span style={{ color: c.blue }}>como lo tenías planeado</span>
+                <span style={{ color: c.accentDeep }}>como lo tenías planeado</span>
               </h1>
             </Reveal>
 
@@ -661,18 +663,18 @@ function Hero() {
                   style={{
                     backgroundColor: c.blue, color: '#fff',
                     padding: '13px 26px', fontSize: 15,
-                    boxShadow: '0 4px 16px rgba(29,78,216,0.35)',
+                    boxShadow: '0 4px 16px rgba(27,43,77,0.35)',
                     transition: 'background-color 0.2s, transform 0.15s, box-shadow 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1E40AF';
+                    e.currentTarget.style.backgroundColor = '#26406e';
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(29,78,216,0.42)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(27,43,77,0.42)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = c.blue;
                     e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(29,78,216,0.35)';
+                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(27,43,77,0.35)';
                   }}
                 >
                   Empezar gratis
@@ -849,7 +851,7 @@ function HowItWorks() {
         <Reveal className="text-center mb-16">
           <p
             style={{
-              fontSize: 12, fontWeight: 700, color: c.orange,
+              fontSize: 12, fontWeight: 700, color: c.accentDeep,
               textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
             }}
           >
@@ -884,7 +886,7 @@ function HowItWorks() {
                 style={{
                   width: 56, height: 56, borderRadius: '50%',
                   backgroundColor: c.blue,
-                  boxShadow: '0 0 0 8px rgba(29,78,216,0.1)',
+                  boxShadow: '0 0 0 8px rgba(27,43,77,0.1)',
                   position: 'relative',
                 }}
               >
@@ -1288,20 +1290,20 @@ function CTABanner() {
               to="/register"
               className="inline-flex items-center gap-2 no-underline font-semibold rounded-xl cursor-pointer"
               style={{
-                backgroundColor: c.orange, color: '#fff',
+                backgroundColor: c.orange, color: '#41200a',
                 padding: '14px 28px', fontSize: 15,
-                boxShadow: '0 4px 18px rgba(249,115,22,0.38)',
+                boxShadow: '0 4px 18px rgba(245,158,11,0.38)',
                 transition: 'background-color 0.2s, transform 0.15s, box-shadow 0.15s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#EA6C0A';
+                e.currentTarget.style.backgroundColor = '#d97706';
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 28px rgba(249,115,22,0.48)';
+                e.currentTarget.style.boxShadow = '0 8px 28px rgba(245,158,11,0.48)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = c.orange;
                 e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = '0 4px 18px rgba(249,115,22,0.38)';
+                e.currentTarget.style.boxShadow = '0 4px 18px rgba(245,158,11,0.38)';
               }}
             >
               Start free trial

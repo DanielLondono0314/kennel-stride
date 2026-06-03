@@ -76,6 +76,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
           size="icon"
           className="md:hidden shrink-0 text-muted-foreground"
           onClick={onMenuToggle}
+          aria-label="Abrir menú de navegación"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -99,6 +100,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
             size="icon"
             className="relative text-muted-foreground"
             onClick={() => orgNavigate("/notices")}
+            aria-label="Ver avisos"
           >
             <Bell className="h-5 w-5" />
             {noticeCount > 0 && (

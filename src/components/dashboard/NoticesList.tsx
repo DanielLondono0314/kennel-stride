@@ -92,6 +92,7 @@ export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: Notice
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-foreground"
                         onClick={() => onMarkRead(notice.id)}
+                        aria-label="Marcar como leído"
                         title="Marcar como leído"
                       >
                         <CheckCheck className="h-3.5 w-3.5" />
@@ -103,6 +104,7 @@ export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: Notice
                         size="icon"
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
                         onClick={() => onDismiss(notice.id)}
+                        aria-label="Descartar aviso"
                         title="Eliminar aviso"
                       >
                         <X className="h-3.5 w-3.5" />
