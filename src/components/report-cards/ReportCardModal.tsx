@@ -123,6 +123,8 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
       .select("id, first_name, last_name")
       .eq("is_active", true)
       .eq("organization_id", organization!.id)
+      // Solo entrenadores o roles que gestionan report cards (admin/manager).
+      .or("specialty.eq.trainer,role.in.(admin,manager)")
       .order("first_name");
     if (data) setTrainers(data);
   }

@@ -1401,6 +1401,7 @@ export type Database = {
           phone: string | null
           profile_id: string | null
           role: Database["public"]["Enums"]["app_role"]
+          specialty: string | null
           updated_at: string
         }
         Insert: {
@@ -1414,6 +1415,7 @@ export type Database = {
           phone?: string | null
           profile_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          specialty?: string | null
           updated_at?: string
         }
         Update: {
@@ -1427,6 +1429,7 @@ export type Database = {
           phone?: string | null
           profile_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          specialty?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1442,6 +1445,105 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_staff_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          dog_id: string | null
+          due_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          photos: string[] | null
+          priority: string
+          report_data: Json | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          assignee_staff_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          dog_id?: string | null
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          photos?: string[] | null
+          priority?: string
+          report_data?: Json | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          assignee_staff_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          dog_id?: string | null
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          photos?: string[] | null
+          priority?: string
+          report_data?: Json | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_staff_id_fkey"
+            columns: ["assignee_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "facility_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -1554,6 +1656,7 @@ export type Database = {
       }
       get_active_org_ids: { Args: never; Returns: string[] }
       get_admin_org_ids: { Args: never; Returns: string[] }
+      get_clinical_writer_org_ids: { Args: never; Returns: string[] }
       get_finance_writer_org_ids: { Args: never; Returns: string[] }
       get_inactive_customer_ids: {
         Args: { p_days?: number; p_organization_id: string }
@@ -1561,7 +1664,10 @@ export type Database = {
       }
       get_invitation_by_token: { Args: { p_token: string }; Returns: Json }
       get_my_first_org_slug: { Args: never; Returns: string }
+      get_my_staff_ids: { Args: never; Returns: string[] }
       get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
+      get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
+      get_scheduler_org_ids: { Args: never; Returns: string[] }
       get_user_org_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
@@ -1570,13 +1676,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_admin: { Args: { p_org: string }; Returns: boolean }
       recompute_customer_balance: {
         Args: { p_customer_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      app_role: "admin" | "front_desk" | "trainer" | "manager"
+      app_role: "admin" | "front_desk" | "worker" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1707,7 +1814,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      app_role: ["admin", "front_desk", "trainer", "manager"],
+      app_role: ["admin", "front_desk", "worker", "manager"],
     },
   },
 } as const

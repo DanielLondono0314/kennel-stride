@@ -21,7 +21,7 @@ export interface Organization {
   service_types: Array<{ value: string; label: string }>;
 }
 
-export type OrgRole = "admin" | "manager" | "front_desk" | "trainer";
+export type OrgRole = "admin" | "manager" | "front_desk" | "worker";
 
 interface OrganizationContextType {
   organization: Organization | null;

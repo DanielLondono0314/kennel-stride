@@ -8,13 +8,13 @@ import { Users, UserCheck, GraduationCap, Shield, Loader2 } from "lucide-react";
 interface StaffStats {
   total: number;
   active: number;
-  trainers: number;
+  workers: number;
   admins: number;
 }
 
 export default function StaffPage() {
   const { organization } = useOrganization();
-  const [stats, setStats] = useState<StaffStats>({ total: 0, active: 0, trainers: 0, admins: 0 });
+  const [stats, setStats] = useState<StaffStats>({ total: 0, active: 0, workers: 0, admins: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function StaffPage() {
         setStats({
           total: data.length,
           active: data.filter((s) => s.is_active).length,
-          trainers: data.filter((s) => s.role === "trainer").length,
+          workers: data.filter((s) => s.role === "worker").length,
           admins: data.filter((s) => s.role === "admin" || s.role === "manager").length,
         });
       }
@@ -69,8 +69,8 @@ export default function StaffPage() {
               <GraduationCap className="h-5 w-5 text-accent-foreground" />
             </div>
             <div>
-              {loadingStats ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <p className="text-2xl font-bold">{stats.trainers}</p>}
-              <p className="text-xs text-muted-foreground">Entrenadores</p>
+              {loadingStats ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <p className="text-2xl font-bold">{stats.workers}</p>}
+              <p className="text-xs text-muted-foreground">Trabajadores</p>
             </div>
           </CardContent>
         </Card>

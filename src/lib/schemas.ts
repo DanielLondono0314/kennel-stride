@@ -21,7 +21,8 @@ export const nameSchema = z
   .min(1, "Requerido")
   .max(80, "Máximo 80 caracteres");
 
-export const staffRoleSchema = z.enum(["admin", "front_desk", "trainer", "manager"]);
+export const staffRoleSchema = z.enum(["admin", "front_desk", "worker", "manager"]);
+export const specialtySchema = z.enum(["trainer", "groomer", "cleaning", "welfare", "vet"]);
 
 export const staffMemberSchema = z.object({
   first_name: nameSchema,
@@ -29,6 +30,7 @@ export const staffMemberSchema = z.object({
   email: emailSchema,
   phone: phoneSchema.optional().default(""),
   role: staffRoleSchema,
+  specialty: specialtySchema.nullable().optional(),
   is_active: z.boolean().default(true),
 });
 

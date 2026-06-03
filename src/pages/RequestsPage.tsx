@@ -94,7 +94,7 @@ export default function RequestsPage() {
   }, [organization?.id]);
 
   const trainers = useMemo(
-    () => staffList.filter((s) => s.role === "trainer" || s.role === "admin"),
+    () => staffList.filter((s) => s.role === "worker" || s.role === "admin"),
     [staffList]
   );
 

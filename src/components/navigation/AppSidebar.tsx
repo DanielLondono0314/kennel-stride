@@ -23,6 +23,7 @@ import {
   Map,
   Stethoscope,
   UserCog,
+  ListTodo,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -40,6 +41,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
   const canViewReports = usePermission("view_reports");
   const canSendCampaigns = usePermission("send_campaign");
   const canManageSettings = usePermission("manage_settings");
+  const canManageTasks = usePermission("manage_tasks");
 
   return (
     <aside
@@ -79,6 +81,9 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         <AppNavLink to={`${base}/dashboard`}    icon={LayoutDashboard} label="Dashboard"     collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/requests`}     icon={ClipboardList}   label="Solicitudes"   collapsed={collapsed} badge={requestCount}   onClick={onMobileClose} />
         <AppNavLink to={`${base}/calendar`}     icon={CalendarDays}    label="Calendario"    collapsed={collapsed} onClick={onMobileClose} />
+        {canManageTasks && (
+          <AppNavLink to={`${base}/tasks`}      icon={ListTodo}        label="Tareas"        collapsed={collapsed} onClick={onMobileClose} />
+        )}
         <AppNavLink to={`${base}/facility`}     icon={Map}             label="Instalaciones" collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/notices`}      icon={Bell}            label="Avisos"        collapsed={collapsed} badge={noticeCount}    onClick={onMobileClose} />
 

@@ -3,11 +3,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { createQueryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OrgGuard } from "@/components/auth/OrgGuard";
+import { WorkerRoute, AdminOnlyRoute } from "@/components/auth/WorkerRoute";
+import { RoleHome } from "@/components/auth/RoleHome";
+import { WorkerLayout } from "@/components/worker/WorkerLayout";
 import { AppLayout } from "@/components/navigation/AppLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -27,6 +30,7 @@ const RequestsPage         = lazy(() => import("./pages/RequestsPage"));
 const CalendarPage         = lazy(() => import("./pages/CalendarPage"));
 const SettingsPage         = lazy(() => import("./pages/SettingsPage"));
 const ReportCardsPage      = lazy(() => import("./pages/ReportCardsPage"));
+const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const PackagesPage         = lazy(() => import("./pages/PackagesPage"));
 const InvoicesPage         = lazy(() => import("./pages/InvoicesPage"));
 const NoticesPage          = lazy(() => import("./pages/NoticesPage"));
@@ -38,6 +42,11 @@ const CustomerProfilePage  = lazy(() => import("./pages/CustomerProfilePage"));
 const StaffPage            = lazy(() => import("./pages/StaffPage"));
 const DogProfilePage       = lazy(() => import("./pages/DogProfilePage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
+
+const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
+const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailPage"));
+const WorkerNoticesPage    = lazy(() => import("./pages/worker/WorkerNoticesPage"));
+const WorkerProfilePage    = lazy(() => import("./pages/worker/WorkerProfilePage"));
 
 const App = () => {
   const [queryClient] = useState(createQueryClient);
@@ -67,8 +76,23 @@ const App = () => {
 
                   {/* Auth + org + subscription required */}
                   <Route path="/:orgSlug" element={<OrgGuard />}>
+                    {/* Role-based landing */}
+                    <Route index element={<RoleHome />} />
+
+                    {/* Worker view */}
+                    <Route path="worker" element={<WorkerRoute />}>
+                      <Route element={<WorkerLayout />}>
+                        <Route index element={<MyDayPage />} />
+                        <Route path="reservation/:id" element={<WorkerTaskDetailPage />} />
+                        <Route path="task/:id" element={<WorkerTaskDetailPage />} />
+                        <Route path="notices" element={<WorkerNoticesPage />} />
+                        <Route path="profile" element={<WorkerProfilePage />} />
+                      </Route>
+                    </Route>
+
+                    {/* Admin view (blocked for workers) */}
+                    <Route element={<AdminOnlyRoute />}>
                     <Route element={<AppLayout />}>
-                      <Route index element={<Navigate to="dashboard" replace />} />
                       <Route path="dashboard"        element={<Dashboard />} />
                       <Route path="customers"        element={<CustomersPage />} />
                       <Route path="customers/:id"    element={<CustomerProfilePage />} />
@@ -76,6 +100,7 @@ const App = () => {
                       <Route path="dogs/:id"         element={<DogProfilePage />} />
                       <Route path="requests"         element={<RequestsPage />} />
                       <Route path="calendar"         element={<CalendarPage />} />
+                      <Route path="tasks"            element={<TasksPage />} />
                       <Route path="notices"          element={<NoticesPage />} />
                       <Route path="facility"         element={<FacilityPage />} />
                       <Route path="report-cards"     element={<ReportCardsPage />} />
@@ -86,6 +111,7 @@ const App = () => {
                       <Route path="clinic"           element={<ClinicPage />} />
                       <Route path="staff"            element={<StaffPage />} />
                       <Route path="settings"         element={<SettingsPage />} />
+                    </Route>
                     </Route>
                   </Route>
 
