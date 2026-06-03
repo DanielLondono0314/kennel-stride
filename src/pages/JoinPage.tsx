@@ -20,7 +20,7 @@ export default function JoinPage() {
     admin: "Administrador",
     manager: "Gerente",
     front_desk: "Recepción",
-    trainer: "Entrenador",
+    worker: "Trabajador",
   };
 
   useEffect(() => {

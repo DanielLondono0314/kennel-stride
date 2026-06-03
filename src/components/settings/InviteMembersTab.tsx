@@ -27,7 +27,7 @@ interface Invitation {
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   front_desk: "Recepción",
-  trainer: "Entrenador",
+  worker: "Trabajador",
   manager: "Gerente",
 };
 
@@ -144,7 +144,7 @@ export function InviteMembersTab() {
                   <SelectItem value="admin">Administrador</SelectItem>
                   <SelectItem value="manager">Gerente</SelectItem>
                   <SelectItem value="front_desk">Recepción</SelectItem>
-                  <SelectItem value="trainer">Entrenador</SelectItem>
+                  <SelectItem value="worker">Trabajador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

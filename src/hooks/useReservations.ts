@@ -94,7 +94,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
           firstName: row.staff_members.first_name,
           lastName: row.staff_members.last_name,
           email: "",
-          role: UserRole.TRAINER,
+          role: UserRole.WORKER,
           createdAt: new Date(),
           updatedAt: new Date(),
         }

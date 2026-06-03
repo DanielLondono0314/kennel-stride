@@ -39,21 +39,22 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Edit, Trash2, Loader2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { staffMemberSchema } from "@/lib/schemas";
+import { type Specialty, SPECIALTY_LABELS } from "@/lib/worker";
 
 type StaffMember = Tables<"staff_members">;
-type AppRole = "admin" | "front_desk" | "trainer" | "manager";
+type AppRole = "admin" | "front_desk" | "worker" | "manager";
 
 const roleLabels: Record<AppRole, string> = {
   admin: "Administrador",
   front_desk: "Recepción",
-  trainer: "Entrenador",
+  worker: "Trabajador",
   manager: "Gerente",
 };
 
 const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
   admin: "default",
   front_desk: "secondary",
-  trainer: "outline",
+  worker: "outline",
   manager: "secondary",
 };
 
@@ -72,7 +73,8 @@ export function StaffManagementTab() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<AppRole>("trainer");
+  const [role, setRole] = useState<AppRole>("worker");
+  const [specialty, setSpecialty] = useState<Specialty | "">("");
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => { fetchStaff(); }, [organization?.id]);
@@ -93,7 +95,7 @@ export function StaffManagementTab() {
   };
 
   const resetForm = () => {
-    setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setRole("trainer"); setIsActive(true);
+    setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setRole("worker"); setSpecialty(""); setIsActive(true);
     setEditingStaff(null);
   };
 
@@ -106,6 +108,7 @@ export function StaffManagementTab() {
     setEmail(s.email);
     setPhone(s.phone || "");
     setRole(s.role);
+    setSpecialty((s.specialty as Specialty | null) ?? "");
     setIsActive(s.is_active);
     setModalOpen(true);
   };
@@ -122,6 +125,7 @@ export function StaffManagementTab() {
       email,
       phone,
       role,
+      specialty: role === "worker" ? (specialty || null) : null,
       is_active: isActive,
     });
     if (!parsed.success) {
@@ -293,6 +297,19 @@ export function StaffManagementTab() {
                 </SelectContent>
               </Select>
             </div>
+            {role === "worker" && (
+              <div className="space-y-2">
+                <Label>Especialidad</Label>
+                <Select value={specialty} onValueChange={(v) => setSpecialty(v as Specialty)}>
+                  <SelectTrigger><SelectValue placeholder="Especialidad" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SPECIALTY_LABELS).map(([v, label]) => (
+                      <SelectItem key={v} value={v}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <Label>Activo</Label>
               <Switch checked={isActive} onCheckedChange={setIsActive} />

@@ -8,7 +8,7 @@
 export enum UserRole {
   ADMIN = 'admin',
   FRONT_DESK = 'front_desk',
-  TRAINER = 'trainer',
+  WORKER = 'worker',
   MANAGER = 'manager',
   PET_PARENT = 'pet_parent',
 }
