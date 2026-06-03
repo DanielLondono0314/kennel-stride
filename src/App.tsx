@@ -30,6 +30,7 @@ const RequestsPage         = lazy(() => import("./pages/RequestsPage"));
 const CalendarPage         = lazy(() => import("./pages/CalendarPage"));
 const SettingsPage         = lazy(() => import("./pages/SettingsPage"));
 const ReportCardsPage      = lazy(() => import("./pages/ReportCardsPage"));
+const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const PackagesPage         = lazy(() => import("./pages/PackagesPage"));
 const InvoicesPage         = lazy(() => import("./pages/InvoicesPage"));
 const NoticesPage          = lazy(() => import("./pages/NoticesPage"));
@@ -99,6 +100,7 @@ const App = () => {
                       <Route path="dogs/:id"         element={<DogProfilePage />} />
                       <Route path="requests"         element={<RequestsPage />} />
                       <Route path="calendar"         element={<CalendarPage />} />
+                      <Route path="tasks"            element={<TasksPage />} />
                       <Route path="notices"          element={<NoticesPage />} />
                       <Route path="facility"         element={<FacilityPage />} />
                       <Route path="report-cards"     element={<ReportCardsPage />} />

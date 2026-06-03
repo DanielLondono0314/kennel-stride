@@ -10,6 +10,25 @@ export const SPECIALTY_LABELS: Record<Specialty, string> = {
 
 export type TaskType = "cleaning" | "feeding" | "walk" | "vet_check" | "grooming" | "other";
 
+export const TASK_TYPES: TaskType[] = ["cleaning", "feeding", "walk", "vet_check", "grooming", "other"];
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  cleaning: "Aseo",
+  feeding: "Alimentación",
+  walk: "Paseo",
+  vet_check: "Chequeo veterinario",
+  grooming: "Grooming",
+  other: "Otro",
+};
+
+export type TaskPriority = "low" | "normal" | "high";
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Baja",
+  normal: "Normal",
+  high: "Alta",
+};
+
 export const TASK_TYPE_BY_SPECIALTY: Record<Specialty, TaskType[]> = {
   trainer: ["other"],
   groomer: ["grooming"],

@@ -10,7 +10,8 @@ export type Permission =
   | "manage_settings"
   | "view_reports"
   | "send_campaign"
-  | "manage_facility";
+  | "manage_facility"
+  | "manage_tasks";
 
 type PermissionMatrix = Record<Permission, OrgRole[]>;
 
@@ -25,6 +26,7 @@ const PERMISSIONS: PermissionMatrix = {
   view_reports:      ["admin", "manager"],
   send_campaign:     ["admin", "manager"],
   manage_facility:   ["admin", "manager"],
+  manage_tasks:      ["admin", "manager", "front_desk"],
 };
 
 export function usePermission(action: Permission): boolean {
