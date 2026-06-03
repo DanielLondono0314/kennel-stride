@@ -155,7 +155,7 @@ export default function PackagesPage() {
       setModalOpen(false);
       setEditingPkg(null);
     } catch {
-      toast.error("Error al guardar paquete");
+      toast.error("No se pudo guardar el paquete", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } finally {
       setSaving(false);
     }
@@ -167,7 +167,7 @@ export default function PackagesPage() {
       await deductCredit.mutateAsync({ packageId: pkg.id, reason: "ajuste manual" });
       toast.success(`Crédito descontado (${pkg.remaining_credits - 1} restantes)`);
     } catch {
-      toast.error("Error al descontar crédito");
+      toast.error("No se pudo descontar el crédito", { description: "Inténtalo de nuevo." });
     }
   };
 

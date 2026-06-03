@@ -77,7 +77,7 @@ export default function CustomersPage() {
       setModalOpen(false);
       setEditingCustomer(null);
     } catch {
-      toast.error("Error al guardar cliente");
+      toast.error("No se pudo guardar el cliente", { description: "Revisa tu conexión e inténtalo de nuevo." });
     }
   };
 
@@ -87,7 +87,7 @@ export default function CustomersPage() {
       await deleteCustomer.mutateAsync(deleteId);
       toast.success("Cliente eliminado");
     } catch {
-      toast.error("Error al eliminar cliente");
+      toast.error("No se pudo eliminar el cliente", { description: "Inténtalo de nuevo." });
     }
     setDeleteId(null);
   };
@@ -160,7 +160,7 @@ export default function CustomersPage() {
             ) : allCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-4">
-                  <EmptyState icon={Users} title="No hay clientes" description="No se encontraron clientes con los filtros actuales." />
+                  <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
                 </TableCell>
               </TableRow>
             ) : allCustomers.map((customer) => {
@@ -264,7 +264,7 @@ export default function CustomersPage() {
         ) : isLoading ? (
           <CardGridSkeleton count={6} />
         ) : allCustomers.length === 0 ? (
-          <EmptyState icon={Users} title="No hay clientes" description="No se encontraron clientes con los filtros actuales." />
+          <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
         ) : allCustomers.map((customer) => {
           const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
           const hasBalance = customer.balance !== 0;

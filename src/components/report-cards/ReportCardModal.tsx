@@ -208,7 +208,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
 
     setSaving(false);
     if (error) {
-      toast.error("Error guardando report card");
+      toast.error("No se pudo guardar el report card", { description: "Revisa tu conexión e inténtalo de nuevo." });
       return;
     }
 

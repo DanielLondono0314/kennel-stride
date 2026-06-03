@@ -118,7 +118,7 @@ export default function ReportCardsPage() {
     if (!deleteId) return;
     const { error } = await supabase.from("report_cards").delete().eq("id", deleteId);
     if (error) {
-      toast.error("Error eliminando report card");
+      toast.error("No se pudo eliminar el report card", { description: "Inténtalo de nuevo." });
     } else {
       toast.success("Report card eliminado");
       queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });
@@ -132,7 +132,7 @@ export default function ReportCardsPage() {
       .update({ is_sent: true, sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("id", rc.id);
     if (error) {
-      toast.error("Error enviando report card");
+      toast.error("No se pudo enviar el report card", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success(`Report card de ${rc.dog_name} enviado al dueño`);
       queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });

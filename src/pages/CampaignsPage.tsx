@@ -126,11 +126,11 @@ export default function CampaignsPage() {
 
     if (editId) {
       const { error } = await supabase.from("campaigns").update(payload).eq("id", editId);
-      if (error) toast.error("Error al actualizar");
+      if (error) toast.error("No se pudo actualizar", { description: "Revisa tu conexión e inténtalo de nuevo." });
       else toast.success("Campaña actualizada");
     } else {
       const { error } = await supabase.from("campaigns").insert({ ...payload, organization_id: organization!.id });
-      if (error) toast.error("Error al crear campaña");
+      if (error) toast.error("No se pudo crear la campaña", { description: "Revisa los datos e inténtalo de nuevo." });
       else toast.success("Campaña creada");
     }
 
@@ -172,7 +172,7 @@ export default function CampaignsPage() {
       status: "cancelled",
       updated_at: new Date().toISOString(),
     }).eq("id", c.id);
-    if (error) toast.error("Error");
+    if (error) toast.error("No se pudo completar la acción", { description: "Inténtalo de nuevo." });
     else {
       toast.success("Campaña cancelada");
       queryClient.invalidateQueries({ queryKey: ["campaigns", organization?.id] });
@@ -184,7 +184,7 @@ export default function CampaignsPage() {
       await deleteCampaign.mutateAsync(c.id);
       toast.success("Campaña eliminada");
     } catch {
-      toast.error("Error al eliminar");
+      toast.error("No se pudo eliminar", { description: "Inténtalo de nuevo." });
     }
   };
 

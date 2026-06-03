@@ -72,7 +72,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
     const { error } = editingId
       ? await supabase.from("medical_conditions").update(payload).eq("id", editingId)
       : await supabase.from("medical_conditions").insert(payload);
-    if (error) { toast.error("Error al guardar"); return; }
+    if (error) { toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." }); return; }
     toast.success(editingId ? "Condición actualizada" : "Condición registrada");
     setModalOpen(false); fetchRecords();
   };

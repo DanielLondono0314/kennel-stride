@@ -91,7 +91,7 @@ export function TemperamentTab({ dogId, dogName }: Props) {
     }
 
     if (error) {
-      toast.error("Error al guardar perfil de temperamento");
+      toast.error("No se pudo guardar el perfil de temperamento", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Perfil de temperamento guardado");
       fetchProfile();

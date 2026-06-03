@@ -226,7 +226,7 @@ export function CheckOutModal({
       setNotes("");
       setPaymentMethod("cash");
     } catch (err) {
-      toast.error("Error al procesar el check-out");
+      toast.error("No se pudo procesar el check-out", { description: "Inténtalo de nuevo." });
     } finally {
       setIsSubmitting(false);
     }

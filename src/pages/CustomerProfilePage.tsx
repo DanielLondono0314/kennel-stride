@@ -164,7 +164,7 @@ export default function CustomerProfilePage() {
     };
     const { error } = await supabase.from("customers").update(payload).eq("id", id!);
     if (error) {
-      toast.error("Error al guardar");
+      toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Cliente actualizado");
       setEditModalOpen(false);

@@ -87,7 +87,7 @@ export function BusinessProfileTab() {
       .eq("id", organization.id);
 
     if (error) {
-      toast.error("Error al guardar");
+      toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Perfil del negocio actualizado");
       refetch();

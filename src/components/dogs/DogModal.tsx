@@ -134,7 +134,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     setUploadingPhoto(false);
 
     if (error) {
-      toast.error("Error al subir la foto");
+      toast.error("No se pudo subir la foto", { description: "Usa una imagen menor a 5MB e inténtalo de nuevo." });
       return photoUrl;
     }
 

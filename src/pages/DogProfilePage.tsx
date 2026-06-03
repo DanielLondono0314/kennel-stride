@@ -132,7 +132,7 @@ export default function DogProfilePage() {
 
     const { error } = await supabase.from("dogs").update(payload).eq("id", id!);
     if (error) {
-      toast.error("Error al guardar");
+      toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Perfil actualizado");
       setEditOpen(false);

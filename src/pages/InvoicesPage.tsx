@@ -180,7 +180,7 @@ export default function InvoicesPage() {
     }).select().single();
 
     if (error || !inv) {
-      toast.error("Error al crear factura");
+      toast.error("No se pudo crear la factura", { description: "Revisa tu conexión e inténtalo de nuevo." });
       setSaving(false);
       return;
     }
@@ -197,7 +197,7 @@ export default function InvoicesPage() {
 
     const { error: itemsError } = await supabase.from("invoice_items").insert(itemsToInsert);
     if (itemsError) {
-      toast.error("Error al guardar los items de la factura");
+      toast.error("No se pudieron guardar los conceptos de la factura", { description: "Revisa tu conexión e inténtalo de nuevo." });
       setSaving(false);
       return;
     }
@@ -215,7 +215,7 @@ export default function InvoicesPage() {
       toast.success(`Factura marcada como pagada (${paymentMethodLabels[method] || method})`);
       setPage(0);
     } catch {
-      toast.error("Error al marcar como pagada");
+      toast.error("No se pudo marcar como pagada", { description: "Inténtalo de nuevo." });
     }
   };
 
@@ -225,7 +225,7 @@ export default function InvoicesPage() {
       toast.success("Factura cancelada");
       setPage(0);
     } catch {
-      toast.error("Error al cancelar");
+      toast.error("No se pudo cancelar", { description: "Inténtalo de nuevo." });
     }
   };
 

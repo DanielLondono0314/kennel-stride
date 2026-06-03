@@ -108,7 +108,7 @@ export default function NoticesPage() {
           auto_generated: false,
           organization_id: organization.id,
         });
-        if (error) toast.error("Error al registrar recordatorio");
+        if (error) toast.error("No se pudo registrar el recordatorio", { description: "Inténtalo de nuevo." });
         else toast.success("Recordatorio registrado en el historial");
         break;
       }

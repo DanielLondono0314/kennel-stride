@@ -59,7 +59,7 @@ export function DewormingTab({ dogId, dogName }: Props) {
     const { error } = editingId
       ? await supabase.from("deworming_records").update(payload).eq("id", editingId)
       : await supabase.from("deworming_records").insert(payload);
-    if (error) { toast.error("Error al guardar"); return; }
+    if (error) { toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." }); return; }
     toast.success(editingId ? "Registro actualizado" : "Desparasitación registrada");
     setModalOpen(false); fetchRecords();
   };

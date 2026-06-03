@@ -183,7 +183,7 @@ export default function RequestsPage() {
 
     setSaving(false);
     if (error) {
-      toast.error("Error al aprobar");
+      toast.error("No se pudo aprobar la solicitud", { description: "Inténtalo de nuevo." });
     } else {
       const trainerName = trainers.find((t) => t.id === assignedTrainer);
       toast.success("Solicitud aprobada", {
@@ -209,7 +209,7 @@ export default function RequestsPage() {
 
     setSaving(false);
     if (error) {
-      toast.error("Error al rechazar");
+      toast.error("No se pudo rechazar la solicitud", { description: "Inténtalo de nuevo." });
     } else {
       toast.info("Solicitud rechazada", {
         description: `${selectedRequest.dog?.name} — ${selectedRequest.service?.name}`,

@@ -99,7 +99,7 @@ export function InviteMembersTab() {
       .eq("id", id)
       .eq("organization_id", organization.id);
     if (error) {
-      toast.error("Error al eliminar invitación");
+      toast.error("No se pudo eliminar la invitación", { description: "Inténtalo de nuevo." });
     } else {
       toast.success("Invitación eliminada");
       setInvitations((prev) => prev.filter((i) => i.id !== id));

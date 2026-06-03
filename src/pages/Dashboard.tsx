@@ -8,7 +8,6 @@ import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useReservations } from "@/hooks/useReservations";
 import { useNotices, useDismissNotice, useMarkNoticeRead, useNoticesRealtime } from "@/hooks/queries/useNotices";
-import { KPICard } from "@/components/dashboard/KPICard";
 import { OpsTabs, OpsTab } from "@/components/dashboard/OpsTabs";
 import { OpsTable } from "@/components/dashboard/OpsTable";
 import { NoticesList } from "@/components/dashboard/NoticesList";
@@ -136,7 +135,7 @@ export default function Dashboard() {
     const { error } = await checkIn(data.reservationId);
     setCheckInModalOpen(false);
     if (error) {
-      toast.error("Error al registrar check-in");
+      toast.error("No se pudo registrar el check-in", { description: "Inténtalo de nuevo." });
     } else {
       toast.success("Check-in completado", {
         description: `${selectedReservation?.dog?.name} ha sido registrado.`,
@@ -149,7 +148,7 @@ export default function Dashboard() {
     const { error } = await checkOut(data.reservationId);
     setCheckOutModalOpen(false);
     if (error) {
-      toast.error("Error al registrar check-out");
+      toast.error("No se pudo registrar el check-out", { description: "Inténtalo de nuevo." });
     } else {
       toast.success("Check-out completado", {
         description: `${selectedReservation?.dog?.name} ha salido del centro.`,
@@ -162,7 +161,7 @@ export default function Dashboard() {
     const r = reservations.find((r) => r.id === id);
     const { error } = await approve(id);
     if (error) {
-      toast.error("Error al aprobar reserva");
+      toast.error("No se pudo aprobar la reserva", { description: "Inténtalo de nuevo." });
     } else {
       toast.success("Reserva aprobada", {
         description: `La reserva de ${r?.dog?.name ?? "perro"} ha sido programada.`,
@@ -242,12 +241,26 @@ export default function Dashboard() {
 
       <OnboardingChecklist />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-        <KPICard label="Esperados" value={kpis.expected} icon={Users} variant="info" />
-        <KPICard label="Registrados" value={kpis.checkedIn} icon={LogIn} variant="success" />
-        <KPICard label="Salen Hoy" value={kpis.goingHome} icon={LogOut} variant="warning" />
-        <KPICard label="Internados" value={kpis.overnight} icon={Moon} variant="primary" />
-        <KPICard label="Total Activos" value={kpis.total} icon={Activity} trend={{ value: 0, isPositive: true }} />
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="flex divide-x divide-border overflow-x-auto">
+          {[
+            { label: "Esperados", value: kpis.expected, icon: Users, tint: "bg-info/10 text-info" },
+            { label: "Registrados", value: kpis.checkedIn, icon: LogIn, tint: "bg-success/10 text-success" },
+            { label: "Salen hoy", value: kpis.goingHome, icon: LogOut, tint: "bg-warning/10 text-warning" },
+            { label: "Internados", value: kpis.overnight, icon: Moon, tint: "bg-primary/10 text-primary" },
+            { label: "Total activos", value: kpis.total, icon: Activity, tint: "bg-muted text-muted-foreground" },
+          ].map(({ label, value, icon: Icon, tint }) => (
+            <div key={label} className="flex flex-1 items-center gap-3 p-4 min-w-[8.5rem]">
+              <div className={`flex items-center justify-center w-9 h-9 rounded-lg shrink-0 ${tint}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold tracking-tight leading-none">{value}</p>
+                <p className="text-xs font-medium text-muted-foreground mt-1 truncate">{label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <OpsTabs activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />

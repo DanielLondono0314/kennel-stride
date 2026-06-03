@@ -85,7 +85,7 @@ export function StaffManagementTab() {
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: true });
     if (error) {
-      toast.error("Error al cargar personal");
+      toast.error("No se pudo cargar el personal", { description: "Vuelve a cargar la página." });
          } else {
       setStaff(data || []);
     }
@@ -136,13 +136,13 @@ export function StaffManagementTab() {
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id)
         .eq("organization_id", organization.id);
-      if (error) { toast.error("Error al actualizar"); setSaving(false); return; }
+      if (error) { toast.error("No se pudo actualizar", { description: "Revisa tu conexión e inténtalo de nuevo." }); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
       const { error } = await supabase
         .from("staff_members")
         .insert({ ...payload, organization_id: organization.id });
-      if (error) { toast.error("Error al crear"); setSaving(false); return; }
+      if (error) { toast.error("No se pudo crear", { description: "Revisa los datos e inténtalo de nuevo." }); setSaving(false); return; }
       else { toast.success("Empleado creado"); }
     }
     setSaving(false);
@@ -158,7 +158,7 @@ export function StaffManagementTab() {
       .delete()
       .eq("id", deleteTarget.id)
       .eq("organization_id", organization.id);
-    if (error) { toast.error("Error al eliminar"); }
+    if (error) { toast.error("No se pudo eliminar", { description: "Inténtalo de nuevo." }); }
     else { toast.success("Empleado eliminado"); }
     setDeleteDialogOpen(false);
     setDeleteTarget(null);
@@ -172,7 +172,7 @@ export function StaffManagementTab() {
       .update({ is_active: !s.is_active, updated_at: new Date().toISOString() })
       .eq("id", s.id)
       .eq("organization_id", organization.id);
-    if (error) { toast.error("Error"); }
+    if (error) { toast.error("No se pudo completar la acción", { description: "Inténtalo de nuevo." }); }
     else { toast.success(s.is_active ? "Empleado desactivado" : "Empleado activado"); fetchStaff(); }
   };
 

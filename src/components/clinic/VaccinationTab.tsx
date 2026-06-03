@@ -74,7 +74,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
     const { error } = editingId
       ? await supabase.from("vaccination_schedule").update(payload).eq("id", editingId).eq("organization_id", organization.id)
       : await supabase.from("vaccination_schedule").insert(payload);
-    if (error) { toast.error("Error al guardar"); return; }
+    if (error) { toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." }); return; }
     toast.success(editingId ? "Vacuna actualizada" : "Vacuna registrada");
     setModalOpen(false); fetchRecords();
   };

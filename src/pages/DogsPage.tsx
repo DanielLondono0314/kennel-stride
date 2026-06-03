@@ -115,7 +115,7 @@ export default function DogsPage() {
     }
 
     if (error) {
-      toast.error("Error al guardar perro");
+      toast.error("No se pudo guardar el perro", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
       setModalOpen(false);
@@ -128,7 +128,7 @@ export default function DogsPage() {
       await deleteDog.mutateAsync(deleteId);
       toast.success("Mascota eliminada");
     } catch {
-      toast.error("Error al eliminar mascota");
+      toast.error("No se pudo eliminar el perro", { description: "Inténtalo de nuevo." });
     }
     setDeleteId(null);
   };
@@ -183,7 +183,7 @@ export default function DogsPage() {
             ) : isLoading ? (
               <TableRow><TableCell colSpan={6} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
             ) : dogs.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="No se encontraron perros con los filtros actuales." /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} /></TableCell></TableRow>
             ) : dogs.map((dog) => (
               <TableRow key={dog.id} className="cursor-pointer" onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
                 <TableCell>
@@ -244,7 +244,7 @@ export default function DogsPage() {
         ) : isLoading ? (
           <ListSkeleton rows={4} />
         ) : dogs.length === 0 ? (
-          <EmptyState icon={DogIcon} title="No hay perros" description="No se encontraron perros con los filtros actuales." />
+          <EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} />
         ) : dogs.map((dog) => (
           <Card
             key={dog.id}

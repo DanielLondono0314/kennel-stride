@@ -61,7 +61,7 @@ export function UserProfileTab() {
       });
 
     if (error) {
-      toast.error("Error al guardar perfil");
+      toast.error("No se pudo guardar el perfil", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Perfil actualizado", { description: "Los cambios se han guardado." });
     }
