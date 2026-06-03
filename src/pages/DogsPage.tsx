@@ -9,6 +9,7 @@ import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton, ListSkeleton } from "@/components/shared/TableSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -182,7 +183,7 @@ export default function DogsPage() {
             ) : isLoading ? (
               <TableRow><TableCell colSpan={6} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
             ) : dogs.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No se encontraron perros</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="No se encontraron perros con los filtros actuales." /></TableCell></TableRow>
             ) : dogs.map((dog) => (
               <TableRow key={dog.id} className="cursor-pointer" onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
                 <TableCell>
@@ -243,7 +244,7 @@ export default function DogsPage() {
         ) : isLoading ? (
           <ListSkeleton rows={4} />
         ) : dogs.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No se encontraron perros</p>
+          <EmptyState icon={DogIcon} title="No hay perros" description="No se encontraron perros con los filtros actuales." />
         ) : dogs.map((dog) => (
           <Card
             key={dog.id}

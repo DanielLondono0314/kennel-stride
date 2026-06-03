@@ -18,11 +18,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
 export type { DbCustomer };
@@ -158,8 +159,8 @@ export default function CustomersPage() {
               </TableRow>
             ) : allCustomers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No se encontraron clientes
+                <TableCell colSpan={5} className="py-4">
+                  <EmptyState icon={Users} title="No hay clientes" description="No se encontraron clientes con los filtros actuales." />
                 </TableCell>
               </TableRow>
             ) : allCustomers.map((customer) => {
@@ -263,7 +264,7 @@ export default function CustomersPage() {
         ) : isLoading ? (
           <CardGridSkeleton count={6} />
         ) : allCustomers.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No se encontraron clientes</p>
+          <EmptyState icon={Users} title="No hay clientes" description="No se encontraron clientes con los filtros actuales." />
         ) : allCustomers.map((customer) => {
           const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
           const hasBalance = customer.balance !== 0;
