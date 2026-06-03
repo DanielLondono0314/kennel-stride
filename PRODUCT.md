@@ -16,7 +16,7 @@ Context: a working dog boarding / daycare facility. Staff use the app on the flo
 
 ## Product Purpose
 
-KennelStride is operational software for dog boarding / daycare businesses: reservations, check-in/out, dog and customer records, clinic/medical info, facility config, billing, invoices, reports, campaigns, report cards, and staff management.
+KennelOps is operational software for dog boarding / daycare businesses: reservations, check-in/out, dog and customer records, clinic/medical info, facility config, billing, invoices, reports, campaigns, report cards, and staff management.
 
 Success = the facility runs faster and makes fewer mistakes than it would on paper or generic tools, and everyone (staff, owners, customers) trusts the data.
 

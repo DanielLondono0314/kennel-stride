@@ -290,16 +290,16 @@ function DashboardMockup() {
   ];
 
   const stats = [
-    { label: 'Check-ins',  value: '12',  textColor: c.blue,    bg: c.blueLight },
-    { label: 'In house',   value: '34',  textColor: c.orange,  bg: c.orangeLight },
-    { label: 'Departures', value: '8',   textColor: c.green,   bg: c.greenLight },
-    { label: 'Occupancy',  value: '86%', textColor: '#7C3AED', bg: '#F5F3FF' },
+    { label: 'Entradas',   value: '12',  textColor: c.blue,    bg: c.blueLight },
+    { label: 'Alojados',   value: '34',  textColor: c.orange,  bg: c.orangeLight },
+    { label: 'Salidas',    value: '8',   textColor: c.green,   bg: c.greenLight },
+    { label: 'Ocupación',  value: '86%', textColor: '#7C3AED', bg: '#F5F3FF' },
   ];
 
   const rows = [
-    { dog: 'Max', breed: 'Golden Retriever', owner: 'K. Johnson', time: '9:00 AM',  status: 'Confirmed', sc: c.green,    sb: '#F0FDF4' },
-    { dog: 'Bella', breed: 'Border Collie', owner: 'R. Martinez', time: '10:30 AM', status: 'Pending',   sc: '#D97706',  sb: '#FFFBEB' },
-    { dog: 'Charlie', breed: 'Labrador',    owner: 'S. Williams', time: '11:00 AM', status: 'Confirmed', sc: c.green,    sb: '#F0FDF4' },
+    { dog: 'Max', breed: 'Golden Retriever', owner: 'K. Johnson', time: '09:00',  status: 'Confirmada', sc: c.green,    sb: '#F0FDF4' },
+    { dog: 'Bella', breed: 'Border Collie', owner: 'R. Martinez', time: '10:30', status: 'Pendiente', sc: '#D97706',  sb: '#FFFBEB' },
+    { dog: 'Charlie', breed: 'Labrador',    owner: 'S. Williams', time: '11:00', status: 'Confirmada', sc: c.green,    sb: '#F0FDF4' },
   ];
 
   return (
@@ -358,8 +358,8 @@ function DashboardMockup() {
           {/* Top bar */}
           <div className="flex justify-between items-start mb-3">
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>Today's Overview</p>
-              <p style={{ fontSize: 10, color: c.muted }}>Thursday, April 3 · 34 dogs in house</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>Resumen de hoy</p>
+              <p style={{ fontSize: 10, color: c.muted }}>Jueves, 3 de abril · 34 perros alojados</p>
             </div>
             <span
               className="flex items-center cursor-pointer"
@@ -369,7 +369,7 @@ function DashboardMockup() {
                 padding: '4px 9px', borderRadius: 20,
               }}
             >
-              + New booking
+              + Nueva reserva
             </span>
           </div>
 
@@ -399,7 +399,7 @@ function DashboardMockup() {
               style={{ borderBottom: `1px solid ${c.border}` }}
             >
               <p style={{ fontSize: 10, fontWeight: 600, color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Upcoming Check-ins
+                Próximas entradas
               </p>
             </div>
             {rows.map((r, i) => (
@@ -1104,7 +1104,7 @@ function Pricing() {
                           paddingBottom: 5,
                         }}
                       >
-                        /mo
+                        /mes
                       </span>
                     </div>
                   ) : (
@@ -1115,7 +1115,7 @@ function Pricing() {
                         lineHeight: 1,
                       }}
                     >
-                      Custom
+                      A medida
                     </p>
                   )}
                   {annual && p.mo !== null && (
@@ -1306,7 +1306,7 @@ function CTABanner() {
                 e.currentTarget.style.boxShadow = '0 4px 18px rgba(245,158,11,0.38)';
               }}
             >
-              Start free trial
+              Empezar gratis
               <ArrowRight size={16} />
             </Link>
             <a

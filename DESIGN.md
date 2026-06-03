@@ -1,5 +1,5 @@
 ---
-name: KennelStride
+name: KennelOps
 description: Warm-but-professional operations software for dog boarding and daycare.
 colors:
   primary: "#1b2b4d"
@@ -83,17 +83,17 @@ components:
     padding: "4px 10px"
 ---
 
-# Design System: KennelStride
+# Design System: KennelOps
 
 ## 1. Overview
 
 **Creative North Star: "The Warm Operations Desk"**
 
-KennelStride is the front desk of a serious small business that genuinely cares about animals. The surface reads like a calm, well-run reception counter: a deep slate backbone for structure and trust, with a single warm amber as the color of action. It is dense enough to run a floor of dogs at speed, but never cold or clinical. Warmth comes from light, generous neutrals and a careful semantic color language, not from mascots or cartoon color.
+KennelOps is the front desk of a serious small business that genuinely cares about animals. The surface reads like a calm, well-run reception counter: a deep slate backbone for structure and trust, with a single warm amber as the color of action. It is dense enough to run a floor of dogs at speed, but never cold or clinical. Warmth comes from light, generous neutrals and a careful semantic color language, not from mascots or cartoon color.
 
 Three roles share this desk: owner, care staff, and pet owner. The system serves all three by staying legible under quick, distracted, sometimes one-handed use, while keeping critical data (medication, allergies, aggression, billing) impossible to overlook. Depth is conveyed through tonal layering and hairline borders, not heavy shadow.
 
-This system explicitly rejects four things: the **generic AI SaaS dashboard** (identical card grids, hero-metric template, random gradients), **dated veterinary software** (dense gray tables, 2000s UX), **childish pet apps** (emoji noise, cartoon palettes), and **cold corporate banking** (navy with no warmth). KennelStride sits in the narrow band between all four.
+This system explicitly rejects four things: the **generic AI SaaS dashboard** (identical card grids, hero-metric template, random gradients), **dated veterinary software** (dense gray tables, 2000s UX), **childish pet apps** (emoji noise, cartoon palettes), and **cold corporate banking** (navy with no warmth). KennelOps sits in the narrow band between all four.
 
 **Key Characteristics:**
 - Slate structure, amber action: one warm accent carries intent.
