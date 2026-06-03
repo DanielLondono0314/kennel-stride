@@ -72,7 +72,7 @@ export default function RequestsPage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [batchRejectOpen, setBatchRejectOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Reservation | null>(null);
-  const [assignedTrainer, setAssignedTrainer] = useState("");
+  const [assignedTrainer, setAssignedTrainer] = useState("unassigned");
   const [approveNotes, setApproveNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [saving, setSaving] = useState(false);
@@ -155,7 +155,7 @@ export default function RequestsPage() {
   const openDetail = (r: Reservation) => { setSelectedRequest(r); setDetailModalOpen(true); };
   const openApprove = (r: Reservation) => {
     setSelectedRequest(r);
-    setAssignedTrainer(r.staff?.id || "");
+    setAssignedTrainer(r.staff?.id || "unassigned");
     setApproveNotes("");
     setApproveModalOpen(true);
   };
@@ -172,7 +172,7 @@ export default function RequestsPage() {
       .from("reservations")
       .update({
         status: "scheduled",
-        staff_id: assignedTrainer || null,
+        staff_id: assignedTrainer === "unassigned" ? null : assignedTrainer,
         notes: approveNotes
           ? `${selectedRequest.notes ? selectedRequest.notes + "\n" : ""}[Notas internas]: ${approveNotes}`
           : selectedRequest.notes,
@@ -616,7 +616,7 @@ export default function RequestsPage() {
                     <SelectValue placeholder="Seleccionar entrenador..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin asignar</SelectItem>
+                    <SelectItem value="unassigned">Sin asignar</SelectItem>
                     {trainers.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.first_name} {t.last_name}
