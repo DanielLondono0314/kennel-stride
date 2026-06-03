@@ -42,12 +42,12 @@ export default function LoginPage() {
       if (invite) {
         const result = await acceptInviteAndNavigate(invite, navigate);
         if (result) {
-          navigate(`/${result.slug}/dashboard`, { replace: true });
+          navigate(`/${result.slug}`, { replace: true });
           return;
         }
       }
       const slug = await getFirstOrgSlug(session.user.id);
-      navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
+      navigate(slug ? `/${slug}` : "/onboarding", { replace: true });
     })();
   }, [session, authLoading]);
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
     if (invite) {
       const result = await acceptInviteAndNavigate(invite, navigate);
       if (result) {
-        navigate(`/${result.slug}/dashboard`, { replace: true });
+        navigate(`/${result.slug}`, { replace: true });
         setLoading(false);
         return;
       }
