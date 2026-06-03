@@ -53,13 +53,17 @@ export function useMyDay() {
         },
       }));
 
+      // Tareas del worker: las que vencen HOY, MÁS las sin fecha que sigan abiertas
+      // (un scheduler puede asignar una tarea sin due_at; no debe desaparecer del día).
       const { data: tasks, error: tErr } = await supabase
         .from("tasks")
         .select("id, title, type, status, due_at, dog_id, dogs(name, is_aggressive, has_allergies, on_medication)")
         .eq("organization_id", organization!.id)
         .eq("assignee_staff_id", staff!.id)
-        .gte("due_at", start.toISOString())
-        .lte("due_at", end.toISOString());
+        .or(
+          `and(due_at.gte.${start.toISOString()},due_at.lte.${end.toISOString()}),` +
+            `and(due_at.is.null,status.in.(pending,in_progress))`,
+        );
       if (tErr) throw tErr;
 
       const taskItems: FeedItem[] = (tasks ?? []).map((t: any): FeedItem => ({
