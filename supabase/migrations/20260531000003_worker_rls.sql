@@ -100,7 +100,10 @@ USING (
 )
 WITH CHECK (
   organization_id IN (SELECT public.get_scheduler_org_ids())
-  OR assignee_staff_id IN (SELECT public.get_my_staff_ids())
+  -- El worker sigue siendo el asignado Y la fila no puede salir de una org a la
+  -- que pertenece (evita que reasigne organization_id a un tenant ajeno).
+  OR (assignee_staff_id IN (SELECT public.get_my_staff_ids())
+      AND organization_id IN (SELECT public.get_user_org_ids()))
 );
 
 -- DELETE: solo scheduler.
@@ -175,7 +178,10 @@ USING (
 )
 WITH CHECK (
   organization_id IN (SELECT public.get_scheduler_org_ids())
-  OR staff_id IN (SELECT public.get_my_staff_ids())
+  -- El worker sigue siendo el staff_id Y la reserva no puede cambiar a una org
+  -- a la que no pertenece (evita reasignar organization_id cross-tenant).
+  OR (staff_id IN (SELECT public.get_my_staff_ids())
+      AND organization_id IN (SELECT public.get_user_org_ids()))
 );
 
 -- DELETE: solo scheduler.
