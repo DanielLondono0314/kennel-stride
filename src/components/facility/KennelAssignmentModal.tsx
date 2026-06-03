@@ -12,6 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UnitData {
@@ -40,15 +45,17 @@ interface KennelAssignmentModalProps {
   }) => void;
   onRelease: (unitId: string) => void;
   onSetMaintenance: (unitId: string) => void;
+  onDeleteUnit: (unitId: string) => void;
 }
 
 export function KennelAssignmentModal({
-  open, onOpenChange, unit, dogs, onAssign, onRelease, onSetMaintenance,
+  open, onOpenChange, unit, dogs, onAssign, onRelease, onSetMaintenance, onDeleteUnit,
 }: KennelAssignmentModalProps) {
   const [dogId, setDogId] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [notes, setNotes] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isOccupied = unit?.status === "occupied";
 
@@ -169,19 +176,49 @@ export function KennelAssignmentModal({
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas opcionales..." rows={2} />
             </div>
 
-            <DialogFooter className="gap-2">
-              {unit.status !== "maintenance" && (
-                <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
-                  Mantenimiento
-                </Button>
-              )}
-              <Button size="sm" disabled={!dogId || !startDate || !endDate} onClick={handleAssign}>
-                Asignar Perro
+            <DialogFooter className="gap-2 sm:justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
               </Button>
+              <div className="flex gap-2">
+                {unit.status !== "maintenance" && (
+                  <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
+                    Mantenimiento
+                  </Button>
+                )}
+                <Button size="sm" disabled={!dogId || !startDate || !endDate} onClick={handleAssign}>
+                  Asignar Perro
+                </Button>
+              </div>
             </DialogFooter>
           </div>
         )}
       </DialogContent>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {unit.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta perrera se eliminará de forma permanente. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { setConfirmDelete(false); onDeleteUnit(unit.id); }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

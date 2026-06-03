@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
@@ -38,7 +38,9 @@ export function AppLayout() {
             onMenuToggle={() => setMobileMenuOpen((prev) => !prev)}
           />
           <main className="flex-1 overflow-auto p-4 md:p-6">
-            <Outlet />
+            <Suspense fallback={null}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
       </div>
