@@ -132,10 +132,12 @@ export default function Dashboard() {
   };
 
   const handleCheckInConfirm = async (data: CheckInData) => {
-    const { error } = await checkIn(data.reservationId);
+    const { error } = await checkIn(data.reservationId, data.unitId, data.notes);
     setCheckInModalOpen(false);
     if (error) {
-      toast.error("No se pudo registrar el check-in", { description: "Inténtalo de nuevo." });
+      toast.error("No se pudo registrar el check-in", {
+        description: error.message || "Inténtalo de nuevo.",
+      });
     } else {
       toast.success("Check-in completado", {
         description: `${selectedReservation?.dog?.name} ha sido registrado.`,
