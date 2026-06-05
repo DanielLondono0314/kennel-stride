@@ -203,8 +203,25 @@ export function useReservations(options: UseReservationsOptions = {}) {
     return { error };
   };
 
-  const checkIn  = (id: string) => updateStatus(id, ReservationStatus.CHECKED_IN, { check_in_time: new Date().toISOString() });
-  const checkOut = (id: string) => updateStatus(id, ReservationStatus.COMPLETED, { check_out_time: new Date().toISOString() });
+  // Check-in transaccional: ocupa la perrera y liga la reserva en un solo RPC.
+  const checkIn = async (id: string, unitId: string, notes?: string) => {
+    const { error } = await supabase.rpc("check_in_reservation" as any, {
+      p_reservation_id: id,
+      p_unit_id: unitId,
+      p_notes: notes ?? "",
+    });
+    if (!error) fetch();
+    return { error };
+  };
+
+  // Check-out transaccional: libera la perrera ligada y completa la reserva.
+  const checkOut = async (id: string) => {
+    const { error } = await supabase.rpc("check_out_reservation" as any, {
+      p_reservation_id: id,
+    });
+    if (!error) fetch();
+    return { error };
+  };
   const approve  = (id: string) => updateStatus(id, ReservationStatus.SCHEDULED);
   const cancel   = (id: string, reason?: string) => updateStatus(id, ReservationStatus.CANCELLED, reason ? { rejection_reason: reason } : {});
 

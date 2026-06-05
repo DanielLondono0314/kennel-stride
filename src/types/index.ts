@@ -409,6 +409,7 @@ export interface PaymentDetail {
 
 export interface CheckInData {
   reservationId: string;
+  unitId: string;
   notes?: string;
   overrideAlerts: string[];
   overrideReason?: string;
