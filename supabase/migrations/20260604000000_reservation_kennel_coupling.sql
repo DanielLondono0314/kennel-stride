@@ -33,7 +33,8 @@ BEGIN
   FROM public.reservations r
   WHERE r.id = p_reservation_id
     AND r.organization_id IN (SELECT public.get_user_org_ids())
-    AND r.status = 'scheduled';
+    AND r.status = 'scheduled'
+  FOR UPDATE;
   IF v_org IS NULL THEN
     RAISE EXCEPTION 'Reserva inválida, fuera de tu organización o no está aprobada';
   END IF;
@@ -96,7 +97,8 @@ BEGIN
   FROM public.reservations r
   WHERE r.id = p_reservation_id
     AND r.organization_id IN (SELECT public.get_user_org_ids())
-    AND r.status IN ('checked_in', 'in_progress', 'ready');
+    AND r.status IN ('checked_in', 'in_progress', 'ready')
+  FOR UPDATE;
   IF v_org IS NULL THEN
     RAISE EXCEPTION 'Reserva inválida, fuera de tu organización o no está en curso';
   END IF;
