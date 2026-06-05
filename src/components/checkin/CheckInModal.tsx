@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +27,7 @@ import {
   Dog,
   Clock,
   MapPin,
+  Plus,
   User,
   Phone,
   AlertTriangle,
@@ -46,10 +51,66 @@ export function CheckInModal({
   onConfirm,
 }: CheckInModalProps) {
   const { user } = useAuth();
+  const { organization } = useOrganization();
+
   const [notes, setNotes] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [selectedOverrides, setSelectedOverrides] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  type FreeUnit = { id: string; name: string };
+  type Zone = { id: string; name: string };
+
+  const [units, setUnits] = useState<FreeUnit[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [unitId, setUnitId] = useState("");
+  const [creatingUnit, setCreatingUnit] = useState(false);
+  const [newUnitName, setNewUnitName] = useState("");
+  const [newUnitZoneId, setNewUnitZoneId] = useState("");
+
+  useEffect(() => {
+    if (!open || !organization) return;
+    setUnitId("");
+    setCreatingUnit(false);
+    setNewUnitName("");
+    Promise.all([
+      supabase
+        .from("facility_units")
+        .select("id, name")
+        .eq("organization_id", organization.id)
+        .eq("status", "available")
+        .order("name"),
+      supabase
+        .from("facility_zones")
+        .select("id, name")
+        .eq("organization_id", organization.id)
+        .order("name"),
+    ]).then(([unitsRes, zonesRes]) => {
+      setUnits(unitsRes.data ?? []);
+      setZones(zonesRes.data ?? []);
+      setNewUnitZoneId(zonesRes.data?.[0]?.id ?? "");
+    });
+  }, [open, organization?.id]);
+
+  const handleCreateUnit = async () => {
+    if (!organization || !newUnitName.trim() || !newUnitZoneId) return;
+    const { data, error } = await supabase
+      .from("facility_units")
+      .insert({
+        organization_id: organization.id,
+        zone_id: newUnitZoneId,
+        name: newUnitName.trim(),
+        unit_type: "kennel",
+        status: "available",
+      })
+      .select("id, name")
+      .single();
+    if (error || !data) return;
+    setUnits((prev) => [...prev, data]);
+    setUnitId(data.id);
+    setCreatingUnit(false);
+    setNewUnitName("");
+  };
 
   // Validate check-in requirements
   const validation = useMemo(() => {
@@ -83,6 +144,7 @@ export function CheckInModal({
 
     onConfirm({
       reservationId: reservation.id,
+      unitId,
       notes: notes || undefined,
       overrideAlerts: Array.from(selectedOverrides),
       overrideReason: overrideReason || undefined,
@@ -106,10 +168,11 @@ export function CheckInModal({
 
   if (!reservation) return null;
 
-  const { dog, customer, service, location } = reservation;
+  const { dog, customer, service } = reservation;
   const blockingAlerts = validation?.alerts.filter((a) => a.blocksOperation) || [];
   const allBlockingOverridden = blockingAlerts.every((a) => selectedOverrides.has(a.id));
-  const canProceed = validation?.isValid || (validation?.canOverride && allBlockingOverridden && overrideReason.length > 0);
+  const validationOk = validation?.isValid || (validation?.canOverride && allBlockingOverridden && overrideReason.length > 0);
+  const canProceed = validationOk && !!unitId && !creatingUnit;
   const needsOverrideReason = selectedOverrides.size > 0;
 
   return (
@@ -171,13 +234,63 @@ export function CheckInModal({
                 {format(reservation.endDate, "HH:mm", { locale: es })}
               </p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Ubicación</Label>
-              <p className="font-medium flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                {location?.name || "Sin asignar"}
-              </p>
-            </div>
+          </div>
+
+          {/* Perrera (obligatoria para check-in) */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Perrera *
+            </Label>
+
+            {!creatingUnit ? (
+              <Select value={unitId} onValueChange={setUnitId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    units.length ? "Elegir perrera libre…" : "No hay perreras libres"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="space-y-2 rounded-lg border p-3">
+                <Input
+                  placeholder="Nombre de la perrera (ej. A-4)"
+                  value={newUnitName}
+                  onChange={(e) => setNewUnitName(e.target.value)}
+                />
+                <Select value={newUnitZoneId} onValueChange={setNewUnitZoneId}>
+                  <SelectTrigger><SelectValue placeholder="Zona" /></SelectTrigger>
+                  <SelectContent>
+                    {zones.map((z) => (
+                      <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" onClick={handleCreateUnit}
+                    disabled={!newUnitName.trim() || !newUnitZoneId}>
+                    Crear y usar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost"
+                    onClick={() => setCreatingUnit(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!creatingUnit && (
+              <Button type="button" variant="ghost" size="sm"
+                className="h-auto p-0 text-xs text-primary"
+                onClick={() => setCreatingUnit(true)}>
+                <Plus className="h-3 w-3 mr-1" /> Crear perrera nueva…
+              </Button>
+            )}
           </div>
 
           {/* Package Info if applicable */}
