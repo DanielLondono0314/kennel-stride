@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Reservation, ReservationStatus, ServiceType, UserRole } from "@/types";
+import { Reservation, ReservationStatus, ServiceType, UserRole, Location } from "@/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 export interface DbReservationRow {
@@ -32,6 +32,9 @@ export interface DbReservationRow {
     behavior_notes: string | null; medical_notes: string | null;
   } | null;
   staff_members: { id: string; first_name: string; last_name: string; } | null;
+  location: {
+    id: string; name: string; unit_type: string;
+  } | null;
 }
 
 export function mapDbToReservation(row: DbReservationRow): Reservation {
@@ -75,7 +78,16 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
       requiredVaccinations: [],
       requiredDocuments: [],
     },
-    location: undefined,
+    location: row.location
+      ? {
+          id: row.location.id,
+          name: row.location.name,
+          type: (row.location.unit_type as Location["type"]) ?? "kennel",
+          capacity: 1,
+          isActive: true,
+        }
+      : undefined,
+    locationId: row.location_id ?? undefined,
     status: row.status as ReservationStatus,
     startDate: new Date(row.start_date),
     endDate: new Date(row.end_date),
@@ -109,7 +121,8 @@ const RESERVATION_SELECT = `
   *,
   customers(id, first_name, last_name, phone, email, city, state, balance),
   dogs(id, name, breed, weight, gender, color, behavior_notes, medical_notes),
-  staff_members(id, first_name, last_name)
+  staff_members(id, first_name, last_name),
+  location:facility_units(id, name, unit_type)
 `;
 
 // Default window prevents loading years of history on first render.
