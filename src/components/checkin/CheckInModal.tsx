@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -67,9 +68,12 @@ export function CheckInModal({
   const [creatingUnit, setCreatingUnit] = useState(false);
   const [newUnitName, setNewUnitName] = useState("");
   const [newUnitZoneId, setNewUnitZoneId] = useState("");
+  const [isCreatingUnit, setIsCreatingUnit] = useState(false);
+
+  const orgId = organization?.id;
 
   useEffect(() => {
-    if (!open || !organization) return;
+    if (!open || !orgId) return;
     setUnitId("");
     setCreatingUnit(false);
     setNewUnitName("");
@@ -77,39 +81,47 @@ export function CheckInModal({
       supabase
         .from("facility_units")
         .select("id, name")
-        .eq("organization_id", organization.id)
+        .eq("organization_id", orgId)
         .eq("status", "available")
         .order("name"),
       supabase
         .from("facility_zones")
         .select("id, name")
-        .eq("organization_id", organization.id)
+        .eq("organization_id", orgId)
         .order("name"),
     ]).then(([unitsRes, zonesRes]) => {
       setUnits(unitsRes.data ?? []);
       setZones(zonesRes.data ?? []);
       setNewUnitZoneId(zonesRes.data?.[0]?.id ?? "");
     });
-  }, [open, organization?.id]);
+  }, [open, orgId]);
 
   const handleCreateUnit = async () => {
-    if (!organization || !newUnitName.trim() || !newUnitZoneId) return;
-    const { data, error } = await supabase
-      .from("facility_units")
-      .insert({
-        organization_id: organization.id,
-        zone_id: newUnitZoneId,
-        name: newUnitName.trim(),
-        unit_type: "kennel",
-        status: "available",
-      })
-      .select("id, name")
-      .single();
-    if (error || !data) return;
-    setUnits((prev) => [...prev, data]);
-    setUnitId(data.id);
-    setCreatingUnit(false);
-    setNewUnitName("");
+    if (isCreatingUnit || !organization || !newUnitName.trim() || !newUnitZoneId) return;
+    setIsCreatingUnit(true);
+    try {
+      const { data, error } = await supabase
+        .from("facility_units")
+        .insert({
+          organization_id: organization.id,
+          zone_id: newUnitZoneId,
+          name: newUnitName.trim(),
+          unit_type: "kennel",
+          status: "available",
+        })
+        .select("id, name")
+        .single();
+      if (error || !data) {
+        toast.error("No se pudo crear la perrera", { description: error?.message });
+        return;
+      }
+      setUnits((prev) => [...prev, data]);
+      setUnitId(data.id);
+      setCreatingUnit(false);
+      setNewUnitName("");
+    } finally {
+      setIsCreatingUnit(false);
+    }
   };
 
   // Validate check-in requirements
@@ -221,7 +233,7 @@ export function CheckInModal({
           </div>
 
           {/* Service Info */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Servicio</Label>
               <p className="font-medium">{service?.name}</p>
@@ -238,14 +250,14 @@ export function CheckInModal({
 
           {/* Perrera (obligatoria para check-in) */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label htmlFor="unit-select" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Perrera *
             </Label>
 
             {!creatingUnit ? (
               <Select value={unitId} onValueChange={setUnitId}>
-                <SelectTrigger>
+                <SelectTrigger id="unit-select">
                   <SelectValue placeholder={
                     units.length ? "Elegir perrera libre…" : "No hay perreras libres"
                   } />
@@ -273,7 +285,7 @@ export function CheckInModal({
                 </Select>
                 <div className="flex gap-2">
                   <Button type="button" size="sm" onClick={handleCreateUnit}
-                    disabled={!newUnitName.trim() || !newUnitZoneId}>
+                    disabled={!newUnitName.trim() || !newUnitZoneId || isCreatingUnit}>
                     Crear y usar
                   </Button>
                   <Button type="button" size="sm" variant="ghost"

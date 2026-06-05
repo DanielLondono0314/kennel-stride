@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CheckInModal } from "@/components/checkin/CheckInModal";
 
 // Sin perreras disponibles → el selector queda vacío y Confirmar deshabilitado.
@@ -50,5 +50,35 @@ describe("CheckInModal — regla de perrera", () => {
     );
     const confirm = await screen.findByRole("button", { name: /confirmar check-in/i });
     expect(confirm).toBeDisabled();
+  });
+
+  it("incluye el unitId elegido en el payload de onConfirm", async () => {
+    // Un solo unit disponible.
+    const { supabase } = await import("@/integrations/supabase/client");
+    (supabase.from as any).mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({ order: () => Promise.resolve({ data: [{ id: "unit-1", name: "A-1" }], error: null }) }),
+          order: () => Promise.resolve({ data: [{ id: "zone-1", name: "Interior" }], error: null }),
+        }),
+      }),
+    }));
+
+    const onConfirm = vi.fn();
+    render(
+      <CheckInModal reservation={reservation} open={true} onOpenChange={() => {}} onConfirm={onConfirm} />
+    );
+
+    // Abrir el selector y elegir la perrera A-1.
+    const trigger = await screen.findByRole("combobox");
+    fireEvent.click(trigger);
+    const option = await screen.findByText("A-1");
+    fireEvent.click(option);
+
+    const confirm = await screen.findByRole("button", { name: /confirmar check-in/i });
+    await waitFor(() => expect(confirm).not.toBeDisabled());
+    fireEvent.click(confirm);
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ unitId: "unit-1" }));
   });
 });
