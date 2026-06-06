@@ -76,6 +76,51 @@ export const invoiceSchema = z.object({
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
+export const feedingSchema = z.object({
+  food_type: z.enum(["seco", "humedo", "crudo", "mixto"], {
+    errorMap: () => ({ message: "Elige el tipo de comida" }),
+  }),
+  brand: z.string().trim().max(80).optional().or(z.literal("")),
+  meals_per_day: z.coerce.number().int().min(1, "Indica cuántas comidas al día").max(12),
+  portion_amount: z.coerce.number().positive().max(10000).optional().nullable(),
+  portion_unit: z.enum(["g", "taza", "scoop"]).optional().nullable(),
+  instructions: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const aggressionDetailsSchema = z.object({
+  severity: z.enum(["baja", "media", "alta"], {
+    errorMap: () => ({ message: "Elige la severidad" }),
+  }),
+  handling: z.string().trim().min(1, "Describe el manejo").max(500),
+  requires_muzzle: z.boolean().default(false),
+  handle_alone: z.boolean().default(false),
+  no_other_dogs: z.boolean().default(false),
+});
+
+export const allergyRowSchema = z.object({
+  allergen: z.string().trim().min(1, "Indica el alérgeno").max(80),
+  type: z.enum(["comida", "ambiental", "medicamento"], {
+    errorMap: () => ({ message: "Elige el tipo de alergia" }),
+  }),
+  reaction: z.string().trim().max(200).optional().or(z.literal("")),
+  severity: z.enum(["baja", "media", "alta"]).optional().nullable(),
+});
+
+export const medicationRowSchema = z.object({
+  name: z.string().trim().min(1, "Indica el medicamento").max(120),
+  dose: z.string().trim().max(80).optional().or(z.literal("")),
+  frequency: z.string().trim().max(80).optional().or(z.literal("")),
+  duration_days: z.coerce.number().int().positive().max(3650).optional().nullable(),
+  start_date: z.string().optional().or(z.literal("")),
+  route: z.enum(["oral", "topica", "inyectable"]).optional().nullable(),
+  with_food: z.boolean().default(false),
+});
+
+export type FeedingInput = z.infer<typeof feedingSchema>;
+export type AggressionDetailsInput = z.infer<typeof aggressionDetailsSchema>;
+export type AllergyRowInput = z.infer<typeof allergyRowSchema>;
+export type MedicationRowInput = z.infer<typeof medicationRowSchema>;
+
 export type StaffMemberInput = z.infer<typeof staffMemberSchema>;
 export type InvitationInput = z.infer<typeof invitationSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
