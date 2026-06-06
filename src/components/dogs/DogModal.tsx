@@ -19,7 +19,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { DOG_BREEDS } from "@/lib/constants";
-import { dogSchema } from "@/lib/schemas";
+import {
+  dogSchema, feedingSchema, aggressionDetailsSchema, allergyRowSchema, medicationRowSchema,
+} from "@/lib/schemas";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { FeedingFields } from "@/components/dogs/FeedingFields";
+import { AggressionFields } from "@/components/dogs/AggressionFields";
+import { AllergyList } from "@/components/dogs/AllergyList";
+import { MedicationList } from "@/components/dogs/MedicationList";
+import {
+  emptyAggression, emptyFeeding,
+  type AggressionForm, type FeedingForm, type AllergyRow, type MedicationRow,
+} from "@/types/dogClinical";
 
 interface DogModalProps {
   dog?: any | null;
@@ -49,6 +63,12 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [notes, setNotes] = useState("");
   const [behaviorNotes, setBehaviorNotes] = useState("");
   const [medicalNotes, setMedicalNotes] = useState("");
+  const [aggression, setAggression] = useState<AggressionForm>(emptyAggression());
+  const [feeding, setFeeding] = useState<FeedingForm>(emptyFeeding());
+  const [allergies, setAllergies] = useState<AllergyRow[]>([]);
+  const [medications, setMedications] = useState<MedicationRow[]>([]);
+  // Toggle pendiente de confirmación de descarte.
+  const [pendingClear, setPendingClear] = useState<null | "aggressive" | "allergies" | "medication">(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -68,6 +88,28 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       });
   }, [organization?.id]);
 
+  // Cargar alergias/medicación al abrir en modo edición.
+  useEffect(() => {
+    if (!open || !dog?.id) return;
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const [aRes, mRes] = await Promise.all([
+        db.from("dog_allergies").select("*").eq("dog_id", dog.id),
+        db.from("dog_medications").select("*").eq("dog_id", dog.id),
+      ]);
+      setAllergies(((aRes.data as Record<string, unknown>[]) ?? []).map((r) => ({
+        allergen: (r.allergen as string) ?? "", type: (r.type as AllergyRow["type"]) ?? "",
+        reaction: (r.reaction as string) ?? "", severity: (r.severity as AllergyRow["severity"]) ?? "",
+      })));
+      setMedications(((mRes.data as Record<string, unknown>[]) ?? []).map((r) => ({
+        name: (r.name as string) ?? "", dose: (r.dose as string) ?? "", frequency: (r.frequency as string) ?? "",
+        duration_days: (r.duration_days as number) ?? "", start_date: (r.start_date as string) ?? "",
+        route: (r.route as MedicationRow["route"]) ?? "", with_food: !!r.with_food,
+      })));
+    })();
+  }, [open, dog?.id]);
+
   useEffect(() => {
     if (dog) {
       setCustomerId(dog.customer_id);
@@ -85,6 +127,8 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setNotes(dog.notes || "");
       setBehaviorNotes(dog.behavior_notes || "");
       setMedicalNotes(dog.medical_notes || "");
+      setAggression((dog.aggression_details as AggressionForm | null) ?? emptyAggression());
+      setFeeding((dog.feeding as FeedingForm | null) ?? emptyFeeding());
       setPhotoUrl(dog.photo_url || null);
       setBreedOpen(false);
     } else {
@@ -95,6 +139,10 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setHasAllergies(false);
       setOnMedication(false);
       setMicrochipNumber(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
+      setAggression(emptyAggression());
+      setFeeding(emptyFeeding());
+      setAllergies([]);
+      setMedications([]);
       setPhotoUrl(null);
       setBreedOpen(false);
     }
@@ -142,6 +190,34 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     return data.publicUrl;
   };
 
+  const hasAggressionData = (a: AggressionForm) =>
+    a.severity !== "" || a.handling.trim() !== "" ||
+    a.requires_muzzle || a.handle_alone || a.no_other_dogs;
+
+  // Intercepta el cambio del toggle: si se apaga con datos, pide confirmación.
+  const toggleAggressive = (next: boolean) => {
+    if (!next && hasAggressionData(aggression)) { setPendingClear("aggressive"); return; }
+    setIsAggressive(next);
+  };
+  const toggleAllergies = (next: boolean) => {
+    if (!next && allergies.length > 0) { setPendingClear("allergies"); return; }
+    setHasAllergies(next);
+  };
+  const toggleMedication = (next: boolean) => {
+    if (!next && medications.length > 0) { setPendingClear("medication"); return; }
+    setOnMedication(next);
+  };
+  const confirmClear = () => {
+    if (pendingClear === "aggressive") { setAggression(emptyAggression()); setIsAggressive(false); }
+    if (pendingClear === "allergies") { setAllergies([]); setHasAllergies(false); }
+    if (pendingClear === "medication") { setMedications([]); setOnMedication(false); }
+    setPendingClear(null);
+  };
+
+  const foodAllergyWarning = allergies
+    .filter((a) => a.type === "comida" && a.allergen.trim() !== "")
+    .map((a) => a.allergen.trim());
+
   const handleSubmit = async () => {
     if (!customerId) {
       toast.error("Selecciona un dueño");
@@ -159,6 +235,29 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
       return;
+    }
+    // Alimentación obligatoria.
+    const feedingParsed = feedingSchema.safeParse(feeding);
+    if (!feedingParsed.success) {
+      toast.error("Completa la alimentación", {
+        description: feedingParsed.error.issues[0]?.message,
+      });
+      return;
+    }
+    // Sub-forms requeridos cuando su toggle está activo.
+    if (isAggressive) {
+      const r = aggressionDetailsSchema.safeParse(aggression);
+      if (!r.success) { toast.error("Completa los datos de agresividad", { description: r.error.issues[0]?.message }); return; }
+    }
+    if (hasAllergies) {
+      if (allergies.length === 0) { toast.error("Añade al menos una alergia o apaga el interruptor"); return; }
+      const bad = allergies.find((a) => !allergyRowSchema.safeParse(a).success);
+      if (bad) { toast.error("Revisa las alergias", { description: "Cada alergia necesita alérgeno y tipo." }); return; }
+    }
+    if (onMedication) {
+      if (medications.length === 0) { toast.error("Añade al menos un medicamento o apaga el interruptor"); return; }
+      const bad = medications.find((m) => !medicationRowSchema.safeParse(m).success);
+      if (bad) { toast.error("Revisa la medicación", { description: "Cada medicamento necesita un nombre." }); return; }
     }
     setIsSubmitting(true);
 
@@ -185,6 +284,10 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
         behavior_notes: behaviorNotes,
         medical_notes: medicalNotes,
         photo_url: uploadedPhotoUrl,
+        aggression_details: isAggressive ? aggression : null,
+        feeding,
+        allergies: hasAllergies ? allergies : [],
+        medications: onMedication ? medications : [],
       });
     } finally {
       setIsSubmitting(false);
@@ -358,29 +461,51 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             <Label>{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Label className="text-sm font-semibold">Alertas de comportamiento/salud</Label>
+
+            {/* Agresivo */}
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
-                <Switch checked={isAggressive} onCheckedChange={setIsAggressive} />
-                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-destructive">
+                <Switch id="toggle-aggressive" aria-label="Perro agresivo"
+                  checked={isAggressive} onCheckedChange={toggleAggressive} />
+                <Label htmlFor="toggle-aggressive"
+                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-destructive">
                   <AlertTriangle className="h-4 w-4" /> Perro agresivo
                 </Label>
               </div>
+              {isAggressive && <AggressionFields value={aggression} onChange={setAggression} />}
+            </div>
+
+            {/* Alergias */}
+            <div className="space-y-2.5">
               <div className="flex items-center gap-3">
-                <Switch checked={hasAllergies} onCheckedChange={setHasAllergies} />
-                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-yellow-600">
+                <Switch id="toggle-allergies" aria-label="Tiene alergias"
+                  checked={hasAllergies} onCheckedChange={toggleAllergies} />
+                <Label htmlFor="toggle-allergies"
+                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-yellow-600">
                   <Leaf className="h-4 w-4" /> Tiene alergias
                 </Label>
               </div>
+              {hasAllergies && <AllergyList value={allergies} onChange={setAllergies} />}
+            </div>
+
+            {/* Medicación */}
+            <div className="space-y-2.5">
               <div className="flex items-center gap-3">
-                <Switch checked={onMedication} onCheckedChange={setOnMedication} />
-                <Label className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-blue-600">
+                <Switch id="toggle-medication" aria-label="En medicación"
+                  checked={onMedication} onCheckedChange={toggleMedication} />
+                <Label htmlFor="toggle-medication"
+                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-blue-600">
                   <Pill className="h-4 w-4" /> En medicación
                 </Label>
               </div>
+              {onMedication && <MedicationList value={medications} onChange={setMedications} />}
             </div>
           </div>
+
+          {/* Alimentación (obligatoria, siempre visible) */}
+          <FeedingFields value={feeding} onChange={setFeeding} foodAllergyWarning={foodAllergyWarning} />
 
           <div className="space-y-2">
             <Label>Notas generales</Label>
@@ -408,6 +533,22 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={pendingClear !== null} onOpenChange={(o) => !o && setPendingClear(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Descartar los datos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apagar este interruptor borrará los datos que cargaste en esta sección.
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Conservar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClear}>Descartar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
