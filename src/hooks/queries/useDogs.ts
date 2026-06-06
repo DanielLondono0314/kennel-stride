@@ -22,6 +22,8 @@ export interface DbDog {
   behavior_notes: string | null;
   medical_notes: string | null;
   photo_url: string | null;
+  aggression_details: unknown | null;
+  feeding: unknown | null;
   created_at: string;
   updated_at: string;
   customers?: { id: string; first_name: string; last_name: string } | null;
@@ -58,7 +60,8 @@ export function useDogs({ page = 0, search = "" } = {}) {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { dogs: (data ?? []) as DbDog[], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
+      // cast vía unknown: aggression_details/feeding aún no están en los tipos generados de Supabase.
+      return { dogs: (data ?? []) as unknown as DbDog[], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
     },
   });
 }

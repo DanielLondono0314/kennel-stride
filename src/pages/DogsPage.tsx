@@ -47,6 +47,8 @@ interface DbDog {
   behavior_notes: string | null;
   medical_notes: string | null;
   photo_url: string | null;
+  aggression_details: unknown | null;
+  feeding: unknown | null;
   created_at: string;
   updated_at: string;
   customers?: { id: string; first_name: string; last_name: string } | null;
@@ -104,6 +106,8 @@ export default function DogsPage() {
       behavior_notes: data.behavior_notes || "",
       medical_notes: data.medical_notes || "",
       photo_url: data.photo_url ?? null,
+      aggression_details: data.aggression_details ?? null,
+      feeding: data.feeding ?? null,
       updated_at: new Date().toISOString(),
     };
 
@@ -116,10 +120,33 @@ export default function DogsPage() {
 
     if (error) {
       toast.error("No se pudo guardar el perro", { description: "Revisa tu conexión e inténtalo de nuevo." });
-    } else {
-      toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
-      setModalOpen(false);
+      return;
     }
+
+    // Sincronizar alergias y medicación (delete-all + insert; listas cortas de intake).
+    const orgId = organization!.id;
+    const allergyRows = (data.allergies ?? []).map((a: any) => ({
+      dog_id: data.id, organization_id: orgId,
+      allergen: a.allergen, type: a.type,
+      reaction: a.reaction || null, severity: a.severity || null,
+    }));
+    const medRows = (data.medications ?? []).map((m: any) => ({
+      dog_id: data.id, organization_id: orgId,
+      name: m.name, dose: m.dose || null, frequency: m.frequency || null,
+      duration_days: m.duration_days === "" ? null : m.duration_days,
+      start_date: m.start_date || null, route: m.route || null,
+      with_food: !!m.with_food,
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
+    await db.from("dog_allergies").delete().eq("dog_id", data.id);
+    if (allergyRows.length) await db.from("dog_allergies").insert(allergyRows);
+    await db.from("dog_medications").delete().eq("dog_id", data.id);
+    if (medRows.length) await db.from("dog_medications").insert(medRows);
+
+    toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
+    setModalOpen(false);
   };
 
   const handleDelete = async () => {
