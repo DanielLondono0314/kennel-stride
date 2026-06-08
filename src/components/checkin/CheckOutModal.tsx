@@ -47,7 +47,7 @@ interface CheckOutModalProps {
   reservation: Reservation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (data: { reservationId: string }) => void;
+  onConfirm: (data: { reservationId: string }) => void | Promise<void>;
 }
 
 type PaymentMethod = "package" | "cash" | "card" | "invoice";
@@ -207,21 +207,19 @@ export function CheckOutModal({
         if (itemError) throw itemError;
       }
 
-      // 2. Update reservation to completed
-      const { error: resError } = await supabase
-        .from("reservations")
-        .update({
-          status: "completed",
-          check_out_time: now,
-          notes: notes || reservation.notes || "",
-          updated_at: now,
-        })
-        .eq("id", reservation.id);
+      // 2. Guardar las notas de check-out SIN tocar el estado. La completitud
+      //    de la reserva y la liberación de la perrera las hace el RPC
+      //    check_out_reservation (vía onConfirm→Dashboard), única fuente de
+      //    verdad. Antes el modal ponía status='completed' aquí y luego el RPC
+      //    fallaba ("no está en curso"), dejando la perrera ocupada para siempre.
+      if (notes.trim()) {
+        await supabase
+          .from("reservations")
+          .update({ notes, updated_at: now })
+          .eq("id", reservation.id);
+      }
 
-      if (resError) throw resError;
-
-      toast.success(`Check-out de ${reservation.dog!.name} completado`);
-      onConfirm({ reservationId: reservation.id });
+      await onConfirm({ reservationId: reservation.id });
       onOpenChange(false);
       setNotes("");
       setPaymentMethod("cash");
