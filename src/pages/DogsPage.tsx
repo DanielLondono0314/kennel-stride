@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -56,6 +57,7 @@ interface DbDog {
 
 export default function DogsPage() {
   const { organization } = useOrganization();
+  const queryClient = useQueryClient();
   const canDelete = usePermission("delete_dog");
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,6 +91,10 @@ export default function DogsPage() {
   const handleEditDog = (dog: DbDog) => { setEditingDog(dog); setModalOpen(true); };
 
   const handleSave = async (data: any) => {
+    if (!organization) {
+      toast.error("No se pudo guardar el perro", { description: "Vuelve a iniciar sesión e inténtalo de nuevo." });
+      return;
+    }
     const payload = {
       customer_id: data.customer_id,
       name: data.name,
@@ -115,7 +121,7 @@ export default function DogsPage() {
     if (data.id && editingDog) {
       ({ error } = await supabase.from("dogs").update(payload).eq("id", data.id));
     } else {
-      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id, organization_id: organization!.id }));
+      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id, organization_id: organization.id }));
     }
 
     if (error) {
@@ -124,7 +130,7 @@ export default function DogsPage() {
     }
 
     // Sincronizar alergias y medicación (delete-all + insert; listas cortas de intake).
-    const orgId = organization!.id;
+    const orgId = organization.id;
     const allergyRows = (data.allergies ?? []).map((a: any) => ({
       dog_id: data.id, organization_id: orgId,
       allergen: a.allergen, type: a.type,
@@ -140,10 +146,23 @@ export default function DogsPage() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any;
-    await db.from("dog_allergies").delete().eq("dog_id", data.id);
-    if (allergyRows.length) await db.from("dog_allergies").insert(allergyRows);
-    await db.from("dog_medications").delete().eq("dog_id", data.id);
-    if (medRows.length) await db.from("dog_medications").insert(medRows);
+    // Comprobar el error de cada operación: si el sync falla tras borrar, se
+    // perderían datos clínicos en silencio. Abortamos con aviso explícito.
+    const delA = await db.from("dog_allergies").delete().eq("dog_id", data.id);
+    const insA = allergyRows.length ? await db.from("dog_allergies").insert(allergyRows) : { error: null };
+    const delM = await db.from("dog_medications").delete().eq("dog_id", data.id);
+    const insM = medRows.length ? await db.from("dog_medications").insert(medRows) : { error: null };
+
+    const syncError = delA.error || insA.error || delM.error || insM.error;
+    // Refrescar la lista pase lo que pase: el perro ya se guardó.
+    queryClient.invalidateQueries({ queryKey: ["dogs", orgId] });
+
+    if (syncError) {
+      toast.error("El perro se guardó, pero falló la sincronización clínica", {
+        description: "Vuelve a abrir el perro y revisa alergias/medicación.",
+      });
+      return;
+    }
 
     toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
     setModalOpen(false);
