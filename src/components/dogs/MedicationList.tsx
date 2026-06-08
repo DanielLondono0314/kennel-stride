@@ -18,7 +18,7 @@ export function MedicationList({ value, onChange }: Props) {
   const add = () => onChange([...value, emptyMedication()]);
 
   return (
-    <div className="space-y-4 rounded-lg border border-blue-500/30 bg-blue-500/5 p-4">
+    <div className="space-y-4 rounded-lg border border-blue-600/40 bg-blue-600/10 p-4">
       {value.map((row, i) => (
         <div key={i} className="space-y-2 border-b border-border/60 pb-3 last:border-0 last:pb-0">
           <div className="flex items-end gap-2">
@@ -32,7 +32,7 @@ export function MedicationList({ value, onChange }: Props) {
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Dosis</Label>
               <Input value={row.dose} onChange={(e) => update(i, { dose: e.target.value })} placeholder="Ej. 5mg" />
@@ -49,7 +49,7 @@ export function MedicationList({ value, onChange }: Props) {
                 placeholder="10" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
             <div className="space-y-1.5">
               <Label className="text-xs">Inicio</Label>
               <Input type="date" value={row.start_date}
@@ -73,7 +73,7 @@ export function MedicationList({ value, onChange }: Props) {
           </div>
         </div>
       ))}
-      <Button type="button" variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={add}>
+      <Button type="button" variant="ghost" size="sm" className="text-xs text-primary" onClick={add}>
         <Plus className="h-3 w-3 mr-1" /> Añadir medicamento
       </Button>
     </div>

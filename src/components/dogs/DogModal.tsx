@@ -214,6 +214,11 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     setPendingClear(null);
   };
 
+  const pendingClearLabel =
+    pendingClear === "aggressive" ? "agresividad" :
+    pendingClear === "allergies" ? "alergias" :
+    pendingClear === "medication" ? "medicación" : "";
+
   const foodAllergyWarning = allergies
     .filter((a) => a.type === "comida" && a.allergen.trim() !== "")
     .map((a) => a.allergen.trim());
@@ -333,9 +338,10 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
               )}
             </div>
             <div className="space-y-1">
-              <Label>Foto del perro</Label>
+              <Label htmlFor="dog-photo-button">Foto del perro</Label>
               <div className="flex gap-2">
                 <Button
+                  id="dog-photo-button"
                   type="button"
                   variant="outline"
                   size="sm"
@@ -358,9 +364,9 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           </div>
 
           <div className="space-y-2">
-            <Label>Dueño *</Label>
+            <Label htmlFor="dog-owner">Dueño *</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar dueño" /></SelectTrigger>
+              <SelectTrigger id="dog-owner"><SelectValue placeholder="Seleccionar dueño" /></SelectTrigger>
               <SelectContent>
                 {customers.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
@@ -369,16 +375,17 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nombre *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del perro" />
+              <Label htmlFor="dog-name">Nombre *</Label>
+              <Input id="dog-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del perro" />
             </div>
             <div className="space-y-2">
-              <Label>Raza *</Label>
+              <Label htmlFor="dog-breed">Raza *</Label>
               <Popover open={breedOpen} onOpenChange={setBreedOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    id="dog-breed"
                     type="button"
                     variant="outline"
                     role="combobox"
@@ -424,11 +431,11 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Género</Label>
+              <Label htmlFor="dog-gender">Género</Label>
               <Select value={gender} onValueChange={(v) => setGender(v as "male" | "female")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="dog-gender"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">♂ Macho</SelectItem>
                   <SelectItem value="female">♀ Hembra</SelectItem>
@@ -436,29 +443,29 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Fecha de nacimiento</Label>
-              <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+              <Label htmlFor="dog-birth-date">Fecha de nacimiento</Label>
+              <Input id="dog-birth-date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Peso (kg)</Label>
-              <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" />
+              <Label htmlFor="dog-weight">Peso (kg)</Label>
+              <Input id="dog-weight" type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Color</Label>
-              <Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="Color del pelaje" />
+              <Label htmlFor="dog-color">Color</Label>
+              <Input id="dog-color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Color del pelaje" />
             </div>
             <div className="space-y-2">
-              <Label>Microchip</Label>
-              <Input value={microchipNumber} onChange={(e) => setMicrochipNumber(e.target.value)} placeholder="Número de microchip" />
+              <Label htmlFor="dog-microchip">Microchip</Label>
+              <Input id="dog-microchip" value={microchipNumber} onChange={(e) => setMicrochipNumber(e.target.value)} placeholder="Número de microchip" />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Switch checked={isNeutered} onCheckedChange={setIsNeutered} />
-            <Label>{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
+            <Switch id="dog-neutered" checked={isNeutered} onCheckedChange={setIsNeutered} />
+            <Label htmlFor="dog-neutered">{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
           </div>
 
           <div className="space-y-4">
@@ -483,7 +490,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
                 <Switch id="toggle-allergies" aria-label="Tiene alergias"
                   checked={hasAllergies} onCheckedChange={toggleAllergies} />
                 <Label htmlFor="toggle-allergies"
-                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-yellow-600">
+                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-amber-700">
                   <Leaf className="h-4 w-4" /> Tiene alergias
                 </Label>
               </div>
@@ -496,7 +503,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
                 <Switch id="toggle-medication" aria-label="En medicación"
                   checked={onMedication} onCheckedChange={toggleMedication} />
                 <Label htmlFor="toggle-medication"
-                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-blue-600">
+                  className="flex items-center gap-1.5 text-sm font-normal cursor-pointer text-blue-700">
                   <Pill className="h-4 w-4" /> En medicación
                 </Label>
               </div>
@@ -508,16 +515,16 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           <FeedingFields value={feeding} onChange={setFeeding} foodAllergyWarning={foodAllergyWarning} />
 
           <div className="space-y-2">
-            <Label>Notas generales</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas sobre el perro..." rows={2} />
+            <Label htmlFor="dog-notes">Notas generales</Label>
+            <Textarea id="dog-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas sobre el perro..." rows={2} />
           </div>
           <div className="space-y-2">
-            <Label>Notas de comportamiento</Label>
-            <Textarea value={behaviorNotes} onChange={(e) => setBehaviorNotes(e.target.value)} placeholder="Comportamiento, reactividad, sociabilidad..." rows={2} />
+            <Label htmlFor="dog-behavior-notes">Notas de comportamiento</Label>
+            <Textarea id="dog-behavior-notes" value={behaviorNotes} onChange={(e) => setBehaviorNotes(e.target.value)} placeholder="Comportamiento, reactividad, sociabilidad..." rows={2} />
           </div>
           <div className="space-y-2">
-            <Label>Notas médicas</Label>
-            <Textarea value={medicalNotes} onChange={(e) => setMedicalNotes(e.target.value)} placeholder="Condiciones médicas, alergias, medicamentos..." rows={2} />
+            <Label htmlFor="dog-medical-notes">Notas médicas</Label>
+            <Textarea id="dog-medical-notes" value={medicalNotes} onChange={(e) => setMedicalNotes(e.target.value)} placeholder="Condiciones médicas, alergias, medicamentos..." rows={2} />
           </div>
         </div>
 
@@ -537,15 +544,22 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       <AlertDialog open={pendingClear !== null} onOpenChange={(o) => !o && setPendingClear(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Descartar los datos?</AlertDialogTitle>
+            <AlertDialogTitle>
+              ¿Descartar los datos de {pendingClearLabel}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Apagar este interruptor borrará los datos que cargaste en esta sección.
+              Apagar este interruptor borrará los datos que cargaste en {pendingClearLabel}.
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Conservar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmClear}>Descartar</AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmClear}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Descartar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

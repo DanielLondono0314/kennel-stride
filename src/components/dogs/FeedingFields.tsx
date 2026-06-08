@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, AlertTriangle } from "lucide-react";
 import type { FeedingForm, FoodType, PortionUnit } from "@/types/dogClinical";
 
 interface Props {
@@ -21,12 +21,13 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Prop
       </Label>
 
       {foodAllergyWarning.length > 0 && (
-        <p className="text-xs text-destructive">
-          ⚠️ Alergias alimentarias: {foodAllergyWarning.join(", ")}
+        <p className="flex items-center gap-1.5 text-xs text-destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Alergias alimentarias: {foodAllergyWarning.join(", ")}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="feeding-type" className="text-xs">Tipo de comida *</Label>
           <Select value={value.food_type} onValueChange={(v) => set({ food_type: v as FoodType })}>
@@ -46,7 +47,7 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Prop
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="feeding-meals" className="text-xs">Comidas al día *</Label>
           <Input id="feeding-meals" type="number" min={1} value={value.meals_per_day}
