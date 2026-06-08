@@ -22,11 +22,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./tests/setup.ts"],
-    include: ["tests/test-suite.ts", "src/**/*.test.ts"],
-    css: false,
-  },
+  // La config de tests vive SOLO en vitest.config.ts (fuente única). Antes había
+  // aquí un bloque `test` con un `include` divergente que se saltaba toda la
+  // carpeta tests/ → falsa sensación de verde al correr `vitest` sin --config.
 }));

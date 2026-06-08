@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
-import { useDogs, useDeleteDog } from "@/hooks/queries/useDogs";
+import { useDogs, useDeleteDog, type DbDog } from "@/hooks/queries/useDogs";
 import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { Input } from "@/components/ui/input";
@@ -30,30 +30,7 @@ import { differenceInYears, differenceInMonths } from "date-fns";
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
-interface DbDog {
-  id: string;
-  customer_id: string;
-  name: string;
-  breed: string;
-  birth_date: string | null;
-  weight: number | null;
-  color: string | null;
-  gender: string;
-  is_neutered: boolean;
-  is_aggressive: boolean;
-  has_allergies: boolean;
-  on_medication: boolean;
-  microchip_number: string | null;
-  notes: string | null;
-  behavior_notes: string | null;
-  medical_notes: string | null;
-  photo_url: string | null;
-  aggression_details: unknown | null;
-  feeding: unknown | null;
-  created_at: string;
-  updated_at: string;
-  customers?: { id: string; first_name: string; last_name: string } | null;
-}
+// DbDog se importa de @/hooks/queries/useDogs (fuente única) en vez de duplicarla.
 
 export default function DogsPage() {
   const { organization } = useOrganization();
