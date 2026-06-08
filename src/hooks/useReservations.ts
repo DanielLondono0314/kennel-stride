@@ -30,6 +30,7 @@ export interface DbReservationRow {
     id: string; name: string; breed: string; weight: number | null;
     gender: string; color: string | null;
     behavior_notes: string | null; medical_notes: string | null;
+    photo_url: string | null;
   } | null;
   staff_members: { id: string; first_name: string; last_name: string; } | null;
   location: {
@@ -60,6 +61,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
       breed: row.dogs?.breed ?? "",
       gender: (row.dogs?.gender as "male" | "female") ?? "male",
       weight: row.dogs?.weight ?? 0,
+      avatarUrl: row.dogs?.photo_url ?? undefined,
       isNeutered: false,
       flags: [],
       vaccinations: [],
@@ -120,7 +122,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
 const RESERVATION_SELECT = `
   *,
   customers(id, first_name, last_name, phone, email, city, state, balance),
-  dogs(id, name, breed, weight, gender, color, behavior_notes, medical_notes),
+  dogs(id, name, breed, weight, gender, color, behavior_notes, medical_notes, photo_url),
   staff_members(id, first_name, last_name),
   location:facility_units(id, name, unit_type)
 `;

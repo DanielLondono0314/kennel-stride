@@ -91,7 +91,7 @@ export function CheckOutModal({
         .eq("customer_id", reservation.customer!.id)
         .eq("service_type", reservation.service!.type)
         .eq("status", "active")
-        .eq("organization_id", organization!.id)
+        .eq("organization_id", organization.id)
         .gt("remaining_credits", 0)
         .order("expires_at")
         .limit(1)
@@ -124,6 +124,10 @@ export function CheckOutModal({
 
   const handleConfirm = async () => {
     if (!reservation) return;
+    if (!organization) {
+      toast.error("No se pudo procesar el check-out", { description: "Vuelve a iniciar sesión e inténtalo de nuevo." });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -150,7 +154,7 @@ export function CheckOutModal({
             paid_at: now,
             due_date: now,
             notes: notes || null,
-            organization_id: organization!.id,
+            organization_id: organization.id,
           })
           .select("id")
           .single();
@@ -165,7 +169,7 @@ export function CheckOutModal({
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
-            organization_id: organization!.id,
+            organization_id: organization.id,
           });
 
         if (itemError) throw itemError;
@@ -186,7 +190,7 @@ export function CheckOutModal({
             total: reservation.totalPrice,
             due_date: dueDate.toISOString(),
             notes: notes || null,
-            organization_id: organization!.id,
+            organization_id: organization.id,
           })
           .select("id")
           .single();
@@ -201,7 +205,7 @@ export function CheckOutModal({
             quantity: 1,
             unit_price: reservation.totalPrice,
             total: reservation.totalPrice,
-            organization_id: organization!.id,
+            organization_id: organization.id,
           });
 
         if (itemError) throw itemError;

@@ -87,9 +87,10 @@ export function useCreatePackage() {
 
   return useMutation({
     mutationFn: async (input: Partial<DbPackage>) => {
+      if (!organization) throw new Error("Sin organización activa");
       const { data, error } = await supabase
         .from("packages")
-        .insert({ ...input, organization_id: organization!.id, remaining_credits: input.total_credits } as any)
+        .insert({ ...input, organization_id: organization.id, remaining_credits: input.total_credits } as any)
         .select()
         .single();
       if (error) throw error;
