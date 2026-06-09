@@ -24,9 +24,9 @@
 
 | ID | Ítem | Dueño | Esfuerzo | Estado |
 |----|------|-------|----------|--------|
-| PR-1 | Emails transaccionales por SMTP por defecto de Supabase → caen en spam / rate-limit | 🤝 | M | ABIERTO |
-| PR-2 | Checkout de LemonSqueezy puede estar "no configurado" en prod (env vars + webhook secret) | 🎛️ | S | ABIERTO |
-| PR-3 | No hay smoke end-to-end del camino del dinero (registro→trial→pago→activación) | 🤝 | M | ABIERTO |
+| PR-1 | Emails transaccionales por SMTP por defecto de Supabase → caen en spam / rate-limit | 🎛️ | M | ABIERTO — pasos en `REVENUE_PATH_SETUP.md` |
+| PR-2 | Checkout de LemonSqueezy puede estar "no configurado" en prod (env vars + webhook secret) | 🎛️ | S | ABIERTO — pasos en `REVENUE_PATH_SETUP.md` |
+| PR-3 | No hay smoke end-to-end del camino del dinero (registro→trial→pago→activación) | 🤝 | M | ABIERTO — checklist en `REVENUE_PATH_SETUP.md` |
 
 - **PR-1** — `signUp`/`resetPasswordForEmail` usan el SMTP por defecto de Supabase (~3-4/h, va a spam). Un registro que no recibe el correo de confirmación = trial que nunca empieza = venta perdida. Ya hay cuenta de **Resend** (`send-campaign`).
   **DoD:** Supabase Auth apuntado a Resend SMTP; un registro nuevo en prod recibe confirmación <1 min en bandeja de entrada; "recuperar contraseña" llega y funciona.
@@ -38,12 +38,12 @@
 
 | ID | Ítem | Dueño | Esfuerzo | Estado |
 |----|------|-------|----------|--------|
-| PR-4 | Sentry instalado (`@sentry/react`) pero **sin inicializar** → 0 visibilidad de errores en prod | 🧑‍💻 | S | ABIERTO |
+| PR-4 | Sentry — **código ya hecho** (`initSentry()` + ErrorBoundary); solo falta poner `VITE_SENTRY_DSN` en Vercel | 🎛️ | S | CÓDIGO HECHO · falta DSN |
 | PR-5 | Sin analítica de producto → embudo de conversión invisible | 🤝 | S | ABIERTO |
-| PR-6 | Sin páginas legales (Términos/Privacidad) en el router | 🧑‍💻 | S | ABIERTO |
+| PR-6 | Páginas legales (Términos/Privacidad) + rutas + footer | 🧑‍💻 | S | ✅ HECHO (2026-06-09) |
 | PR-7 | Edge functions (webhook/email) sin alerta ante fallos | 🤝 | M | ABIERTO |
 
-- **PR-4** — **DoD:** `Sentry.init` en el frontend con DSN por env; un error provocado en prod aparece en Sentry; source maps subidos.
+- **PR-4** — Verificado 2026-06-09: `src/lib/sentry.ts` ya inicializa Sentry leyendo `VITE_SENTRY_DSN` (no-op sin DSN) y el `ErrorBoundary` captura excepciones. **DoD restante:** poner `VITE_SENTRY_DSN` en Vercel; un error provocado en prod aparece en Sentry. Pasos en `REVENUE_PATH_SETUP.md`.
 - **PR-5** — PostHog (gratis). Eventos mínimos: `signup`, `org_created`, `first_reservation`, `paywall_view`, `checkout_click`, `subscription_active`. **DoD:** embudo visible en PostHog con esos eventos llegando desde prod.
 - **PR-6** — **DoD:** `/terminos` y `/privacidad` renderizan contenido real, enlazados desde el footer del landing y el registro. (Requisito para cobrar + señal de confianza.)
 - **PR-7** — **DoD:** un fallo del webhook de pago genera una señal observable (Sentry/log/alerta), no se pierde en silencio.
@@ -96,6 +96,7 @@
 
 | Fecha | Qué |
 |-------|-----|
+| 2026-06-09 | **PR-6** Páginas legales (Términos/Privacidad) + rutas + footer del landing en español. **PR-4** verificado: Sentry ya estaba hecho en código (solo falta DSN). Checklist de P0 del camino del dinero en `REVENUE_PATH_SETUP.md`. |
 | 2026-06-08 | **Auditoría fase-2** (Crít+Alto+Medio): bug crítico de check-out (perreras nunca se liberaban), refresh+errores de `DogsPage`, RLS clínica alineada + policy legacy de `profiles` eliminada (PII cross-tenant), a11y/contraste del formulario de perro, config de tests unificada, foto del perro en reservas, guards de organización. Migración `20260608000000`. |
 | 2026-06-08 | Corrección de datos: liberar perreras atascadas (0 filas — no había usuarios afectados). Migración `20260608010000`. |
 | 2026-06-08 | **Formulario de perro** ampliado (intake clínico: agresividad/alergias/medicación/alimentación). Migración `20260606000000`. |
