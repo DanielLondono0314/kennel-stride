@@ -1414,16 +1414,19 @@ function Footer() {
             © 2025 KennelOps, Inc. Todos los derechos reservados.
           </p>
           <div className="flex gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((l) => (
+            {[
+              { label: 'Privacidad', href: '/privacidad' },
+              { label: 'Términos', href: '/terminos' },
+            ].map((l) => (
               <a
-                key={l}
-                href="#"
+                key={l.href}
+                href={l.href}
                 className="no-underline"
                 style={{ fontSize: 12.5, color: '#475569', transition: 'color 0.15s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#94A3B8')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = '#475569')}
               >
-                {l}
+                {l.label}
               </a>
             ))}
           </div>
