@@ -1,0 +1,49 @@
+# PR-10: falla el CI si el esquema (según migraciones) deja alguna tabla
+# sin RLS o con policies abiertas a anon/public. Protege contra drift tipo
+# Lovable: si un cambio remoto se retro-porta a migraciones, este guard lo ve.
+# PR-11: además corre los tests pgTAP de los RPCs de dinero (supabase test db).
+name: DB Guard (RLS + pgTAP)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/rls_guard.sql"
+      - ".github/workflows/rls-guard.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - "scripts/rls_guard.sql"
+      - ".github/workflows/rls-guard.yml"
+
+jobs:
+  rls-guard:
+    name: RLS Guard + tests de DB (migraciones → Postgres local)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local database (applies migrations)
+        run: supabase db start
+
+      - name: Run RLS guard
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f scripts/rls_guard.sql
+
+      - name: Run database tests (pgTAP)
+        run: supabase test db
