@@ -69,15 +69,12 @@ describe("useReservations check-in / check-out", () => {
     });
   });
 
-  it("checkOut llama al RPC check_out_reservation con la reserva", async () => {
-    rpcMock.mockResolvedValue({ error: null });
+  // El check-out ya no vive en este hook: lo hace CheckOutModal vía el RPC
+  // atómico complete_checkout (ver tests/components/CheckOutModal.test.tsx).
+  it("el hook ya no expone checkOut (flujo movido al RPC atómico)", async () => {
     const { useReservations } = await import("@/hooks/useReservations");
     const { result } = renderHook(() => useReservations());
 
-    await result.current.checkOut("res-1");
-
-    expect(rpcMock).toHaveBeenCalledWith("check_out_reservation", {
-      p_reservation_id: "res-1",
-    });
+    expect((result.current as Record<string, unknown>).checkOut).toBeUndefined();
   });
 });

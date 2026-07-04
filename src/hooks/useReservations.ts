@@ -220,7 +220,7 @@ export function useReservations(options: UseReservationsOptions = {}) {
 
   // Check-in transaccional: ocupa la perrera y liga la reserva en un solo RPC.
   const checkIn = async (id: string, unitId: string, notes?: string) => {
-    const { error } = await supabase.rpc("check_in_reservation" as any, {
+    const { error } = await supabase.rpc("check_in_reservation", {
       p_reservation_id: id,
       p_unit_id: unitId,
       p_notes: notes ?? "",
@@ -229,18 +229,12 @@ export function useReservations(options: UseReservationsOptions = {}) {
     return { error };
   };
 
-  // Check-out transaccional: libera la perrera ligada y completa la reserva.
-  const checkOut = async (id: string) => {
-    const { error } = await supabase.rpc("check_out_reservation" as any, {
-      p_reservation_id: id,
-    });
-    if (!error) fetch();
-    return { error };
-  };
+  // El check-out vive en CheckOutModal vía el RPC atómico complete_checkout
+  // (pago + completitud + liberación de perrera en una transacción).
   const approve  = (id: string) => updateStatus(id, ReservationStatus.SCHEDULED);
   const cancel   = (id: string, reason?: string) => updateStatus(id, ReservationStatus.CANCELLED, reason ? { rejection_reason: reason } : {});
 
-  return { reservations, rows, loading, error, refetch: fetch, updateStatus, checkIn, checkOut, approve, cancel };
+  return { reservations, rows, loading, error, refetch: fetch, updateStatus, checkIn, approve, cancel };
 }
 
 export async function fetchReservationsRange(

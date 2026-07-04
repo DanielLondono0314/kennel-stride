@@ -45,7 +45,7 @@ export default function Dashboard() {
   const [newReservationOpen, setNewReservationOpen] = useState(false);
 
   // Real reservations from Supabase with auto-refresh
-  const { reservations, loading, checkIn, checkOut, approve, cancel, refetch } = useReservations({
+  const { reservations, loading, checkIn, approve, cancel, refetch } = useReservations({
     autoRefresh: true,
   });
 
@@ -146,17 +146,15 @@ export default function Dashboard() {
     setSelectedReservation(null);
   };
 
-  const handleCheckOutConfirm = async (data: { reservationId: string }) => {
-    const { error } = await checkOut(data.reservationId);
+  // El modal ya hizo TODO el check-out (pago + completitud + liberación de
+  // perrera) vía el RPC atómico complete_checkout; aquí solo refrescamos.
+  const handleCheckOutConfirm = async (_data: { reservationId: string }) => {
     setCheckOutModalOpen(false);
-    if (error) {
-      toast.error("No se pudo registrar el check-out", { description: "Inténtalo de nuevo." });
-    } else {
-      toast.success("Check-out completado", {
-        description: `${selectedReservation?.dog?.name} ha salido del centro.`,
-      });
-    }
+    toast.success("Check-out completado", {
+      description: `${selectedReservation?.dog?.name} ha salido del centro.`,
+    });
     setSelectedReservation(null);
+    await refetch();
   };
 
   const handleApprove = async (id: string) => {

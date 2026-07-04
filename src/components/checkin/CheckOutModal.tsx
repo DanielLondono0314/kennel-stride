@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/card";
 import { Reservation } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { deductPackageCredit } from "@/hooks/queries/usePackages";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -131,103 +130,29 @@ export function CheckOutModal({
     setIsSubmitting(true);
 
     try {
-      const now = new Date().toISOString();
+      // Check-out atómico: pago + notas + liberación de perrera + completitud
+      // en UNA transacción (RPC complete_checkout). Antes el pago se hacía en
+      // el cliente y luego se llamaba al RPC de completitud: si este fallaba,
+      // quedaba una factura huérfana con la reserva aún en curso.
+      const { error } = await supabase.rpc("complete_checkout", {
+        p_reservation_id: reservation.id,
+        p_payment_method: paymentMethod,
+        p_package_id: paymentMethod === "package" ? availablePackage?.id ?? null : null,
+        p_notes: notes,
+      });
 
-      // 1. Handle payment
-      if (paymentMethod === "package" && availablePackage) {
-        // Descuento atómico vía RPC: piso en 0 + log de auditoría en la misma
-        // transacción. Si otro check-out agotó el crédito, el RPC lanza error.
-        await deductPackageCredit({ packageId: availablePackage.id, reason: "check-out" });
-      } else if (paymentMethod === "cash" || paymentMethod === "card") {
-        // Create paid invoice
-        const { data: invoice, error: invoiceError } = await supabase
-          .from("invoices")
-          .insert({
-            customer_id: reservation.customer!.id,
-            reservation_id: reservation.id,
-            status: "paid",
-            subtotal: reservation.totalPrice,
-            discount: 0,
-            tax: 0,
-            total: reservation.totalPrice,
-            payment_method: paymentMethod,
-            paid_at: now,
-            due_date: now,
-            notes: notes || null,
-            organization_id: organization.id,
-          })
-          .select("id")
-          .single();
-
-        if (invoiceError) throw invoiceError;
-
-        const { error: itemError } = await supabase
-          .from("invoice_items")
-          .insert({
-            invoice_id: invoice.id,
-            description: reservation.service!.name,
-            quantity: 1,
-            unit_price: reservation.totalPrice,
-            total: reservation.totalPrice,
-            organization_id: organization.id,
-          });
-
-        if (itemError) throw itemError;
-      } else if (paymentMethod === "invoice") {
-        // Create pending invoice
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 30);
-
-        const { data: invoice, error: invoiceError } = await supabase
-          .from("invoices")
-          .insert({
-            customer_id: reservation.customer!.id,
-            reservation_id: reservation.id,
-            status: "pending",
-            subtotal: reservation.totalPrice,
-            discount: 0,
-            tax: 0,
-            total: reservation.totalPrice,
-            due_date: dueDate.toISOString(),
-            notes: notes || null,
-            organization_id: organization.id,
-          })
-          .select("id")
-          .single();
-
-        if (invoiceError) throw invoiceError;
-
-        const { error: itemError } = await supabase
-          .from("invoice_items")
-          .insert({
-            invoice_id: invoice.id,
-            description: reservation.service!.name,
-            quantity: 1,
-            unit_price: reservation.totalPrice,
-            total: reservation.totalPrice,
-            organization_id: organization.id,
-          });
-
-        if (itemError) throw itemError;
-      }
-
-      // 2. Guardar las notas de check-out SIN tocar el estado. La completitud
-      //    de la reserva y la liberación de la perrera las hace el RPC
-      //    check_out_reservation (vía onConfirm→Dashboard), única fuente de
-      //    verdad. Antes el modal ponía status='completed' aquí y luego el RPC
-      //    fallaba ("no está en curso"), dejando la perrera ocupada para siempre.
-      if (notes.trim()) {
-        await supabase
-          .from("reservations")
-          .update({ notes, updated_at: now })
-          .eq("id", reservation.id);
+      if (error) {
+        toast.error("No se pudo procesar el check-out", {
+          description: error.message || "Inténtalo de nuevo.",
+        });
+        return;
       }
 
       await onConfirm({ reservationId: reservation.id });
       onOpenChange(false);
       setNotes("");
       setPaymentMethod("cash");
-    } catch (err) {
+    } catch {
       toast.error("No se pudo procesar el check-out", { description: "Inténtalo de nuevo." });
     } finally {
       setIsSubmitting(false);
