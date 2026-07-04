@@ -288,6 +288,120 @@ export type Database = {
           },
         ]
       }
+      dog_allergies: {
+        Row: {
+          allergen: string
+          created_at: string
+          dog_id: string
+          id: string
+          organization_id: string
+          reaction: string | null
+          severity: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          allergen: string
+          created_at?: string
+          dog_id: string
+          id?: string
+          organization_id: string
+          reaction?: string | null
+          severity?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          allergen?: string
+          created_at?: string
+          dog_id?: string
+          id?: string
+          organization_id?: string
+          reaction?: string | null
+          severity?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_allergies_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_allergies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dog_medications: {
+        Row: {
+          created_at: string
+          dog_id: string
+          dose: string | null
+          duration_days: number | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          name: string
+          organization_id: string
+          route: string | null
+          start_date: string | null
+          updated_at: string
+          with_food: boolean
+        }
+        Insert: {
+          created_at?: string
+          dog_id: string
+          dose?: string | null
+          duration_days?: number | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          route?: string | null
+          start_date?: string | null
+          updated_at?: string
+          with_food?: boolean
+        }
+        Update: {
+          created_at?: string
+          dog_id?: string
+          dose?: string | null
+          duration_days?: number | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          route?: string | null
+          start_date?: string | null
+          updated_at?: string
+          with_food?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_medications_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_medications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dog_temperament: {
         Row: {
           aggression_level: number
@@ -358,12 +472,14 @@ export type Database = {
       }
       dogs: {
         Row: {
+          aggression_details: Json | null
           behavior_notes: string | null
           birth_date: string | null
           breed: string
           color: string | null
           created_at: string
           customer_id: string
+          feeding: Json | null
           gender: string
           has_allergies: boolean
           id: string
@@ -380,12 +496,14 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          aggression_details?: Json | null
           behavior_notes?: string | null
           birth_date?: string | null
           breed: string
           color?: string | null
           created_at?: string
           customer_id: string
+          feeding?: Json | null
           gender?: string
           has_allergies?: boolean
           id?: string
@@ -402,12 +520,14 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          aggression_details?: Json | null
           behavior_notes?: string | null
           birth_date?: string | null
           breed?: string
           color?: string | null
           created_at?: string
           customer_id?: string
+          feeding?: Json | null
           gender?: string
           has_allergies?: boolean
           id?: string
@@ -444,6 +564,7 @@ export type Database = {
         Row: {
           assigned_dog_id: string | null
           assigned_dog_name: string | null
+          assigned_reservation_id: string | null
           assignment_end: string | null
           assignment_start: string | null
           created_at: string
@@ -460,6 +581,7 @@ export type Database = {
         Insert: {
           assigned_dog_id?: string | null
           assigned_dog_name?: string | null
+          assigned_reservation_id?: string | null
           assignment_end?: string | null
           assignment_start?: string | null
           created_at?: string
@@ -476,6 +598,7 @@ export type Database = {
         Update: {
           assigned_dog_id?: string | null
           assigned_dog_name?: string | null
+          assigned_reservation_id?: string | null
           assignment_end?: string | null
           assignment_start?: string | null
           created_at?: string
@@ -490,6 +613,13 @@ export type Database = {
           zone_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "facility_units_assigned_reservation_id_fkey"
+            columns: ["assigned_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "facility_units_organization_id_fkey"
             columns: ["organization_id"]
@@ -1548,24 +1678,6 @@ export type Database = {
           },
         ]
       }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
       vaccination_schedule: {
         Row: {
           batch_number: string | null
@@ -1630,8 +1742,25 @@ export type Database = {
       accept_invitation: { Args: { p_token: string }; Returns: Json }
       check_expiring_packages: { Args: never; Returns: undefined }
       check_expiring_packages_all_orgs: { Args: never; Returns: undefined }
+      check_in_reservation: {
+        Args: { p_notes?: string; p_reservation_id: string; p_unit_id: string }
+        Returns: undefined
+      }
+      check_out_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: undefined
+      }
       check_overdue_invoices: { Args: never; Returns: undefined }
       check_overdue_invoices_all_orgs: { Args: never; Returns: undefined }
+      complete_checkout: {
+        Args: {
+          p_notes?: string
+          p_package_id?: string
+          p_payment_method: string
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
       create_organization: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
@@ -1669,13 +1798,6 @@ export type Database = {
       get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
       get_scheduler_org_ids: { Args: never; Returns: string[] }
       get_user_org_ids: { Args: never; Returns: string[] }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       recompute_customer_balance: {
         Args: { p_customer_id: string }

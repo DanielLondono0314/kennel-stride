@@ -12,7 +12,7 @@ export function useUpdateReservationStatus() {
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
       const { data, error } = await supabase
         .from("reservations")
-        .update(patch as never)
+        .update(patch)
         .eq("id", id)
         .select()
         .single();

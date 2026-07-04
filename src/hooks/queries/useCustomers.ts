@@ -23,7 +23,8 @@ export interface DbCustomer {
   dog_count?: number;
 }
 
-export type CreateCustomerInput = Omit<DbCustomer, "id" | "created_at" | "updated_at" | "dog_count">;
+// balance es opcional: la DB lo default-ea a 0 y el formulario no lo pide.
+export type CreateCustomerInput = Omit<DbCustomer, "id" | "created_at" | "updated_at" | "dog_count" | "balance"> & { balance?: number };
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 
 function customerKeys(orgId: string | undefined) {

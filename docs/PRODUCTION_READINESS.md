@@ -10,7 +10,7 @@
 > - Una versión está *lista para vender* cuando **no hay P0 ni P1 abiertos**.
 > - Las auditorías futuras **suman a esta lista** (mismo formato), nunca empiezan de cero.
 >
-> **Última actualización:** 2026-06-09
+> **Última actualización:** 2026-07-04
 
 ## Leyenda
 
@@ -52,10 +52,10 @@
 
 | ID | Ítem | Dueño | Esfuerzo | Estado |
 |----|------|-------|----------|--------|
-| PR-8 | Check-out no atómico: factura y completitud en pasos separados → factura huérfana si falla | 🧑‍💻 | M | ABIERTO |
-| PR-9 | `types.ts` desactualizado + ~65 casts `as any` (RPCs/inserts) → cambios de esquema no dan error de compilación | 🧑‍💻 | M | ABIERTO |
-| PR-10 | Sin guard de RLS en CI contra el drift de Lovable (ya se coló acceso anónimo a `reservations` antes) | 🧑‍💻 | M | ABIERTO |
-| PR-11 | Sin tests de los RPCs de dinero/cupos (`deduct_package_credit`, `create_reservation`, `check_in/out`) | 🧑‍💻 | M-L | ABIERTO |
+| PR-8 | Check-out no atómico: factura y completitud en pasos separados → factura huérfana si falla | 🧑‍💻 | M | ✅ HECHO (2026-07-04) — RPC `complete_checkout` |
+| PR-9 | `types.ts` desactualizado + casts `as any` (RPCs/inserts) → cambios de esquema no dan error de compilación | 🧑‍💻 | M | ✅ HECHO (2026-07-04) — types regenerados, 0 casts |
+| PR-10 | Sin guard de RLS en CI contra el drift de Lovable (ya se coló acceso anónimo a `reservations` antes) | 🧑‍💻 | M | ✅ HECHO (2026-07-04) — `rls-guard.yml` + `scripts/rls_guard.sql` |
+| PR-11 | Sin tests de los RPCs de dinero/cupos (`deduct_package_credit`, `create_reservation`, `check_in/out`) | 🧑‍💻 | M-L | ✅ HECHO (2026-07-04) — 25 asserts pgTAP en CI |
 
 - **PR-8** — **DoD:** un único RPC `SECURITY DEFINER` hace pago + completitud + liberación de perrera en una transacción; fallar a mitad no deja factura huérfana; cubierto por test.
 - **PR-9** — **DoD:** `supabase gen types` regenerado; 0 `as any` en llamadas a supabase; `DbDog`/`DbReservation`/`DbPackage` dedupe desde `Database[...]`; tsc verde.
@@ -83,12 +83,12 @@
 | ID | Ítem | Dueño | Esfuerzo | Estado |
 |----|------|-------|----------|--------|
 | PR-17 | Buckets de storage públicos (`dog-photos`, `report-card-photos`) — decisión de negocio | 🤝 | S | ABIERTO |
-| PR-18 | `create_organization` sin validar formato de slug ni rate-limit | 🧑‍💻 | S | ABIERTO |
-| PR-19 | `getAge` parsea fecha `date` como local → desfase de día en el borde | 🧑‍💻 | S | ABIERTO |
+| PR-18 | `create_organization` sin validar formato de slug ni rate-limit | 🧑‍💻 | S | ✅ HECHO (2026-07-04) |
+| PR-19 | `getAge` parsea fecha `date` como local → desfase de día en el borde | 🧑‍💻 | S | ✅ HECHO (2026-07-04) — `src/lib/age.ts` compartido |
 | PR-20 | Bundle ~622kB sin medir; confirmar lazy boundaries (no reintroducir `manualChunks`) | 🧑‍💻 | S | ABIERTO |
 | PR-21 | Archivos grandes: `LandingPage` 1483 LOC, `RequestsPage` 732, `CustomerProfilePage` 576 | 🧑‍💻 | L | ABIERTO |
-| PR-22 | `user_roles`/`has_role` legacy obsoletos (la policy peligrosa ya se dropeó; falta la tabla) | 🧑‍💻 | S | ABIERTO |
-| PR-23 | Webhook idempotencia: fallback a hash del body si falta event id del proveedor | 🧑‍💻 | S | ABIERTO |
+| PR-22 | `user_roles`/`has_role` legacy obsoletos (la policy peligrosa ya se dropeó; falta la tabla) | 🧑‍💻 | S | ✅ HECHO (2026-07-04) |
+| PR-23 | Webhook idempotencia: fallback a hash del body si falta event id del proveedor | 🧑‍💻 | S | ✅ HECHO (ya estaba implementado en `handle-ls-webhook`; verificado 2026-07-04) |
 
 ---
 
@@ -96,6 +96,7 @@
 
 | Fecha | Qué |
 |-------|-----|
+| 2026-07-04 | **Remediación fase-3**: PR-8 check-out atómico (RPC `complete_checkout`), PR-9 types regenerados + 0 `as any`, PR-10 guard de RLS en CI, PR-11 tests pgTAP de RPCs de dinero (25 asserts), PR-18 validación de slug + rate-limit, PR-19 `getAge` compartido sin desfase TZ, PR-22 drop de `user_roles`/`has_role`, PR-23 verificado hecho. + Hero del landing robusto (reduced-motion, sin depender de IntersectionObserver above-the-fold). Migraciones `20260704000000`–`20260704020000`. |
 | 2026-06-09 | **PR-6** Páginas legales (Términos/Privacidad) + rutas + footer del landing en español. **PR-4** verificado: Sentry ya estaba hecho en código (solo falta DSN). Checklist de P0 del camino del dinero en `REVENUE_PATH_SETUP.md`. |
 | 2026-06-08 | **Auditoría fase-2** (Crít+Alto+Medio): bug crítico de check-out (perreras nunca se liberaban), refresh+errores de `DogsPage`, RLS clínica alineada + policy legacy de `profiles` eliminada (PII cross-tenant), a11y/contraste del formulario de perro, config de tests unificada, foto del perro en reservas, guards de organización. Migración `20260608000000`. |
 | 2026-06-08 | Corrección de datos: liberar perreras atascadas (0 filas — no había usuarios afectados). Migración `20260608010000`. |

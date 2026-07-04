@@ -35,11 +35,7 @@ export function useWorkItem(kind: "task" | "reservation", id: string | undefined
           .maybeSingle();
         if (error) throw error;
         if (!data) return null;
-        const d = data as never as {
-          id: string; service_name: string; service_type: string; status: string;
-          start_date: string; notes: string | null; dog_id: string | null;
-          dogs: { name: string; is_aggressive: boolean; has_allergies: boolean; on_medication: boolean } | null;
-        };
+        const d = data;
         return {
           kind: "reservation",
           id: d.id,
@@ -68,11 +64,7 @@ export function useWorkItem(kind: "task" | "reservation", id: string | undefined
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      const d = data as never as {
-        id: string; title: string; type: string; status: string;
-        due_at: string | null; notes: string | null; dog_id: string | null;
-        dogs: { name: string; is_aggressive: boolean; has_allergies: boolean; on_medication: boolean } | null;
-      };
+      const d = data;
       return {
         kind: "task",
         id: d.id,

@@ -56,7 +56,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           treatment: note.treatment || null,
           notes: note.notes || null,
           record_date: new Date().toISOString().slice(0, 10),
-        } as never);
+        });
         if (error) throw error;
       } else if (kind === "vaccine") {
         if (!vaccine.vaccine_name.trim()) {
@@ -72,7 +72,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           vaccine_type: vaccine.vaccine_type || "core",
           date_administered: new Date().toISOString().slice(0, 10),
           next_dose_date: vaccine.next_dose_date || null,
-        } as never);
+        });
         if (error) throw error;
       } else if (kind === "deworming") {
         if (!deworming.product_name.trim()) {
@@ -88,7 +88,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           product_type: deworming.product_type || "internal",
           date_administered: new Date().toISOString().slice(0, 10),
           next_dose_date: deworming.next_dose_date || null,
-        } as never);
+        });
         if (error) throw error;
       } else {
         if (!condition.condition_name.trim()) {
@@ -105,7 +105,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           severity: condition.severity,
           status: condition.status,
           treatment: condition.treatment || null,
-        } as never);
+        });
         if (error) throw error;
       }
 

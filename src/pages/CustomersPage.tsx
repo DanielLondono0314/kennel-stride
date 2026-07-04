@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
-import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, DbCustomer } from "@/hooks/queries/useCustomers";
+import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, DbCustomer, type CreateCustomerInput } from "@/hooks/queries/useCustomers";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +71,9 @@ export default function CustomersPage() {
         await updateCustomer.mutateAsync({ id: editingCustomer.id, ...formData });
         toast.success("Cliente actualizado");
       } else {
-        await createCustomer.mutateAsync(formData as any);
+        // El modal valida con zod los campos obligatorios antes de llamar onSave.
+        const { id: _ignored, ...input } = formData;
+        await createCustomer.mutateAsync(input as CreateCustomerInput);
         toast.success("Cliente creado");
       }
       setModalOpen(false);

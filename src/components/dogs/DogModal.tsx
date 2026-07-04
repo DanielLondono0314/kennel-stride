@@ -93,7 +93,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     if (!open || !dog?.id) return;
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any;
+      const db = supabase;
       const [aRes, mRes] = await Promise.all([
         db.from("dog_allergies").select("*").eq("dog_id", dog.id),
         db.from("dog_medications").select("*").eq("dog_id", dog.id),

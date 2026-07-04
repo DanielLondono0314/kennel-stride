@@ -35,7 +35,7 @@ export function useCreateTask() {
     mutationFn: async (input: Record<string, unknown>) => {
       const { data, error } = await supabase
         .from("tasks")
-        .insert({ ...input, organization_id: organization!.id } as any)
+        .insert({ ...input, organization_id: organization!.id })
         .select()
         .single();
       if (error) throw error;
@@ -53,7 +53,7 @@ export function useUpdateTask() {
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
       const { data, error } = await supabase
         .from("tasks")
-        .update(patch as any)
+        .update(patch)
         .eq("id", id)
         .select()
         .single();

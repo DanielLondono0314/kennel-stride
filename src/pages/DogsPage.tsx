@@ -26,7 +26,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload } from "lucide-react";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
-import { differenceInYears, differenceInMonths } from "date-fns";
+import { getAge } from "@/lib/age";
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 
@@ -54,15 +54,6 @@ export default function DogsPage() {
   const dogs = data?.dogs ?? [];
   const hasMore = data?.hasMore ?? false;
   const deleteDog = useDeleteDog();
-
-  const getAge = (birthDate?: string | null) => {
-    if (!birthDate) return "—";
-    const bd = new Date(birthDate);
-    const years = differenceInYears(new Date(), bd);
-    if (years > 0) return `${years} año${years > 1 ? "s" : ""}`;
-    const months = differenceInMonths(new Date(), bd);
-    return `${months} mes${months > 1 ? "es" : ""}`;
-  };
 
   const handleNewDog = () => { setEditingDog(null); setModalOpen(true); };
   const handleEditDog = (dog: DbDog) => { setEditingDog(dog); setModalOpen(true); };
@@ -121,8 +112,7 @@ export default function DogsPage() {
       with_food: !!m.with_food,
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
+    const db = supabase;
     // Comprobar el error de cada operación: si el sync falla tras borrar, se
     // perderían datos clínicos en silencio. Abortamos con aviso explícito.
     const delA = await db.from("dog_allergies").delete().eq("dog_id", data.id);

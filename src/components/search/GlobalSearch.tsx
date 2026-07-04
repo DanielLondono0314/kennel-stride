@@ -91,7 +91,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     }
 
     for (const d of dogsRes.data || []) {
-      const owner = (d.customers as any);
+      const owner = d.customers;
       mapped.push({
         id: d.id,
         category: "dogs",
@@ -102,8 +102,8 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     }
 
     for (const r of resRes.data || []) {
-      const dog = (r.dogs as any);
-      const customer = (r.customers as any);
+      const dog = r.dogs;
+      const customer = r.customers;
       mapped.push({
         id: r.id,
         category: "reservations",

@@ -50,7 +50,7 @@ export function usePackages({ page = 0, search = "", status = "all" } = {}) {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { packages: (data ?? []) as any[], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
+      return { packages: data ?? [], total: count ?? 0, hasMore: (data?.length ?? 0) === PAGE_SIZE };
     },
   });
 }
@@ -62,7 +62,7 @@ export function usePackages({ page = 0, search = "", status = "all" } = {}) {
  * transacción, eliminando el lost-update del read-modify-write en cliente.
  */
 export async function deductPackageCredit({ packageId, reason }: { packageId: string; reason?: string }) {
-  const { error } = await supabase.rpc("deduct_package_credit" as any, {
+  const { error } = await supabase.rpc("deduct_package_credit", {
     p_package_id: packageId,
     p_reason: reason ?? null,
   });
@@ -90,7 +90,7 @@ export function useCreatePackage() {
       if (!organization) throw new Error("Sin organización activa");
       const { data, error } = await supabase
         .from("packages")
-        .insert({ ...input, organization_id: organization.id, remaining_credits: input.total_credits } as any)
+        .insert({ ...input, organization_id: organization.id, remaining_credits: input.total_credits })
         .select()
         .single();
       if (error) throw error;

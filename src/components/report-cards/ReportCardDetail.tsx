@@ -32,7 +32,7 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
-            const owner = data.customers as any;
+            const owner = data.customers;
             setDogInfo({
               breed: data.breed,
               weight: data.weight,

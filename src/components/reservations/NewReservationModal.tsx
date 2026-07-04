@@ -141,7 +141,7 @@ export function NewReservationModal({
 
     // H2/H5: creación transaccional vía RPC. Rechaza solapamiento para el mismo
     // perro (anti doble-booking) y crea reserva + notice atómicamente.
-    const { error } = await supabase.rpc("create_reservation" as any, {
+    const { error } = await supabase.rpc("create_reservation", {
       p_customer_id: customerId,
       p_dog_id: dogId,
       p_service_type: serviceType,

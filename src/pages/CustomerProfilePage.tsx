@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
-import { format, differenceInYears, differenceInMonths } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { getAge } from "@/lib/age";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -84,15 +85,6 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelada",
 };
 
-function getAge(birthDate?: string | null) {
-  if (!birthDate) return "—";
-  const bd = new Date(birthDate);
-  const years = differenceInYears(new Date(), bd);
-  if (years > 0) return `${years} año${years > 1 ? "s" : ""}`;
-  const months = differenceInMonths(new Date(), bd);
-  return `${months} mes${months !== 1 ? "es" : ""}`;
-}
-
 export default function CustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -138,7 +130,7 @@ export default function CustomerProfilePage() {
 
     if (custRes.data) setCustomer(custRes.data as DbCustomer);
     if (dogsRes.data) setDogs(dogsRes.data);
-    if (reservRes.data) setReservations(reservRes.data as any);
+    if (reservRes.data) setReservations(reservRes.data);
     if (pkgRes.data) setPackages(pkgRes.data);
     if (invRes.data) setInvoices(invRes.data);
 

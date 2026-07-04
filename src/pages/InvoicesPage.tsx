@@ -137,7 +137,7 @@ export default function InvoicesPage() {
 
   const updateItem = (idx: number, field: string, value: string | number) => {
     const items = [...form.items];
-    (items[idx] as any)[field] = value;
+    items[idx] = { ...items[idx], [field]: value };
     setForm({ ...form, items });
   };
 

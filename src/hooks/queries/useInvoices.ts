@@ -71,7 +71,7 @@ export function useInvoices({ page = 0, status = "all", search = "" } = {}) {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const invoices = (data as any[] ?? []).map((inv) => {
+      const invoices = (data ?? []).map((inv) => {
         const { customers: c, ...rest } = inv;
         return {
           ...rest,

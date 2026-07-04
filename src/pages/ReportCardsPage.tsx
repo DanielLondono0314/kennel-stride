@@ -67,9 +67,7 @@ export default function ReportCardsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useReportCards({ page });
-  // The hook returns cards with a limited select; the page needs full rows.
-  // Cast to any[] — DB columns are present at runtime even if not in TS select.
-  const reportCards = (data?.cards ?? []) as any[];
+  const reportCards = data?.cards ?? [];
 
   useEffect(() => {
     if (!organization) return;

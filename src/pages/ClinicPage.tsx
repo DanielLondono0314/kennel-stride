@@ -46,7 +46,7 @@ export default function ClinicPage() {
         .select("id, customer_id, name, breed, birth_date, weight, gender, is_neutered, customers(first_name, last_name)")
         .eq("organization_id", organization!.id)
         .order("name");
-      if (data) setDogs(data as any);
+      if (data) setDogs(data);
       setLoading(false);
     };
     fetchDogs();
