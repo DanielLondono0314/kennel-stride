@@ -51,6 +51,11 @@ export default function OnboardingPage() {
     e.preventDefault();
     if (!user) return;
     if (!slug.trim()) { toast.error("El URL de acceso no puede estar vacío"); return; }
+    // Espeja la validación del RPC create_organization (3–40, minúsculas/números/guiones).
+    if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug)) {
+      toast.error("URL inválido: usa 3–40 caracteres, solo minúsculas, números y guiones");
+      return;
+    }
     if (checking) { toast.error("Espera mientras se verifica la disponibilidad del URL"); return; }
     if (!slugAvailable) { toast.error("El slug ya está en uso, elige otro"); return; }
 
