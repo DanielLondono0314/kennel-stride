@@ -218,19 +218,32 @@ const NAV_LINKS = [
 
 /* ─── Hooks ─────────────────────────────────────────────────────────────────── */
 
+/** true si el usuario pidió reducir animaciones — el contenido se muestra sin reveal. */
+const prefersReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
-  const [seen, setSeen] = useState(false);
+  const [seen, setSeen] = useState(prefersReducedMotion);
   useEffect(() => {
+    if (seen) return;
     const el = ref.current;
     if (!el) return;
+    // Above-the-fold: visible de inmediato sin esperar al IntersectionObserver.
+    // En pestañas throttled (segundo plano) el callback puede tardar segundos y
+    // dejaría el hero en opacity:0; además esto mejora el LCP percibido.
+    if (el.getBoundingClientRect().top < window.innerHeight) {
+      setSeen(true);
+      return;
+    }
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setSeen(true); obs.disconnect(); } },
       { threshold },
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [threshold]);
+  }, [threshold, seen]);
   return { ref, seen };
 }
 

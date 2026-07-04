@@ -21,8 +21,9 @@ import {
   Syringe, ClipboardList, Activity, BookOpen, Brain,
   Loader2, User,
 } from "lucide-react";
-import { format, differenceInYears, differenceInMonths } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { getAge as getSharedAge } from "@/lib/age";
 import { toast } from "sonner";
 
 interface DbDog {
@@ -140,14 +141,7 @@ export default function DogProfilePage() {
     }
   };
 
-  const getAge = (birthDate?: string | null) => {
-    if (!birthDate) return "Desconocida";
-    const bd = new Date(birthDate);
-    const years = differenceInYears(new Date(), bd);
-    if (years > 0) return `${years} año${years !== 1 ? "s" : ""}`;
-    const months = differenceInMonths(new Date(), bd);
-    return `${months} mes${months !== 1 ? "es" : ""}`;
-  };
+  const getAge = (birthDate?: string | null) => getSharedAge(birthDate, "Desconocida");
 
   if (loading) {
     return (
