@@ -50,7 +50,7 @@ export function DogCharacteristicIcons({ isAggressive, hasAllergies, onMedicatio
             <span className={cn(
               "inline-flex items-center justify-center rounded",
               size === "sm" ? "p-0.5" : "p-1",
-              "bg-blue-600/15 text-blue-700"
+              "bg-info/15 text-info"
             )}>
               <Pill className={iconClass} />
             </span>

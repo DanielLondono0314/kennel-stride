@@ -18,7 +18,7 @@ export function MedicationList({ value, onChange }: Props) {
   const add = () => onChange([...value, emptyMedication()]);
 
   return (
-    <div className="space-y-4 rounded-lg border border-blue-600/40 bg-blue-600/10 p-4">
+    <div className="space-y-4 rounded-lg border border-info/40 bg-info/10 p-4">
       {value.map((row, i) => (
         <div key={i} className="space-y-2 border-b border-border/60 pb-3 last:border-0 last:pb-0">
           <div className="flex items-end gap-2">
