@@ -39,7 +39,19 @@ function OrgGuardInner() {
 
   // Org slug exists in URL but does not exist in DB — send to onboarding, not login
   if (notFound) return <Navigate to="/onboarding" replace />;
-  if (!organization) return <Navigate to="/login" replace />;
+
+  // Sesión OK pero la org aún es null sin notFound/loadError: el fetch de la
+  // org todavía no corrió para esta sesión (OrganizationContext hace
+  // setLoading(false) cuando user aún no estaba listo y re-carga al llegar).
+  // Antes esto rebotaba a /login SIN state y se perdía el deep-link
+  // (login → primer org → dashboard). Es un estado de carga, no de rechazo.
+  if (!organization) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   if (!isSubscriptionActive) return <Navigate to="/billing" replace />;
 
   return <Outlet />;
