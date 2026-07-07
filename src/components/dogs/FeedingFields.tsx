@@ -9,9 +9,11 @@ interface Props {
   value: FeedingForm;
   onChange: (v: FeedingForm) => void;
   foodAllergyWarning?: string[];
+  /** Errores inline por campo (food_type, meals_per_day). */
+  errors?: Partial<Record<"food_type" | "meals_per_day", string>>;
 }
 
-export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Props) {
+export function FeedingFields({ value, onChange, foodAllergyWarning = [], errors = {} }: Props) {
   const set = (patch: Partial<FeedingForm>) => onChange({ ...value, ...patch });
 
   return (
@@ -31,7 +33,12 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Prop
         <div className="space-y-1.5">
           <Label htmlFor="feeding-type" className="text-xs">Tipo de comida *</Label>
           <Select value={value.food_type} onValueChange={(v) => set({ food_type: v as FoodType })}>
-            <SelectTrigger id="feeding-type"><SelectValue placeholder="Elegir…" /></SelectTrigger>
+            <SelectTrigger
+              id="feeding-type"
+              aria-invalid={errors.food_type ? true : undefined}
+              aria-describedby={errors.food_type ? "feeding-type-error" : undefined}
+              className={errors.food_type ? "border-destructive focus:ring-destructive" : ""}
+            ><SelectValue placeholder="Elegir…" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="seco">Seco</SelectItem>
               <SelectItem value="humedo">Húmedo</SelectItem>
@@ -39,6 +46,7 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Prop
               <SelectItem value="mixto">Mixto</SelectItem>
             </SelectContent>
           </Select>
+          {errors.food_type && <p id="feeding-type-error" className="text-xs text-destructive">{errors.food_type}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feeding-brand" className="text-xs">Marca / producto</Label>
@@ -52,7 +60,11 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [] }: Prop
           <Label htmlFor="feeding-meals" className="text-xs">Comidas al día *</Label>
           <Input id="feeding-meals" type="number" min={1} value={value.meals_per_day}
             onChange={(e) => set({ meals_per_day: e.target.value === "" ? "" : Number(e.target.value) })}
+            aria-invalid={errors.meals_per_day ? true : undefined}
+            aria-describedby={errors.meals_per_day ? "feeding-meals-error" : undefined}
+            className={errors.meals_per_day ? "border-destructive focus-visible:ring-destructive" : ""}
             placeholder="2" />
+          {errors.meals_per_day && <p id="feeding-meals-error" className="text-xs text-destructive">{errors.meals_per_day}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feeding-portion" className="text-xs">Porción</Label>

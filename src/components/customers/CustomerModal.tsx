@@ -10,6 +10,7 @@ import { User, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { customerSchema } from "@/lib/schemas";
+import { zodFieldErrors, focusFirstInvalid } from "@/lib/forms";
 
 interface CustomerModalProps {
   customer?: DbCustomer | null;
@@ -33,7 +34,15 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
+  // Errores inline por campo con el mensaje real de zod (PR-13).
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const clearError = (key: string) =>
+    setErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
 
   useEffect(() => {
     if (customer) {
@@ -70,15 +79,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
     };
     const parsed = customerSchema.safeParse(candidate);
     if (!parsed.success) {
-      const fieldErrors: Record<string, boolean> = {};
-      parsed.error.issues.forEach((i) => {
-        const k = String(i.path[0]);
-        if (k === "first_name") fieldErrors.firstName = true;
-        else if (k === "last_name") fieldErrors.lastName = true;
-        else fieldErrors[k] = true;
-      });
-      setErrors(fieldErrors);
-      toast.error(parsed.error.issues[0]?.message || "Revisa los campos");
+      setErrors(zodFieldErrors(parsed.error));
+      focusFirstInvalid();
+      toast.error("Revisa los campos marcados");
       return;
     }
     setErrors({});
@@ -119,27 +122,39 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
         <div className="space-y-6 mt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nombre *</Label>
-              <Input value={firstName} onChange={(e) => { setFirstName(e.target.value); setErrors((p) => ({ ...p, firstName: false })); }} placeholder="Nombre" className={errors.firstName ? "border-destructive focus-visible:ring-destructive" : ""} />
-              {errors.firstName && <p className="text-xs text-destructive">Campo requerido</p>}
+              <Label htmlFor="cust-first-name">Nombre *</Label>
+              <Input id="cust-first-name" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearError("first_name"); }} placeholder="Nombre"
+                aria-invalid={errors.first_name ? true : undefined}
+                aria-describedby={errors.first_name ? "cust-first-name-error" : undefined}
+                className={errors.first_name ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.first_name && <p id="cust-first-name-error" className="text-xs text-destructive">{errors.first_name}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Apellido *</Label>
-              <Input value={lastName} onChange={(e) => { setLastName(e.target.value); setErrors((p) => ({ ...p, lastName: false })); }} placeholder="Apellido" className={errors.lastName ? "border-destructive focus-visible:ring-destructive" : ""} />
-              {errors.lastName && <p className="text-xs text-destructive">Campo requerido</p>}
+              <Label htmlFor="cust-last-name">Apellido *</Label>
+              <Input id="cust-last-name" value={lastName} onChange={(e) => { setLastName(e.target.value); clearError("last_name"); }} placeholder="Apellido"
+                aria-invalid={errors.last_name ? true : undefined}
+                aria-describedby={errors.last_name ? "cust-last-name-error" : undefined}
+                className={errors.last_name ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.last_name && <p id="cust-last-name-error" className="text-xs text-destructive">{errors.last_name}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: false })); }} placeholder="correo@ejemplo.com" className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""} />
-              {errors.email && <p className="text-xs text-destructive">Campo requerido</p>}
+              <Label htmlFor="cust-email">Email *</Label>
+              <Input id="cust-email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); clearError("email"); }} placeholder="correo@ejemplo.com"
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? "cust-email-error" : undefined}
+                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.email && <p id="cust-email-error" className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Teléfono *</Label>
-              <Input value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: false })); }} placeholder="+1 555-0000" className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""} />
-              {errors.phone && <p className="text-xs text-destructive">Campo requerido</p>}
+              <Label htmlFor="cust-phone">Teléfono *</Label>
+              <Input id="cust-phone" value={phone} onChange={(e) => { setPhone(e.target.value); clearError("phone"); }} placeholder="+1 555-0000"
+                aria-invalid={errors.phone ? true : undefined}
+                aria-describedby={errors.phone ? "cust-phone-error" : undefined}
+                className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.phone && <p id="cust-phone-error" className="text-xs text-destructive">{errors.phone}</p>}
             </div>
           </div>
 

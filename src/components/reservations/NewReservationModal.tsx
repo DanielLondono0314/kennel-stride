@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Calendar, Dog, User } from "lucide-react";
 import { toast } from "sonner";
+import { focusFirstInvalid } from "@/lib/forms";
 
 interface Customer {
   id: string;
@@ -57,6 +58,15 @@ export function NewReservationModal({
   const { organization } = useOrganization();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  // Errores inline por campo (PR-13).
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const clearError = (key: string) =>
+    setErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
 
   // Form fields
   const [customerId, setCustomerId] = useState(initialCustomerId ?? "");
@@ -95,12 +105,17 @@ export function NewReservationModal({
     setEndDate("");
     setTotalPrice("");
     setNotes("");
-  }, [open]);
+    setErrors({});
+    // Reset intencional SOLO al abrir: los initial* son props que cambian de
+    // identidad en cada render del padre y borrarían lo que el usuario escribe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, organization]);
 
-  // Filter dogs by selected customer
-  const filteredDogs = customerId
-    ? dogs.filter((d) => d.customer_id === customerId)
-    : dogs;
+  // Filter dogs by selected customer (memoizado para poder usarlo como dep)
+  const filteredDogs = useMemo(
+    () => (customerId ? dogs.filter((d) => d.customer_id === customerId) : dogs),
+    [dogs, customerId]
+  );
 
   // Auto-select dog if only one
   useEffect(() => {
@@ -110,18 +125,24 @@ export function NewReservationModal({
     if (dogId && !filteredDogs.find((d) => d.id === dogId)) {
       setDogId("");
     }
-  }, [customerId, filteredDogs.length]);
+  }, [filteredDogs, dogId]);
 
   const handleSave = async () => {
     if (!organization) return;
-    if (!customerId || !dogId || !serviceType || !startDate || !endDate) {
-      toast.error("Completa todos los campos requeridos");
+    const errs: Record<string, string> = {};
+    if (!customerId) errs.customerId = "Selecciona un cliente";
+    if (!dogId) errs.dogId = "Selecciona una mascota";
+    if (!startDate) errs.startDate = "Indica la fecha de inicio";
+    if (!endDate) errs.endDate = "Indica la fecha de fin";
+    else if (startDate && new Date(endDate) <= new Date(startDate)) {
+      errs.endDate = "Debe ser posterior a la fecha de inicio";
+    }
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      focusFirstInvalid();
       return;
     }
-    if (new Date(endDate) <= new Date(startDate)) {
-      toast.error("La fecha de fin debe ser posterior a la de inicio");
-      return;
-    }
+    setErrors({});
 
     setSaving(true);
     const serviceName = SERVICE_OPTIONS.find((s) => s.type === serviceType)?.name ?? serviceType;
@@ -193,8 +214,12 @@ export function NewReservationModal({
                 <User className="h-4 w-4" />
                 Cliente *
               </Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger>
+              <Select value={customerId} onValueChange={(v) => { setCustomerId(v); clearError("customerId"); }}>
+                <SelectTrigger
+                  aria-invalid={errors.customerId ? true : undefined}
+                  aria-describedby={errors.customerId ? "res-customer-error" : undefined}
+                  className={errors.customerId ? "border-destructive focus:ring-destructive" : ""}
+                >
                   <SelectValue placeholder="Seleccionar cliente..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,6 +231,7 @@ export function NewReservationModal({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.customerId && <p id="res-customer-error" className="text-xs text-destructive">{errors.customerId}</p>}
             </div>
 
             {/* Dog */}
@@ -214,8 +240,12 @@ export function NewReservationModal({
                 <Dog className="h-4 w-4" />
                 Mascota *
               </Label>
-              <Select value={dogId} onValueChange={setDogId} disabled={!customerId}>
-                <SelectTrigger>
+              <Select value={dogId} onValueChange={(v) => { setDogId(v); clearError("dogId"); }} disabled={!customerId}>
+                <SelectTrigger
+                  aria-invalid={errors.dogId ? true : undefined}
+                  aria-describedby={errors.dogId ? "res-dog-error" : undefined}
+                  className={errors.dogId ? "border-destructive focus:ring-destructive" : ""}
+                >
                   <SelectValue placeholder={customerId ? "Seleccionar mascota..." : "Primero selecciona un cliente"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -232,6 +262,7 @@ export function NewReservationModal({
                   )}
                 </SelectContent>
               </Select>
+              {errors.dogId && <p id="res-dog-error" className="text-xs text-destructive">{errors.dogId}</p>}
             </div>
 
             {/* Service */}
@@ -258,17 +289,25 @@ export function NewReservationModal({
                 <Input
                   type="datetime-local"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => { setStartDate(e.target.value); clearError("startDate"); }}
+                  aria-invalid={errors.startDate ? true : undefined}
+                  aria-describedby={errors.startDate ? "res-start-error" : undefined}
+                  className={errors.startDate ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {errors.startDate && <p id="res-start-error" className="text-xs text-destructive">{errors.startDate}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Fecha y hora fin *</Label>
                 <Input
                   type="datetime-local"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => { setEndDate(e.target.value); clearError("endDate"); }}
                   min={startDate}
+                  aria-invalid={errors.endDate ? true : undefined}
+                  aria-describedby={errors.endDate ? "res-end-error" : undefined}
+                  className={errors.endDate ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {errors.endDate && <p id="res-end-error" className="text-xs text-destructive">{errors.endDate}</p>}
               </div>
             </div>
 

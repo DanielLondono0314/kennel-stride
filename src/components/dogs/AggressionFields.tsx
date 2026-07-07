@@ -7,9 +7,11 @@ import type { AggressionForm, Severity } from "@/types/dogClinical";
 interface Props {
   value: AggressionForm;
   onChange: (v: AggressionForm) => void;
+  /** Errores inline por campo (severity, handling). */
+  errors?: Partial<Record<"severity" | "handling", string>>;
 }
 
-export function AggressionFields({ value, onChange }: Props) {
+export function AggressionFields({ value, onChange, errors = {} }: Props) {
   const set = (patch: Partial<AggressionForm>) => onChange({ ...value, ...patch });
 
   return (
@@ -18,13 +20,19 @@ export function AggressionFields({ value, onChange }: Props) {
         <div className="space-y-1.5">
           <Label htmlFor="aggr-severity" className="text-xs">Severidad *</Label>
           <Select value={value.severity} onValueChange={(v) => set({ severity: v as Severity })}>
-            <SelectTrigger id="aggr-severity"><SelectValue placeholder="Elegir…" /></SelectTrigger>
+            <SelectTrigger
+              id="aggr-severity"
+              aria-invalid={errors.severity ? true : undefined}
+              aria-describedby={errors.severity ? "aggr-severity-error" : undefined}
+              className={errors.severity ? "border-destructive focus:ring-destructive" : ""}
+            ><SelectValue placeholder="Elegir…" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="baja">Baja</SelectItem>
               <SelectItem value="media">Media</SelectItem>
               <SelectItem value="alta">Alta</SelectItem>
             </SelectContent>
           </Select>
+          {errors.severity && <p id="aggr-severity-error" className="text-xs text-destructive">{errors.severity}</p>}
         </div>
       </div>
 
@@ -32,7 +40,11 @@ export function AggressionFields({ value, onChange }: Props) {
         <Label htmlFor="aggr-handling" className="text-xs">Manejo *</Label>
         <Textarea id="aggr-handling" rows={2} value={value.handling}
           onChange={(e) => set({ handling: e.target.value })}
+          aria-invalid={errors.handling ? true : undefined}
+          aria-describedby={errors.handling ? "aggr-handling-error" : undefined}
+          className={errors.handling ? "border-destructive focus-visible:ring-destructive" : ""}
           placeholder="Cómo manejarlo de forma segura…" />
+        {errors.handling && <p id="aggr-handling-error" className="text-xs text-destructive">{errors.handling}</p>}
       </div>
 
       <div className="space-y-2.5">
