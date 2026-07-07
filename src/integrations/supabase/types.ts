@@ -1803,6 +1803,8 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: undefined
       }
+      remove_demo_data: { Args: { p_org_id: string }; Returns: undefined }
+      seed_demo_data: { Args: { p_org_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "front_desk" | "worker" | "manager"

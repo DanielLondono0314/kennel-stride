@@ -10,7 +10,7 @@
 > - Una versión está *lista para vender* cuando **no hay P0 ni P1 abiertos**.
 > - Las auditorías futuras **suman a esta lista** (mismo formato), nunca empiezan de cero.
 >
-> **Última actualización:** 2026-07-04
+> **Última actualización:** 2026-07-07
 
 ## Leyenda
 
@@ -66,11 +66,11 @@
 
 | ID | Ítem | Dueño | Esfuerzo | Estado |
 |----|------|-------|----------|--------|
-| PR-12 | Onboarding / time-to-value: primer-uso guiado o datos de ejemplo | 🧑‍💻 | M | ABIERTO |
-| PR-13 | Validación inline en formularios (no solo toast): `aria-invalid` + error por campo + scroll-to-error | 🧑‍💻 | M | ABIERTO |
-| PR-14 | `DogModal` muy largo → tabs/pasos; "Alimentación" (obligatoria) está al final | 🧑‍💻 | M | ABIERTO |
-| PR-15 | ~25 colores Tailwind crudos fuera del sistema de tokens (solo se migraron los componentes de perro) | 🧑‍💻 | M | ABIERTO |
-| PR-16 | 78 warnings `react-hooks/exhaustive-deps` (riesgo de stale-closures) | 🧑‍💻 | M | ABIERTO |
+| PR-12 | Onboarding / time-to-value: primer-uso guiado o datos de ejemplo | 🧑‍💻 | M | ✅ HECHO (2026-07-07) — RPCs `seed_demo_data`/`remove_demo_data` + CTA en el checklist |
+| PR-13 | Validación inline en formularios (no solo toast): `aria-invalid` + error por campo + scroll-to-error | 🧑‍💻 | M | ✅ HECHO (2026-07-07) — perro/cliente/reserva + `src/lib/forms.ts` |
+| PR-14 | `DogModal` muy largo → tabs/pasos; "Alimentación" (obligatoria) está al final | 🧑‍💻 | M | ✅ HECHO (2026-07-07) — 3 tabs, salto al tab con error |
+| PR-15 | ~25 colores Tailwind crudos fuera del sistema de tokens (solo se migraron los componentes de perro) | 🧑‍💻 | M | ✅ HECHO (2026-07-07) — 0 clases de estado crudas (amber = marca, se conserva) |
+| PR-16 | 78 warnings `react-hooks/exhaustive-deps` (riesgo de stale-closures) | 🧑‍💻 | M | ✅ HECHO (2026-07-07) — 0 warnings (39 reales arreglados; 39 eran de un worktree obsoleto ya eliminado) |
 
 - **PR-12 DoD:** una org nueva puede correr una reserva real en <10 min sin ayuda; medido.
 - **PR-13 DoD:** los errores se muestran en el campo (no solo toast) en formularios de perro/cliente/reserva; foco al primer error.
@@ -96,6 +96,7 @@
 
 | Fecha | Qué |
 |-------|-----|
+| 2026-07-07 | **UX fase-4 (P3 completo)**: PR-13 validación inline (aria-invalid + mensaje por campo + foco/salto al error) en perro/cliente/reserva; PR-14 DogModal en 3 tabs con obligatorios primero; PR-12 datos de ejemplo sembrables/borrables desde el checklist (migración `20260707000000`); PR-15 0 colores de estado crudos; PR-16 0 warnings exhaustive-deps. |
 | 2026-07-04 | **Remediación fase-3**: PR-8 check-out atómico (RPC `complete_checkout`), PR-9 types regenerados + 0 `as any`, PR-10 guard de RLS en CI, PR-11 tests pgTAP de RPCs de dinero (25 asserts), PR-18 validación de slug + rate-limit, PR-19 `getAge` compartido sin desfase TZ, PR-22 drop de `user_roles`/`has_role`, PR-23 verificado hecho. + Hero del landing robusto (reduced-motion, sin depender de IntersectionObserver above-the-fold). Migraciones `20260704000000`–`20260704020000`. |
 | 2026-06-09 | **PR-6** Páginas legales (Términos/Privacidad) + rutas + footer del landing en español. **PR-4** verificado: Sentry ya estaba hecho en código (solo falta DSN). Checklist de P0 del camino del dinero en `REVENUE_PATH_SETUP.md`. |
 | 2026-06-08 | **Auditoría fase-2** (Crít+Alto+Medio): bug crítico de check-out (perreras nunca se liberaban), refresh+errores de `DogsPage`, RLS clínica alineada + policy legacy de `profiles` eliminada (PII cross-tenant), a11y/contraste del formulario de perro, config de tests unificada, foto del perro en reservas, guards de organización. Migración `20260608000000`. |

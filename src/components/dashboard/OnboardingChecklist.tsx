@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Circle, ChevronRight, X } from "lucide-react";
+import { CheckCircle2, Circle, ChevronRight, X, Sparkles, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface OnboardingStatus {
   has_customers: boolean;
@@ -35,9 +36,11 @@ const DISMISSED_KEY = "onboarding_dismissed_v1";
 export function OnboardingChecklist() {
   const { organization } = useOrganization();
   const navigate = useOrgNavigate();
+  const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(DISMISSED_KEY) === "true"
   );
+  const [seeding, setSeeding] = useState(false);
 
   const { data: status } = useQuery({
     queryKey: ["onboarding-status", organization?.id],
@@ -51,6 +54,55 @@ export function OnboardingChecklist() {
       return data as unknown as OnboardingStatus;
     },
   });
+
+  // ¿Hay datos de ejemplo sembrados? (cliente demo reconocible por su email)
+  const { data: hasDemo } = useQuery({
+    queryKey: ["demo-data-exists", organization?.id],
+    enabled: !!organization?.id && !dismissed,
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("organization_id", organization!.id)
+        .eq("email", "demo@kennelops.example")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+
+  const refreshAll = () => {
+    // Los datos demo tocan clientes/perros/reservas/paquetes: refrescar todo.
+    queryClient.invalidateQueries();
+  };
+
+  const handleSeedDemo = async () => {
+    if (!organization) return;
+    setSeeding(true);
+    const { error } = await supabase.rpc("seed_demo_data", { p_org_id: organization.id });
+    setSeeding(false);
+    if (error) {
+      toast.error("No se pudieron cargar los datos de ejemplo", { description: error.message });
+      return;
+    }
+    toast.success("Datos de ejemplo cargados", {
+      description: "Explora el cliente, los perros y las reservas demo. Bórralos cuando quieras.",
+    });
+    refreshAll();
+  };
+
+  const handleRemoveDemo = async () => {
+    if (!organization) return;
+    setSeeding(true);
+    const { error } = await supabase.rpc("remove_demo_data", { p_org_id: organization.id });
+    setSeeding(false);
+    if (error) {
+      toast.error("No se pudieron quitar los datos de ejemplo", { description: error.message });
+      return;
+    }
+    toast.success("Datos de ejemplo eliminados");
+    refreshAll();
+  };
 
   if (dismissed || !status) return null;
 
@@ -123,6 +175,38 @@ export function OnboardingChecklist() {
               </div>
             );
           })}
+        </div>
+
+        {/* PR-12: ver el producto vivo sin cargar datos reales */}
+        <div className="mt-3 pt-3 border-t border-primary/10">
+          {hasDemo ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground gap-2"
+              onClick={handleRemoveDemo}
+              disabled={seeding}
+            >
+              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Quitar datos de ejemplo
+            </Button>
+          ) : (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-xs text-muted-foreground">
+                ¿Quieres ver el producto en acción antes de cargar tus datos?
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={handleSeedDemo}
+                disabled={seeding}
+              >
+                {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Cargar datos de ejemplo
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
