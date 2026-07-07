@@ -119,12 +119,16 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
   };
 }
 
+// OJO: el embed de facility_units DEBE desambiguarse con !reservations_location_id_fkey.
+// Desde 20260604 (acople reserva⇆perrera) hay DOS FKs entre reservations y
+// facility_units (location_id y assigned_reservation_id): sin el hint, PostgREST
+// devuelve HTTP 300 (PGRST201) y TODAS las listas de reservas quedan vacías en silencio.
 const RESERVATION_SELECT = `
   *,
   customers(id, first_name, last_name, phone, email, city, state, balance),
   dogs(id, name, breed, weight, gender, color, behavior_notes, medical_notes, photo_url),
   staff_members(id, first_name, last_name),
-  location:facility_units(id, name, unit_type)
+  location:facility_units!reservations_location_id_fkey(id, name, unit_type)
 `;
 
 // Default window prevents loading years of history on first render.

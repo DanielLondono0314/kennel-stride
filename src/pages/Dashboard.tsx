@@ -16,6 +16,7 @@ import { CheckInModal } from "@/components/checkin/CheckInModal";
 import { CheckOutModal } from "@/components/checkin/CheckOutModal";
 import { Button } from "@/components/ui/button";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [newReservationOpen, setNewReservationOpen] = useState(false);
 
   // Real reservations from Supabase with auto-refresh
-  const { reservations, loading, checkIn, approve, cancel, refetch } = useReservations({
+  const { reservations, loading, error: reservationsError, checkIn, approve, cancel, refetch } = useReservations({
     autoRefresh: true,
   });
 
@@ -287,6 +288,12 @@ export default function Dashboard() {
           />
           {loading ? (
             <TableSkeleton rows={6} columns={5} />
+          ) : reservationsError ? (
+            <QueryErrorState
+              title="No se pudieron cargar las reservas"
+              description={reservationsError}
+              onRetry={refetch}
+            />
           ) : (
             <OpsTable
               reservations={filteredReservations}

@@ -34,6 +34,7 @@ import {
   UserPlus, Inbox, Loader2, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
 
 const serviceTypeLabels: Record<string, string> = {
@@ -81,7 +82,7 @@ export default function RequestsPage() {
 
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
 
-  const { reservations, loading, refetch } = useReservations({ autoRefresh: true });
+  const { reservations, loading, error, refetch } = useReservations({ autoRefresh: true });
 
   const orgId = organization?.id;
 
@@ -444,6 +445,16 @@ export default function RequestsPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {error && (
+          <div className="mt-4">
+            <QueryErrorState
+              title="No se pudieron cargar las solicitudes"
+              description={error}
+              onRetry={refetch}
+            />
+          </div>
+        )}
 
         <TabsContent value="pending" className="mt-4">
           {renderTable(filteredRequests, true)}
