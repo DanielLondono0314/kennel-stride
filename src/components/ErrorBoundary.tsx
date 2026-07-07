@@ -21,6 +21,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // Chunk viejo tras un deploy: el asset del build anterior ya no existe en
+    // el CDN. Recargar UNA vez trae el index nuevo con las rutas correctas.
+    // (Sin el guard de sessionStorage, un fallo persistente entraría en bucle.)
+    if (/Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(error.message)) {
+      const key = "chunk-reload-once";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+        return;
+      }
+    }
     const eventId = Sentry.captureException(error, {
       extra: { componentStack: info.componentStack },
     });
