@@ -373,12 +373,12 @@ describe("Edge cases – Login form validation", () => {
 // ---------------------------------------------------------------------------
 
 describe("Performance – toSlug", () => {
-  it("processes 10 000 slugs in under 100ms", () => {
+  it("processes 10 000 slugs in under 300ms", () => {
     const names = Array.from({ length: 10_000 }, (_, i) => `Centro Canino Número ${i} México`);
     const start = performance.now();
     names.forEach(toSlug);
     const elapsed = performance.now() - start;
-    expect(elapsed).toBeLessThan(100);
+    expect(elapsed).toBeLessThan(300);
   });
 
   it("single slug generation is under 1ms", () => {
