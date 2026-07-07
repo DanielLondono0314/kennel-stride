@@ -39,6 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const { organization } = useOrganization();
+  const orgId = organization?.id;
   const orgNavigate = useOrgNavigate();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -51,7 +52,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       setLoading(false);
       return;
     }
-    if (!organization) return;
+    if (!orgId) return;
 
     setLoading(true);
     const pattern = `%${q.trim()}%`;
@@ -60,19 +61,19 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       supabase
         .from("customers")
         .select("id, first_name, last_name, email, phone")
-        .eq("organization_id", organization!.id)
+        .eq("organization_id", orgId)
         .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`)
         .limit(5),
       supabase
         .from("dogs")
         .select("id, name, breed, customers(first_name, last_name)")
-        .eq("organization_id", organization!.id)
+        .eq("organization_id", orgId)
         .or(`name.ilike.${pattern},breed.ilike.${pattern}`)
         .limit(5),
       supabase
         .from("reservations")
         .select("id, service_name, status, start_date, dogs(name), customers(first_name, last_name)")
-        .eq("organization_id", organization!.id)
+        .eq("organization_id", orgId)
         .or(`service_name.ilike.${pattern}`)
         .order("start_date", { ascending: false })
         .limit(5),
@@ -115,7 +116,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
 
     setResults(mapped);
     setLoading(false);
-  }, [organization?.id]);
+  }, [orgId]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

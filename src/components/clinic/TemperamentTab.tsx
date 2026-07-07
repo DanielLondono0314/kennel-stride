@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export function TemperamentTab({ dogId, dogName }: Props) {
     behavioral_alerts: "",
   });
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("dog_temperament")
@@ -67,9 +67,9 @@ export function TemperamentTab({ dogId, dogName }: Props) {
       });
     }
     setLoading(false);
-  };
+  }, [dogId]);
 
-  useEffect(() => { fetchProfile(); }, [dogId]);
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const handleSave = async () => {
     if (!organization) { toast.error("Sin organización activa"); return; }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -77,9 +77,7 @@ export function StaffManagementTab() {
   const [specialty, setSpecialty] = useState<Specialty | "">("");
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => { fetchStaff(); }, [organization?.id]);
-
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     if (!organization) return;
     const { data, error } = await supabase
       .from("staff_members")
@@ -92,7 +90,10 @@ export function StaffManagementTab() {
       setStaff(data || []);
     }
     setLoading(false);
-  };
+  }, [organization]);
+
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+
 
   const resetForm = () => {
     setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setRole("worker"); setSpecialty(""); setIsActive(true);

@@ -218,7 +218,7 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell>
                     {hasBalance ? (
-                      <span className={isOwing ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                      <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
                         {isOwing ? "-" : "+"}${Math.abs(customer.balance).toFixed(2)}
                       </span>
                     ) : (
@@ -340,7 +340,7 @@ export default function CustomersPage() {
                       <span>{customer.dog_count === 1 ? "mascota" : "mascotas"}</span>
                     </div>
                     {hasBalance ? (
-                      <span className={isOwing ? "text-destructive font-medium" : "text-green-600 font-medium"}>
+                      <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
                         {isOwing ? "-" : "+"}${Math.abs(customer.balance).toFixed(2)}
                       </span>
                     ) : (

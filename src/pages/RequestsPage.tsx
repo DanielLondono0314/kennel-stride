@@ -83,15 +83,17 @@ export default function RequestsPage() {
 
   const { reservations, loading, refetch } = useReservations({ autoRefresh: true });
 
+  const orgId = organization?.id;
+
   useEffect(() => {
-    if (!organization) return;
+    if (!orgId) return;
     supabase
       .from("staff_members")
       .select("id, first_name, last_name, role")
       .eq("is_active", true)
-      .eq("organization_id", organization!.id)
+      .eq("organization_id", orgId)
       .then(({ data }) => { if (data) setStaffList(data); });
-  }, [organization?.id]);
+  }, [orgId]);
 
   const trainers = useMemo(
     () => staffList.filter((s) => s.role === "worker" || s.role === "admin"),

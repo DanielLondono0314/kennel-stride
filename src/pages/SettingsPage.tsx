@@ -23,7 +23,7 @@ export default function SettingsPage() {
     if (tabParam && (VALID_TABS as readonly string[]).includes(tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam as SettingsTab);
     }
-  }, [tabParam]);
+  }, [tabParam, activeTab]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value as SettingsTab);

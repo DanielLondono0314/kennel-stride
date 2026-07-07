@@ -37,20 +37,22 @@ export default function ClinicPage() {
   const [dogs, setDogs] = useState<DbDog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const orgId = organization?.id;
+
   useEffect(() => {
     const fetchDogs = async () => {
-      if (!organization) return;
+      if (!orgId) return;
       setLoading(true);
       const { data } = await supabase
         .from("dogs")
         .select("id, customer_id, name, breed, birth_date, weight, gender, is_neutered, customers(first_name, last_name)")
-        .eq("organization_id", organization!.id)
+        .eq("organization_id", orgId)
         .order("name");
       if (data) setDogs(data);
       setLoading(false);
     };
     fetchDogs();
-  }, [organization?.id]);
+  }, [orgId]);
 
   const filteredDogs = useMemo(() => {
     if (!searchQuery) return dogs;

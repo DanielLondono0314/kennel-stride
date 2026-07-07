@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
@@ -58,15 +58,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    if (!user || !orgSlug) {
-      setLoading(false);
-      return;
-    }
-    load();
-  }, [user, orgSlug]);
-
-  async function load() {
+  const load = useCallback(async () => {
     if (!orgSlug || !user) return;
     setLoading(true);
     setNotFound(false);
@@ -105,7 +97,16 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       setCurrentUserRole(null);
     }
     setLoading(false);
-  }
+  }, [orgSlug, user]);
+
+  useEffect(() => {
+    if (!user || !orgSlug) {
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [user, orgSlug, load]);
+
 
   const isSubscriptionActive = organization
     ? organization.subscription_status === "active" ||

@@ -49,7 +49,7 @@ export default function LoginPage() {
       const slug = await getFirstOrgSlug(session.user.id);
       navigate(slug ? `/${slug}` : "/onboarding", { replace: true });
     })();
-  }, [session, authLoading]);
+  }, [session, authLoading, invite, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

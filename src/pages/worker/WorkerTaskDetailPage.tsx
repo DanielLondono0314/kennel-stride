@@ -108,7 +108,7 @@ export default function WorkerTaskDetailPage() {
                 </Badge>
               )}
               {item.flags.medication && (
-                <Badge variant="outline" className="gap-1 text-blue-600">
+                <Badge variant="outline" className="gap-1 text-info">
                   <Pill className="h-3 w-3" /> Medicación
                 </Badge>
               )}

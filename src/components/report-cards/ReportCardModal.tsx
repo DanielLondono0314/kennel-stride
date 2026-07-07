@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,29 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const loadTrainers = useCallback(async () => {
+    if (!organization) return;
+    const { data } = await supabase
+      .from("staff_members")
+      .select("id, first_name, last_name")
+      .eq("is_active", true)
+      .eq("organization_id", organization.id)
+      // Solo entrenadores o roles que gestionan report cards (admin/manager).
+      .or("specialty.eq.trainer,role.in.(admin,manager)")
+      .order("first_name");
+    if (data) setTrainers(data);
+  }, [organization]);
+
+  const loadDogs = useCallback(async () => {
+    if (!organization) return;
+    const { data } = await supabase
+      .from("dogs")
+      .select("id, name, breed")
+      .eq("organization_id", organization.id)
+      .order("name");
+    if (data) setDogs(data as DbDog[]);
+  }, [organization]);
+
   useEffect(() => {
     if (open) {
       loadTrainers();
@@ -114,30 +137,8 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
         setForm({ ...defaultForm, service_type: SERVICE_TYPES[0]?.value ?? "daycare" });
       }
     }
-  }, [open, editData, SERVICE_TYPES]);
+  }, [open, editData, SERVICE_TYPES, loadTrainers, loadDogs]);
 
-  async function loadTrainers() {
-    if (!organization) return;
-    const { data } = await supabase
-      .from("staff_members")
-      .select("id, first_name, last_name")
-      .eq("is_active", true)
-      .eq("organization_id", organization!.id)
-      // Solo entrenadores o roles que gestionan report cards (admin/manager).
-      .or("specialty.eq.trainer,role.in.(admin,manager)")
-      .order("first_name");
-    if (data) setTrainers(data);
-  }
-
-  async function loadDogs() {
-    if (!organization) return;
-    const { data } = await supabase
-      .from("dogs")
-      .select("id, name, breed")
-      .eq("organization_id", organization!.id)
-      .order("name");
-    if (data) setDogs(data as DbDog[]);
-  }
 
   function handleDogChange(dogId: string) {
     const dog = dogs.find((d) => d.id === dogId);

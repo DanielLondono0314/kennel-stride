@@ -17,10 +17,12 @@ export default function StaffPage() {
   const [stats, setStats] = useState<StaffStats>({ total: 0, active: 0, workers: 0, admins: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
 
+  const orgId = organization?.id;
+
   useEffect(() => {
-    if (!organization) return;
+    if (!orgId) return;
     setLoadingStats(true);
-    supabase.from("staff_members").select("role, is_active").eq("organization_id", organization!.id).then(({ data }) => {
+    supabase.from("staff_members").select("role, is_active").eq("organization_id", orgId).then(({ data }) => {
       if (data) {
         setStats({
           total: data.length,
@@ -31,7 +33,7 @@ export default function StaffPage() {
       }
       setLoadingStats(false);
     });
-  }, [organization?.id]);
+  }, [orgId]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -54,8 +56,8 @@ export default function StaffPage() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3 flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-green-100">
-              <UserCheck className="h-5 w-5 text-green-600" />
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-success/10">
+              <UserCheck className="h-5 w-5 text-success" />
             </div>
             <div>
               {loadingStats ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <p className="text-2xl font-bold">{stats.active}</p>}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -40,7 +40,7 @@ export function InviteMembersTab() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("admin");
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async () => {
     if (!organization) return;
     const { data } = await supabase
       .from("organization_invitations")
@@ -49,9 +49,9 @@ export function InviteMembersTab() {
       .order("created_at", { ascending: false });
     if (data) setInvitations(data);
     setLoading(false);
-  };
+  }, [organization]);
 
-  useEffect(() => { fetchInvitations(); }, [organization?.id]);
+  useEffect(() => { fetchInvitations(); }, [fetchInvitations]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,7 +183,7 @@ export function InviteMembersTab() {
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="outline" className="text-xs">{ROLE_LABELS[inv.role] ?? inv.role}</Badge>
                         {accepted ? (
-                          <span className="flex items-center gap-1 text-xs text-green-600">
+                          <span className="flex items-center gap-1 text-xs text-success">
                             <CheckCircle2 className="h-3 w-3" /> Aceptada
                           </span>
                         ) : expired ? (

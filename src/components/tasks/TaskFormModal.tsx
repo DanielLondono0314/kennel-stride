@@ -64,6 +64,7 @@ const NONE = "__none__";
 
 export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProps) {
   const { organization } = useOrganization();
+  const orgId = organization?.id;
   const createTask = useCreateTask();
 
   const [type, setType] = useState<TaskType>("cleaning");
@@ -80,7 +81,7 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!open || !organization) return;
+    if (!open || !orgId) return;
     setType("cleaning");
     setTitle("");
     setDogId(NONE);
@@ -92,7 +93,7 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
     supabase
       .from("staff_members")
       .select("id, first_name, last_name, specialty")
-      .eq("organization_id", organization.id)
+      .eq("organization_id", orgId)
       .eq("is_active", true)
       .eq("role", "worker")
       .order("first_name")
@@ -101,17 +102,17 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
     supabase
       .from("dogs")
       .select("id, name")
-      .eq("organization_id", organization.id)
+      .eq("organization_id", orgId)
       .order("name")
       .then(({ data }) => { if (data) setDogs(data as NamedRow[]); });
 
     supabase
       .from("facility_zones")
       .select("id, name")
-      .eq("organization_id", organization.id)
+      .eq("organization_id", orgId)
       .order("name")
       .then(({ data }) => { if (data) setZones(data as NamedRow[]); });
-  }, [open, organization?.id]);
+  }, [open, orgId]);
 
   // Specialty-aware task type options: when an assignee with a specialty is chosen,
   // restrict the selectable task types to that specialty's allowed set.

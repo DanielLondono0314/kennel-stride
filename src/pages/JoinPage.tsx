@@ -45,6 +45,9 @@ export default function JoinPage() {
           setStatus("valid");
         }
       });
+    // Keyed a propósito por token/usuario: incluir acceptInvitation (identidad
+    // nueva en cada render) re-consultaría la invitación en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user?.id]);
 
   const acceptInvitation = async () => {

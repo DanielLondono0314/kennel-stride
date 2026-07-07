@@ -102,7 +102,10 @@ export function CheckOutModal({
     };
 
     fetchPackage();
-  }, [open, reservation?.id]);
+    // Keyed a propósito por id: reservation cambia de identidad en cada
+    // refetch del Dashboard y re-consultaría el paquete sin necesidad.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reservation?.id, organization?.id]);
 
   // Calculate stay duration
   const stayInfo = useMemo(() => {

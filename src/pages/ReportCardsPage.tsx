@@ -67,18 +67,20 @@ export default function ReportCardsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useReportCards({ page });
-  const reportCards = data?.cards ?? [];
+  const reportCards = useMemo(() => data?.cards ?? [], [data?.cards]);
+
+  const orgId = organization?.id;
 
   useEffect(() => {
-    if (!organization) return;
+    if (!orgId) return;
     supabase
       .from("staff_members")
       .select("id, first_name, last_name")
       .eq("is_active", true)
-      .eq("organization_id", organization.id)
+      .eq("organization_id", orgId)
       .order("first_name")
       .then(({ data }) => { if (data) setTrainers(data); });
-  }, [organization?.id]);
+  }, [orgId]);
 
   function getTrainerName(id: string | null) {
     if (!id) return "Sin asignar";

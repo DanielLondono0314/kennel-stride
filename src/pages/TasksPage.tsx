@@ -41,7 +41,7 @@ export default function TasksPage() {
   const canManage = usePermission("manage_tasks");
   const [modalOpen, setModalOpen] = useState(false);
 
-  const tasks = data ?? [];
+  const tasks = useMemo(() => data ?? [], [data]);
 
   const grouped = useMemo(() => {
     const map: Record<TaskStatus, any[]> = {

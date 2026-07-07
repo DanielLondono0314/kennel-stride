@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           {sent ? (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 text-sm">
+            <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-success text-sm">
               Revisa tu correo, te enviamos un enlace para restablecer tu contraseña.
             </div>
           ) : (

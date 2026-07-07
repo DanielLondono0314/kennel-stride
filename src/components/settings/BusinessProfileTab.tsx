@@ -65,7 +65,7 @@ export function BusinessProfileTab() {
             { value: "evaluation", label: "Evaluación" },
           ],
     });
-  }, [organization?.id]);
+  }, [organization]);
 
   const handleSave = async () => {
     if (!fields || !organization) return;

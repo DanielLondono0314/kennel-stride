@@ -103,8 +103,8 @@ export default function BillingPage() {
             <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
           </div>
         </div>
-        <div className="mx-auto w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center">
-          <AlertTriangle className="h-8 w-8 text-yellow-600" />
+        <div className="mx-auto w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-warning" />
         </div>
         <div>
           <h2 className="text-2xl font-bold">Suscripción inactiva</h2>

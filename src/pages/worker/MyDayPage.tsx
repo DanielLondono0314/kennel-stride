@@ -32,7 +32,7 @@ export default function MyDayPage() {
                 <div className="flex gap-1">
                   {item.flags.aggressive && <AlertTriangle className="h-4 w-4 text-destructive" />}
                   {item.flags.allergies && <Leaf className="h-4 w-4 text-amber-600" />}
-                  {item.flags.medication && <Pill className="h-4 w-4 text-blue-600" />}
+                  {item.flags.medication && <Pill className="h-4 w-4 text-info" />}
                 </div>
               </button>
             ))}

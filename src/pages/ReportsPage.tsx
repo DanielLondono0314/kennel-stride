@@ -24,7 +24,7 @@ export default function ReportsPage() {
 
   const invoices = data?.invoices ?? [];
   const newCustomers = data?.newCustomers ?? [];
-  const packages = data?.packages ?? [];
+  const packages = useMemo(() => data?.packages ?? [], [data?.packages]);
   const units = data?.units ?? [];
   const reportCards = data?.reportCards ?? [];
   const reservations = data?.reservations ?? [];
@@ -206,7 +206,7 @@ export default function ReportsPage() {
         <Card className="card-kpi">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100"><BarChart3 className="h-5 w-5 text-green-600" /></div>
+              <div className="p-2 rounded-lg bg-success/10"><BarChart3 className="h-5 w-5 text-success" /></div>
               <div>
                 <p className="text-2xl font-bold">{conversionRate}%</p>
                 <p className="text-xs text-muted-foreground">Tasa completadas</p>

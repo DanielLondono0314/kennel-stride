@@ -72,7 +72,7 @@ export default function FacilityPage() {
     if (dogsData) setDogs(dogsData as Array<{ id: string; name: string }>);
 
     setLoading(false);
-  }, [organization?.id]);
+  }, [organization]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

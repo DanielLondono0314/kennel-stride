@@ -146,13 +146,13 @@ export default function OnboardingPage() {
                     slugAvailable === false
                       ? "border-destructive pr-8"
                       : slugAvailable === true
-                      ? "border-green-500 pr-8"
+                      ? "border-success pr-8"
                       : "pr-8"
                   }
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
                   {checking && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  {!checking && slugAvailable === true && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                  {!checking && slugAvailable === true && <CheckCircle2 className="h-4 w-4 text-success" />}
                   {!checking && slugAvailable === false && <span className="text-destructive text-xs">En uso</span>}
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -67,12 +67,12 @@ interface DbInvoice {
 }
 
 const statusColors: Record<string, string> = {
-  requested: "bg-purple-100 text-purple-700",
-  scheduled: "bg-blue-100 text-blue-700",
-  checked_in: "bg-green-100 text-green-700",
+  requested: "bg-warning/10 text-warning",
+  scheduled: "bg-primary/10 text-primary",
+  checked_in: "bg-success/10 text-success",
   in_progress: "bg-amber-100 text-amber-700",
   completed: "bg-gray-100 text-gray-600",
-  cancelled: "bg-red-100 text-red-700",
+  cancelled: "bg-destructive/10 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
@@ -99,7 +99,7 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     if (!id || !organization) return;
     setLoading(true);
 
@@ -135,9 +135,9 @@ export default function CustomerProfilePage() {
     if (invRes.data) setInvoices(invRes.data);
 
     setLoading(false);
-  };
+  }, [id, organization]);
 
-  useEffect(() => { fetchAll(); }, [id, organization?.id]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleSave = async (data: Partial<DbCustomer>) => {
     const payload = {
@@ -255,7 +255,7 @@ export default function CustomerProfilePage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Balance</p>
-            <p className={`text-3xl font-bold mt-1 ${customer.balance < 0 ? "text-destructive" : customer.balance > 0 ? "text-green-600" : ""}`}>
+            <p className={`text-3xl font-bold mt-1 ${customer.balance < 0 ? "text-destructive" : customer.balance > 0 ? "text-success" : ""}`}>
               {customer.balance < 0 ? "-" : ""}${Math.abs(customer.balance).toFixed(0)}
             </p>
           </CardContent>
@@ -457,11 +457,11 @@ export default function CustomerProfilePage() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm">
                         {inv.status === "paid" ? (
-                          <><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-green-600">Pagada</span></>
+                          <><CheckCircle2 className="h-4 w-4 text-success" /><span className="text-success">Pagada</span></>
                         ) : inv.status === "overdue" ? (
                           <><AlertTriangle className="h-4 w-4 text-destructive" /><span className="text-destructive">Vencida</span></>
                         ) : inv.status === "pending" ? (
-                          <><Clock className="h-4 w-4 text-amber-600" /><span className="text-amber-600">Pendiente</span></>
+                          <><Clock className="h-4 w-4 text-warning" /><span className="text-warning">Pendiente</span></>
                         ) : (
                           <span className="text-muted-foreground">{inv.status}</span>
                         )}

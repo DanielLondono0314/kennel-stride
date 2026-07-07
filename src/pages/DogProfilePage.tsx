@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -82,7 +82,7 @@ export default function DogProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
-  const fetchDog = async () => {
+  const fetchDog = useCallback(async () => {
     if (!id || !organization) return;
     const { data } = await supabase
       .from("dogs")
@@ -91,9 +91,9 @@ export default function DogProfilePage() {
       .eq("organization_id", organization!.id)
       .single();
     if (data) setDog(data as DbDog);
-  };
+  }, [id, organization]);
 
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     if (!id || !organization) return;
     const { data } = await supabase
       .from("reservations")
@@ -103,12 +103,12 @@ export default function DogProfilePage() {
       .order("start_date", { ascending: false })
       .limit(20);
     if (data) setReservations(data as ReservationRow[]);
-  };
+  }, [id, organization]);
 
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchDog(), fetchReservations()]).finally(() => setLoading(false));
-  }, [id, organization?.id]);
+  }, [fetchDog, fetchReservations]);
 
   const handleSave = async (data: any) => {
     const payload = {

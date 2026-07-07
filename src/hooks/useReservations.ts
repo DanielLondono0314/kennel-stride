@@ -142,6 +142,7 @@ interface UseReservationsOptions {
 
 export function useReservations(options: UseReservationsOptions = {}) {
   const { organization } = useOrganization();
+  const orgId = organization?.id;
   const [rows, setRows] = useState<DbReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -151,10 +152,11 @@ export function useReservations(options: UseReservationsOptions = {}) {
   const dateKey = options.date?.toDateString();
   const fromKey = options.fromDate?.toDateString();
   const toKey   = options.toDate?.toDateString();
-  const statusKey = useMemo(
-    () => (Array.isArray(options.status) ? [...options.status].sort().join(",") : options.status ?? ""),
-    [Array.isArray(options.status) ? options.status.join(",") : options.status]
-  );
+  // Cálculo barato de string: no necesita useMemo y evita el warning de
+  // expresión compleja en el array de dependencias.
+  const statusKey = Array.isArray(options.status)
+    ? [...options.status].sort().join(",")
+    : options.status ?? "";
 
   const fetch = useCallback(async () => {
     if (!organization) return;
@@ -199,13 +201,13 @@ export function useReservations(options: UseReservationsOptions = {}) {
   useEffect(() => { fetch(); }, [fetch]);
 
   useEffect(() => {
-    if (!options.autoRefresh || !organization) return;
+    if (!options.autoRefresh || !orgId) return;
     const channel = supabase
-      .channel(`reservations-${organization.id}-${crypto.randomUUID()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `organization_id=eq.${organization.id}` }, () => fetch())
+      .channel(`reservations-${orgId}-${crypto.randomUUID()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `organization_id=eq.${orgId}` }, () => fetch())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetch, options.autoRefresh, organization?.id]);
+  }, [fetch, options.autoRefresh, orgId]);
 
   const reservations = useMemo(() => rows.map(mapDbToReservation), [rows]);
 

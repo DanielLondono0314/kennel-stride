@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
@@ -49,14 +49,14 @@ export function ConditionsTab({ dogId, dogName }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("medical_conditions").select("*").eq("dog_id", dogId).order("diagnosed_date", { ascending: false });
     if (data) setRecords(data);
     setLoading(false);
-  };
+  }, [dogId]);
 
-  useEffect(() => { fetchRecords(); }, [dogId]);
+  useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
   const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
   const openEdit = (r: any) => {

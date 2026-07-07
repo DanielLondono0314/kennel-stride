@@ -28,19 +28,20 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     supabase
       .from("profiles")
       .select("first_name, last_name")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.first_name) {
           setProfileName(`${data.first_name} ${data.last_name}`.trim());
         }
       });
-  }, [user?.id]);
+  }, [userId]);
 
   // Global keyboard shortcut ⌘K / Ctrl+K
   useEffect(() => {
