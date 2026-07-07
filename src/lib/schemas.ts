@@ -39,11 +39,18 @@ export const invitationSchema = z.object({
   role: staffRoleSchema,
 });
 
+// El formulario de cliente marca Teléfono con * — el schema lo exige de verdad.
+export const customerPhoneSchema = z
+  .string()
+  .trim()
+  .min(1, "Teléfono es requerido")
+  .regex(phoneRegex, "Teléfono inválido");
+
 export const customerSchema = z.object({
   first_name: nameSchema,
   last_name: nameSchema,
   email: emailSchema,
-  phone: phoneSchema,
+  phone: customerPhoneSchema,
   address: z.string().trim().max(200).optional().or(z.literal("")),
   city: z.string().trim().max(80).optional().or(z.literal("")),
   state: z.string().trim().max(80).optional().or(z.literal("")),

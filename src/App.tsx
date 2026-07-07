@@ -57,7 +57,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Sonner position="top-right" />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <ErrorBoundary>
               <Suspense fallback={<div className="min-h-screen bg-background" />}>

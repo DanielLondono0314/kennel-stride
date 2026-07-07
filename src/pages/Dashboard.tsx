@@ -78,26 +78,38 @@ export default function Dashboard() {
     };
   }, [reservations]);
 
-  const tabCounts = useMemo(() => ({
+  const tabCounts = useMemo(() => {
+    // "Esperados Hoy" y "Salen Hoy" filtran por FECHA además de estado,
+    // igual que los KPIs de arriba (antes el tab mostraba reservas de
+    // mañana y contradecía al contador).
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    return {
     notices: notices.filter((n) => !n.isRead).length,
-    expected: reservations.filter((r) => r.status === ReservationStatus.SCHEDULED).length,
+    expected: reservations.filter((r) =>
+      r.status === ReservationStatus.SCHEDULED && format(r.startDate, "yyyy-MM-dd") === todayStr
+    ).length,
     goingHome: reservations.filter((r) =>
-      r.status === ReservationStatus.READY || r.status === ReservationStatus.CHECKED_IN
+      r.status === ReservationStatus.READY ||
+      (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)
     ).length,
     checkedIn: reservations.filter((r) =>
       r.status === ReservationStatus.CHECKED_IN || r.status === ReservationStatus.IN_PROGRESS
     ).length,
     requested: reservations.filter((r) => r.status === ReservationStatus.REQUESTED).length,
-  }), [reservations, notices]);
+  }; }, [reservations, notices]);
 
   const filteredReservations = useMemo(() => {
     let filtered = reservations.filter(
       (r) => r.status !== ReservationStatus.CANCELLED && r.status !== ReservationStatus.COMPLETED
     );
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     switch (activeTab) {
-      case "expected": filtered = filtered.filter((r) => r.status === ReservationStatus.SCHEDULED); break;
+      case "expected": filtered = filtered.filter((r) =>
+        r.status === ReservationStatus.SCHEDULED && format(r.startDate, "yyyy-MM-dd") === todayStr
+      ); break;
       case "going-home": filtered = filtered.filter((r) =>
-        r.status === ReservationStatus.READY || r.status === ReservationStatus.CHECKED_IN
+        r.status === ReservationStatus.READY ||
+        (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)
       ); break;
       case "checked-in": filtered = filtered.filter((r) =>
         r.status === ReservationStatus.CHECKED_IN || r.status === ReservationStatus.IN_PROGRESS

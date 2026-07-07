@@ -61,8 +61,18 @@ export default function ReportsPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredReservations]);
 
-  // KPIs
-  const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
+  // KPIs — los ingresos cobrados incluyen facturas pagadas Y bonos vendidos
+  // en el período (un check-out con bono no factura: el cobro fue la venta).
+  const RANGE_DAYS: Record<string, number> = { "30d": 30, "90d": 90, "6m": 183, "1y": 365 };
+  const rangeCutoff = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - (RANGE_DAYS[range] ?? 30));
+    return d;
+  }, [range]);
+  const packageRevenue = packages
+    .filter((p) => new Date(p.created_at) >= rangeCutoff)
+    .reduce((s, p) => s + Number(p.price ?? 0), 0);
+  const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0) + packageRevenue;
   const totalPending = filteredInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
   const activeCustomers = newCustomers.length;
   const occupiedKennels = units.filter((u: any) => u.status === "occupied").length;
