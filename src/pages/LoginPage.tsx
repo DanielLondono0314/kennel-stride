@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,10 @@ async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeo
 export default function LoginPage() {
   const { session, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  // Destino original si venimos de un guard (deep-link preservado).
+  const from = (location.state as { from?: string } | null)?.from;
   const invite = searchParams.get("invite");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -39,6 +42,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (authLoading || !session) return;
     (async () => {
+      if (from) {
+        navigate(from, { replace: true });
+        return;
+      }
       if (invite) {
         const result = await acceptInviteAndNavigate(invite, navigate);
         if (result) {
@@ -49,7 +56,7 @@ export default function LoginPage() {
       const slug = await getFirstOrgSlug(session.user.id);
       navigate(slug ? `/${slug}` : "/onboarding", { replace: true });
     })();
-  }, [session, authLoading, invite, navigate]);
+  }, [session, authLoading, invite, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

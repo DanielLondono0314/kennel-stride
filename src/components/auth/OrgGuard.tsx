@@ -1,10 +1,11 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
 
 function OrgGuardInner() {
+  const location = useLocation();
   const { session, loading: authLoading } = useAuth();
   const { organization, loading: orgLoading, notFound, loadError, isSubscriptionActive, refetch } = useOrganization();
 
@@ -16,7 +17,12 @@ function OrgGuardInner() {
     );
   }
 
-  if (!session) return <Navigate to="/login" replace />;
+  // Preserva el deep-link: en el hard-load hay un instante con session=null
+  // y sin `from` el LoginPage redirige a su destino por defecto (dashboard),
+  // perdiendo la URL original (p. ej. /:org/customers).
+  if (!session) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  }
 
   // DB error — show error screen with retry, never redirect to login (that creates a loop)
   if (loadError) {
