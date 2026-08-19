@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { StarRating } from "./StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getFunctionErrorMessage } from "@/lib/functionError";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Upload, X, Loader2 } from "lucide-react";
@@ -226,9 +227,10 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
       });
       setSaving(false);
       if (sendError || !sendData?.success) {
-        toast.error("Se guardó, pero no se pudo enviar el correo", {
-          description: sendData?.error || sendError?.message || "Puedes reintentar el envío desde la lista.",
-        });
+        const description = sendError
+          ? await getFunctionErrorMessage(sendError, "Puedes reintentar el envío desde la lista.")
+          : sendData?.error || "Puedes reintentar el envío desde la lista.";
+        toast.error("Se guardó, pero no se pudo enviar el correo", { description });
         onOpenChange(false);
         onSaved();
         return;

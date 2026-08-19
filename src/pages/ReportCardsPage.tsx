@@ -17,6 +17,7 @@ import { es } from "date-fns/locale";
 import { Plus, Search, FileText, Send, Pencil, Trash2, Dog } from "lucide-react";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
+import { getFunctionErrorMessage } from "@/lib/functionError";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -134,9 +135,10 @@ export default function ReportCardsPage() {
     });
     setSendingId(null);
     if (error || !data?.success) {
-      toast.error("No se pudo enviar el report card", {
-        description: data?.error || error?.message || "Revisa tu conexión e inténtalo de nuevo.",
-      });
+      const description = error
+        ? await getFunctionErrorMessage(error, "Revisa tu conexión e inténtalo de nuevo.")
+        : data?.error || "Revisa tu conexión e inténtalo de nuevo.";
+      toast.error("No se pudo enviar el report card", { description });
     } else {
       toast.success(`Report card de ${rc.dog_name} enviado al dueño por correo`);
       setDetailOpen(false);
