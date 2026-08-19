@@ -5,6 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Calendar, Dog, User } from "lucide-react";
+import { Loader2, Calendar, Dog, User, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { focusFirstInvalid } from "@/lib/forms";
 
@@ -108,6 +112,7 @@ export function NewReservationModal({
   const [totalPrice, setTotalPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("requested");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Data
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -253,6 +258,21 @@ export function NewReservationModal({
     toast.success("Reserva creada", {
       description: "La solicitud ha sido registrada y está pendiente de aprobación.",
     });
+    onOpenChange(false);
+    onSaved?.();
+  };
+
+  const handleDelete = async () => {
+    if (!editData) return;
+    setSaving(true);
+    const { error } = await supabase.from("reservations").delete().eq("id", editData.id);
+    setSaving(false);
+    setConfirmDeleteOpen(false);
+    if (error) {
+      toast.error("No se pudo eliminar la reserva", { description: "Inténtalo de nuevo." });
+      return;
+    }
+    toast.success("Reserva eliminada");
     onOpenChange(false);
     onSaved?.();
   };
@@ -441,6 +461,16 @@ export function NewReservationModal({
         )}
 
         <DialogFooter className="mt-4">
+          {isEditing && (
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive mr-auto"
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={saving}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />Eliminar
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
@@ -454,6 +484,22 @@ export function NewReservationModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar reserva?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={saving} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

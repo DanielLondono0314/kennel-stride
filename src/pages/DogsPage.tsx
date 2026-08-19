@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
-import { useDogs, useDeleteDog, type DbDog } from "@/hooks/queries/useDogs";
+import { useDogs, useDeleteDog, useBulkDeleteDogs, useSetDogsActive, type DbDog, type DogStatusFilter } from "@/hooks/queries/useDogs";
 import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TableSkeleton, ListSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
@@ -20,15 +21,19 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload, Power, PowerOff, Trash2 } from "lucide-react";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { getAge } from "@/lib/age";
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
+import { cn } from "@/lib/utils";
 
 // DbDog se importa de @/hooks/queries/useDogs (fuente única) en vez de duplicarla.
 
@@ -41,19 +46,36 @@ export default function DogsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
   const [page, setPage] = useState(0);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<DogStatusFilter>("active");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(searchQuery); setPage(0); }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data, isLoading, isFetching, isError, refetch } = useDogs({ page, search: debouncedSearch });
+  useEffect(() => { setSelectedIds(new Set()); }, [statusFilter, debouncedSearch]);
+
+  const { data, isLoading, isFetching, isError, refetch } = useDogs({ page, search: debouncedSearch, status: statusFilter });
   const dogs = data?.dogs ?? [];
   const hasMore = data?.hasMore ?? false;
   const deleteDog = useDeleteDog();
+  const bulkDeleteDogs = useBulkDeleteDogs();
+  const setDogsActive = useSetDogsActive();
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.size === dogs.length ? new Set() : new Set(dogs.map((d) => d.id))));
+  };
 
   const handleNewDog = () => { setEditingDog(null); setModalOpen(true); };
   const handleEditDog = (dog: DbDog) => { setEditingDog(dog); setModalOpen(true); };
@@ -137,14 +159,29 @@ export default function DogsPage() {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteIds || deleteIds.length === 0) return;
     try {
-      await deleteDog.mutateAsync(deleteId);
-      toast.success("Mascota eliminada");
+      if (deleteIds.length === 1) {
+        await deleteDog.mutateAsync(deleteIds[0]);
+      } else {
+        await bulkDeleteDogs.mutateAsync(deleteIds);
+      }
+      toast.success(deleteIds.length === 1 ? "Mascota eliminada" : `${deleteIds.length} mascotas eliminadas`);
+      setSelectedIds(new Set());
     } catch {
-      toast.error("No se pudo eliminar el perro", { description: "Inténtalo de nuevo." });
+      toast.error("No se pudo eliminar", { description: "Inténtalo de nuevo." });
     }
-    setDeleteId(null);
+    setDeleteIds(null);
+  };
+
+  const handleSetActive = async (ids: string[], isActive: boolean) => {
+    try {
+      await setDogsActive.mutateAsync({ ids, isActive });
+      toast.success(isActive ? "Mascota(s) activada(s)" : "Mascota(s) marcada(s) como inactiva(s)");
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("No se pudo actualizar el estado", { description: "Inténtalo de nuevo." });
+    }
   };
 
   return (
@@ -173,16 +210,50 @@ export default function DogsPage() {
         onImported={() => { setPage(0); setDebouncedSearch(""); }}
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input type="search" placeholder="Buscar por nombre, raza o dueño..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-md min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input type="search" placeholder="Buscar por nombre, raza o dueño..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as DogStatusFilter)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Activos</SelectItem>
+            <SelectItem value="inactive">Inactivos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-2.5">
+          <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={() => handleSetActive(Array.from(selectedIds), true)}>
+              <Power className="h-4 w-4 mr-2" />Activar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleSetActive(Array.from(selectedIds), false)}>
+              <PowerOff className="h-4 w-4 mr-2" />Inactivar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteIds(Array.from(selectedIds))}>
+              <Trash2 className="h-4 w-4 mr-2" />Eliminar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Desktop table */}
       <div className="hidden md:block border rounded-lg bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
+              {canDelete && (
+                <TableHead className="w-10">
+                  <Checkbox checked={dogs.length > 0 && selectedIds.size === dogs.length} onCheckedChange={toggleSelectAll} aria-label="Seleccionar todos" />
+                </TableHead>
+              )}
               <TableHead className="min-w-[180px]">Perro</TableHead>
               <TableHead>Dueño</TableHead>
               <TableHead>Raza</TableHead>
@@ -193,13 +264,18 @@ export default function DogsPage() {
           </TableHeader>
           <TableBody>
             {isError ? (
-              <TableRow><TableCell colSpan={6} className="py-4 px-4"><QueryErrorState onRetry={() => refetch()} /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="py-4 px-4"><QueryErrorState onRetry={() => refetch()} /></TableCell></TableRow>
             ) : isLoading ? (
-              <TableRow><TableCell colSpan={6} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
             ) : dogs.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} /></TableCell></TableRow>
             ) : dogs.map((dog) => (
-              <TableRow key={dog.id} className="cursor-pointer" onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
+              <TableRow key={dog.id} className={cn("cursor-pointer", !dog.is_active && "opacity-60")} onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
+                {canDelete && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selectedIds.has(dog.id)} onCheckedChange={() => toggleSelected(dog.id)} aria-label={`Seleccionar ${dog.name}`} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border-2 border-background shadow">
@@ -207,7 +283,10 @@ export default function DogsPage() {
                       <AvatarFallback className="bg-accent text-accent-foreground"><DogIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{dog.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium">{dog.name}</p>
+                        {!dog.is_active && <Badge variant="secondary" className="text-[10px] px-1.5">Inactivo</Badge>}
+                      </div>
                       <DogCharacteristicIcons
                         isAggressive={dog.is_aggressive}
                         hasAllergies={dog.has_allergies}
@@ -240,7 +319,12 @@ export default function DogsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
                       {canDelete && (
-                        <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSetActive([dog.id], !dog.is_active)}>
+                          {dog.is_active ? "Marcar inactivo" : "Activar"}
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <DropdownMenuItem onClick={() => setDeleteIds([dog.id])} className="text-destructive">Eliminar</DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -262,18 +346,26 @@ export default function DogsPage() {
         ) : dogs.map((dog) => (
           <Card
             key={dog.id}
-            className="cursor-pointer"
+            className={cn("cursor-pointer", !dog.is_active && "opacity-60")}
             onClick={() => orgNavigate(`/dogs/${dog.id}`)}
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
+                  {canDelete && (
+                    <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                      <Checkbox checked={selectedIds.has(dog.id)} onCheckedChange={() => toggleSelected(dog.id)} aria-label={`Seleccionar ${dog.name}`} />
+                    </div>
+                  )}
                   <Avatar className="h-12 w-12 border-2 border-background shadow shrink-0">
                     {dog.photo_url && <AvatarImage src={dog.photo_url} alt={dog.name} className="object-cover" />}
                     <AvatarFallback className="bg-accent text-accent-foreground"><DogIcon className="h-5 w-5" /></AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{dog.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium truncate">{dog.name}</p>
+                      {!dog.is_active && <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">Inactivo</Badge>}
+                    </div>
                     <DogCharacteristicIcons
                       isAggressive={dog.is_aggressive}
                       hasAllergies={dog.has_allergies}
@@ -293,7 +385,12 @@ export default function DogsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
                       {canDelete && (
-                        <DropdownMenuItem onClick={() => setDeleteId(dog.id)} className="text-destructive">Eliminar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSetActive([dog.id], !dog.is_active)}>
+                          {dog.is_active ? "Marcar inactivo" : "Activar"}
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <DropdownMenuItem onClick={() => setDeleteIds([dog.id])} className="text-destructive">Eliminar</DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -338,11 +435,16 @@ export default function DogsPage() {
 
       <DogModal dog={editingDog} open={modalOpen} onOpenChange={setModalOpen} onSave={handleSave} />
 
-      <AlertDialog open={!!deleteId && canDelete} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteIds && canDelete} onOpenChange={(o) => !o && setDeleteIds(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar perro?</AlertDialogTitle>
-            <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminarán también los registros médicos asociados.</AlertDialogDescription>
+            <AlertDialogTitle>
+              {deleteIds && deleteIds.length > 1 ? `¿Eliminar ${deleteIds.length} perros?` : "¿Eliminar perro?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminarán también los registros médicos asociados.
+              {" "}Si prefieres conservar el historial, usa "Marcar inactivo" en vez de eliminar.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

@@ -175,6 +175,7 @@ export type Database = {
           emergency_contact_phone: string | null
           first_name: string
           id: string
+          is_active: boolean
           last_name: string
           ls_customer_id: string | null
           notes: string | null
@@ -195,6 +196,7 @@ export type Database = {
           emergency_contact_phone?: string | null
           first_name: string
           id?: string
+          is_active?: boolean
           last_name: string
           ls_customer_id?: string | null
           notes?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           emergency_contact_phone?: string | null
           first_name?: string
           id?: string
+          is_active?: boolean
           last_name?: string
           ls_customer_id?: string | null
           notes?: string | null
@@ -483,6 +486,7 @@ export type Database = {
           gender: string
           has_allergies: boolean
           id: string
+          is_active: boolean
           is_aggressive: boolean
           is_neutered: boolean
           medical_notes: string | null
@@ -508,6 +512,7 @@ export type Database = {
           gender?: string
           has_allergies?: boolean
           id?: string
+          is_active?: boolean
           is_aggressive?: boolean
           is_neutered?: boolean
           medical_notes?: string | null
@@ -533,6 +538,7 @@ export type Database = {
           gender?: string
           has_allergies?: boolean
           id?: string
+          is_active?: boolean
           is_aggressive?: boolean
           is_neutered?: boolean
           medical_notes?: string | null

@@ -2,9 +2,14 @@ import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
-import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, DbCustomer, type CreateCustomerInput } from "@/hooks/queries/useCustomers";
+import {
+  useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer,
+  useBulkDeleteCustomers, useSetCustomersActive,
+  DbCustomer, type CreateCustomerInput, type CustomerStatusFilter,
+} from "@/hooks/queries/useCustomers";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -14,11 +19,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload, Users } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload, Users, Power, PowerOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
@@ -26,6 +34,7 @@ import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { formatCurrency } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 
 export type { DbCustomer };
 
@@ -38,8 +47,10 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("active");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,7 +60,9 @@ export default function CustomersPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data, isLoading, isFetching, isError, refetch } = useCustomers({ page, search: debouncedSearch });
+  useEffect(() => { setPage(0); setSelectedIds(new Set()); }, [statusFilter]);
+
+  const { data, isLoading, isFetching, isError, refetch } = useCustomers({ page, search: debouncedSearch, status: statusFilter });
   const [allCustomers, setAllCustomers] = useState<DbCustomer[]>([]);
   const hasMore = data?.hasMore ?? false;
 
@@ -62,9 +75,22 @@ export default function CustomersPage() {
     }
   }, [data?.customers, page]);
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.size === allCustomers.length ? new Set() : new Set(allCustomers.map((c) => c.id))));
+  };
+
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
+  const bulkDeleteCustomers = useBulkDeleteCustomers();
+  const setCustomersActive = useSetCustomersActive();
 
   const handleSave = async (formData: Partial<DbCustomer>) => {
     try {
@@ -85,14 +111,29 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteIds || deleteIds.length === 0) return;
     try {
-      await deleteCustomer.mutateAsync(deleteId);
-      toast.success("Cliente eliminado");
+      if (deleteIds.length === 1) {
+        await deleteCustomer.mutateAsync(deleteIds[0]);
+      } else {
+        await bulkDeleteCustomers.mutateAsync(deleteIds);
+      }
+      toast.success(deleteIds.length === 1 ? "Cliente eliminado" : `${deleteIds.length} clientes eliminados`);
+      setSelectedIds(new Set());
     } catch {
-      toast.error("No se pudo eliminar el cliente", { description: "Inténtalo de nuevo." });
+      toast.error("No se pudo eliminar", { description: "Inténtalo de nuevo." });
     }
-    setDeleteId(null);
+    setDeleteIds(null);
+  };
+
+  const handleSetActive = async (ids: string[], isActive: boolean) => {
+    try {
+      await setCustomersActive.mutateAsync({ ids, isActive });
+      toast.success(isActive ? "Cliente(s) activado(s)" : "Cliente(s) marcado(s) como inactivo(s)");
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("No se pudo actualizar el estado", { description: "Inténtalo de nuevo." });
+    }
   };
 
   return (
@@ -124,22 +165,56 @@ export default function CustomersPage() {
         onImported={() => { setPage(0); setDebouncedSearch(""); }}
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar por nombre, email o teléfono..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-md min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar por nombre, email o teléfono..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as CustomerStatusFilter)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Activos</SelectItem>
+            <SelectItem value="inactive">Inactivos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-2.5">
+          <span className="text-sm font-medium">{selectedIds.size} seleccionado(s)</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={() => handleSetActive(Array.from(selectedIds), true)}>
+              <Power className="h-4 w-4 mr-2" />Activar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleSetActive(Array.from(selectedIds), false)}>
+              <PowerOff className="h-4 w-4 mr-2" />Inactivar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteIds(Array.from(selectedIds))}>
+              <Trash2 className="h-4 w-4 mr-2" />Eliminar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Desktop table */}
       <div className="hidden md:block border rounded-lg bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
+              {canDelete && (
+                <TableHead className="w-10">
+                  <Checkbox checked={allCustomers.length > 0 && selectedIds.size === allCustomers.length} onCheckedChange={toggleSelectAll} aria-label="Seleccionar todos" />
+                </TableHead>
+              )}
               <TableHead className="min-w-[200px]">Cliente</TableHead>
               <TableHead>Contacto</TableHead>
               <TableHead>Mascotas</TableHead>
@@ -150,19 +225,19 @@ export default function CustomersPage() {
           <TableBody>
             {isError ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-4 px-4">
+                <TableCell colSpan={6} className="py-4 px-4">
                   <QueryErrorState onRetry={() => refetch()} />
                 </TableCell>
               </TableRow>
             ) : isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-4 px-4">
+                <TableCell colSpan={6} className="py-4 px-4">
                   <CardGridSkeleton count={6} />
                 </TableCell>
               </TableRow>
             ) : allCustomers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-4">
+                <TableCell colSpan={6} className="py-4">
                   <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
                 </TableCell>
               </TableRow>
@@ -174,9 +249,14 @@ export default function CustomersPage() {
               return (
                 <TableRow
                   key={customer.id}
-                  className="cursor-pointer"
+                  className={cn("cursor-pointer", !customer.is_active && "opacity-60")}
                   onClick={() => orgNavigate(`/customers/${customer.id}`)}
                 >
+                  {canDelete && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={selectedIds.has(customer.id)} onCheckedChange={() => toggleSelected(customer.id)} aria-label={`Seleccionar ${customer.first_name}`} />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
@@ -185,9 +265,12 @@ export default function CustomersPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">
-                          {customer.first_name} {customer.last_name}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium">
+                            {customer.first_name} {customer.last_name}
+                          </p>
+                          {!customer.is_active && <Badge variant="secondary" className="text-[10px] px-1.5">Inactivo</Badge>}
+                        </div>
                         {customer.notes && (
                           <Badge variant="secondary" className="text-[10px] mt-1">
                             {customer.notes.slice(0, 30)}
@@ -243,9 +326,14 @@ export default function CustomersPage() {
                         </DropdownMenuItem>
                         {canDelete && <DropdownMenuSeparator />}
                         {canDelete && (
+                          <DropdownMenuItem onClick={() => handleSetActive([customer.id], !customer.is_active)}>
+                            {customer.is_active ? "Marcar inactivo" : "Activar"}
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteId(customer.id)}
+                            onClick={() => setDeleteIds([customer.id])}
                           >
                             Eliminar
                           </DropdownMenuItem>
@@ -275,21 +363,29 @@ export default function CustomersPage() {
           return (
             <Card
               key={customer.id}
-              className="cursor-pointer"
+              className={cn("cursor-pointer", !customer.is_active && "opacity-60")}
               onClick={() => orgNavigate(`/customers/${customer.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
+                    {canDelete && (
+                      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                        <Checkbox checked={selectedIds.has(customer.id)} onCheckedChange={() => toggleSelected(customer.id)} aria-label={`Seleccionar ${customer.first_name}`} />
+                      </div>
+                    )}
                     <Avatar className="h-10 w-10 shrink-0">
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-medium truncate">
-                        {customer.first_name} {customer.last_name}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium truncate">
+                          {customer.first_name} {customer.last_name}
+                        </p>
+                        {!customer.is_active && <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">Inactivo</Badge>}
+                      </div>
                       {customer.notes && (
                         <Badge variant="secondary" className="text-[10px] mt-1">
                           {customer.notes.slice(0, 30)}
@@ -314,9 +410,14 @@ export default function CustomersPage() {
                         </DropdownMenuItem>
                         {canDelete && <DropdownMenuSeparator />}
                         {canDelete && (
+                          <DropdownMenuItem onClick={() => handleSetActive([customer.id], !customer.is_active)}>
+                            {customer.is_active ? "Marcar inactivo" : "Activar"}
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete && (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteId(customer.id)}
+                            onClick={() => setDeleteIds([customer.id])}
                           >
                             Eliminar
                           </DropdownMenuItem>
@@ -370,12 +471,15 @@ export default function CustomersPage() {
         onSave={handleSave}
       />
 
-      <AlertDialog open={!!deleteId && canDelete} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteIds && canDelete} onOpenChange={(o) => !o && setDeleteIds(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteIds && deleteIds.length > 1 ? `¿Eliminar ${deleteIds.length} clientes?` : "¿Eliminar cliente?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminarán también sus perros, reservas y registros asociados.
+              {" "}Si prefieres conservar el historial, usa "Marcar inactivo" en vez de eliminar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

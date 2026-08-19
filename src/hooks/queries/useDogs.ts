@@ -24,25 +24,28 @@ export interface DbDog {
   photo_url: string | null;
   aggression_details: unknown | null;
   feeding: unknown | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   customers?: { id: string; first_name: string; last_name: string } | null;
 }
 
+export type DogStatusFilter = "active" | "inactive" | "all";
+
 function dogKeys(orgId: string | undefined) {
   return {
     all: ["dogs", orgId] as const,
-    list: (page: number, search: string) => ["dogs", orgId, "list", page, search] as const,
+    list: (page: number, search: string, status: DogStatusFilter) => ["dogs", orgId, "list", page, search, status] as const,
     detail: (id: string) => ["dogs", orgId, id] as const,
   };
 }
 
-export function useDogs({ page = 0, search = "" } = {}) {
+export function useDogs({ page = 0, search = "", status = "active" as DogStatusFilter } = {}) {
   const { organization } = useOrganization();
   const keys = dogKeys(organization?.id);
 
   return useQuery({
-    queryKey: keys.list(page, search),
+    queryKey: keys.list(page, search, status),
     enabled: !!organization?.id,
     queryFn: async () => {
       let query = supabase
@@ -51,6 +54,8 @@ export function useDogs({ page = 0, search = "" } = {}) {
         .eq("organization_id", organization!.id)
         .order("name", { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      if (status !== "all") query = query.eq("is_active", status === "active");
 
       if (search.trim()) {
         query = query.or(
@@ -76,6 +81,44 @@ export function useDeleteDog() {
         .from("dogs")
         .delete()
         .eq("id", id)
+        .eq("organization_id", organization!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dogKeys(organization?.id).all });
+    },
+  });
+}
+
+export function useBulkDeleteDogs() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("dogs")
+        .delete()
+        .in("id", ids)
+        .eq("organization_id", organization!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dogKeys(organization?.id).all });
+    },
+  });
+}
+
+export function useSetDogsActive() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  return useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: string[]; isActive: boolean }) => {
+      const { error } = await supabase
+        .from("dogs")
+        .update({ is_active: isActive, updated_at: new Date().toISOString() })
+        .in("id", ids)
         .eq("organization_id", organization!.id);
       if (error) throw error;
     },

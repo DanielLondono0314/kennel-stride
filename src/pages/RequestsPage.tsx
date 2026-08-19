@@ -31,12 +31,16 @@ import { es } from "date-fns/locale";
 import {
   Check, X, Dog, AlertTriangle, Search, Eye, Clock, MapPin,
   User, Phone, Calendar, Filter, CheckCircle, XCircle,
-  UserPlus, Inbox, Loader2, Plus, Pencil,
+  UserPlus, Inbox, Loader2, Plus, Pencil, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
 import { formatCurrency } from "@/lib/currency";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const serviceTypeLabels: Record<string, string> = {
   daycare: "Guardería",
@@ -81,6 +85,7 @@ export default function RequestsPage() {
   const [saving, setSaving] = useState(false);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [deleteReservationIds, setDeleteReservationIds] = useState<string[] | null>(null);
 
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
 
@@ -256,6 +261,21 @@ export default function RequestsPage() {
     }
   };
 
+  const handleDeleteReservations = async () => {
+    if (!deleteReservationIds || deleteReservationIds.length === 0) return;
+    setSaving(true);
+    const { error } = await supabase.from("reservations").delete().in("id", deleteReservationIds);
+    setSaving(false);
+    if (error) {
+      toast.error("No se pudo eliminar", { description: "Inténtalo de nuevo." });
+    } else {
+      toast.success(deleteReservationIds.length === 1 ? "Reserva eliminada" : `${deleteReservationIds.length} reservas eliminadas`);
+      setSelectedIds(new Set());
+      refetch();
+    }
+    setDeleteReservationIds(null);
+  };
+
   const renderTable = (list: Reservation[], isPending: boolean) => {
     if (loading) return <TableSkeleton rows={5} columns={5} />;
     if (list.length === 0) return (
@@ -270,14 +290,12 @@ export default function RequestsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              {isPending && (
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={selectedIds.size === list.length && list.length > 0}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-              )}
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={selectedIds.size === list.length && list.length > 0}
+                  onCheckedChange={toggleAll}
+                />
+              </TableHead>
               <TableHead>Perro / Dueño</TableHead>
               <TableHead>Servicio</TableHead>
               <TableHead>Fecha</TableHead>
@@ -289,14 +307,12 @@ export default function RequestsPage() {
           <TableBody>
             {list.map((r) => (
               <TableRow key={r.id} className={selectedIds.has(r.id) ? "bg-muted/20" : ""}>
-                {isPending && (
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(r.id)}
-                      onCheckedChange={() => toggleSelection(r.id)}
-                    />
-                  </TableCell>
-                )}
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(r.id)}
+                    onCheckedChange={() => toggleSelection(r.id)}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
@@ -358,6 +374,9 @@ export default function RequestsPage() {
                         </Button>
                       </>
                     )}
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteReservationIds([r.id])}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -383,16 +402,23 @@ export default function RequestsPage() {
           <span className="hidden sm:inline">Nueva reserva</span>
           <span className="sm:hidden">Nueva</span>
         </Button>
-        {activeTab === "pending" && selectedIds.size > 0 && (
+        {selectedIds.size > 0 && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground font-medium">
               {selectedIds.size} seleccionada(s)
             </span>
-            <Button variant="outline" size="sm" onClick={() => { setRejectionReason(""); setBatchRejectOpen(true); }}>
-              <XCircle className="h-4 w-4 mr-2" />Rechazar
-            </Button>
-            <Button size="sm" onClick={batchApprove} disabled={saving} className="bg-primary hover:bg-primary/90">
-              <CheckCircle className="h-4 w-4 mr-2" />Aprobar
+            {activeTab === "pending" && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => { setRejectionReason(""); setBatchRejectOpen(true); }}>
+                  <XCircle className="h-4 w-4 mr-2" />Rechazar
+                </Button>
+                <Button size="sm" onClick={batchApprove} disabled={saving} className="bg-primary hover:bg-primary/90">
+                  <CheckCircle className="h-4 w-4 mr-2" />Aprobar
+                </Button>
+              </>
+            )}
+            <Button variant="destructive" size="sm" onClick={() => setDeleteReservationIds(Array.from(selectedIds))}>
+              <Trash2 className="h-4 w-4 mr-2" />Eliminar
             </Button>
           </div>
         )}
@@ -587,6 +613,13 @@ export default function RequestsPage() {
                 >
                   <Pencil className="h-4 w-4 mr-2" />Editar
                 </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => { setDetailModalOpen(false); setDeleteReservationIds([selectedRequest.id]); }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />Eliminar
+                </Button>
                 {selectedRequest.status === ReservationStatus.REQUESTED && (
                   <>
                     <Button variant="outline" onClick={() => { setDetailModalOpen(false); openReject(selectedRequest); }}>
@@ -771,6 +804,25 @@ export default function RequestsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Reservation(s) Dialog */}
+      <AlertDialog open={!!deleteReservationIds} onOpenChange={(o) => !o && setDeleteReservationIds(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteReservationIds && deleteReservationIds.length > 1 ? `¿Eliminar ${deleteReservationIds.length} reservas?` : "¿Eliminar reserva?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReservations} disabled={saving} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

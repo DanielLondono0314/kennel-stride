@@ -18,29 +18,32 @@ export interface DbCustomer {
   emergency_contact_phone: string | null;
   notes: string | null;
   balance: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   dog_count?: number;
 }
 
-// balance es opcional: la DB lo default-ea a 0 y el formulario no lo pide.
-export type CreateCustomerInput = Omit<DbCustomer, "id" | "created_at" | "updated_at" | "dog_count" | "balance"> & { balance?: number };
+export type CustomerStatusFilter = "active" | "inactive" | "all";
+
+// balance/is_active son opcionales: la DB los default-ea y el formulario no los pide.
+export type CreateCustomerInput = Omit<DbCustomer, "id" | "created_at" | "updated_at" | "dog_count" | "balance" | "is_active"> & { balance?: number; is_active?: boolean };
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 
 function customerKeys(orgId: string | undefined) {
   return {
     all: ["customers", orgId] as const,
-    list: (page: number, search: string) => ["customers", orgId, "list", page, search] as const,
+    list: (page: number, search: string, status: CustomerStatusFilter) => ["customers", orgId, "list", page, search, status] as const,
     detail: (id: string) => ["customers", orgId, id] as const,
   };
 }
 
-export function useCustomers({ page = 0, search = "" } = {}) {
+export function useCustomers({ page = 0, search = "", status = "active" as CustomerStatusFilter } = {}) {
   const { organization } = useOrganization();
   const keys = customerKeys(organization?.id);
 
   return useQuery({
-    queryKey: keys.list(page, search),
+    queryKey: keys.list(page, search, status),
     enabled: !!organization?.id,
     queryFn: async () => {
       let query = supabase
@@ -49,6 +52,8 @@ export function useCustomers({ page = 0, search = "" } = {}) {
         .eq("organization_id", organization!.id)
         .order("first_name", { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      if (status !== "all") query = query.eq("is_active", status === "active");
 
       if (search.trim()) {
         query = query.or(
@@ -123,6 +128,44 @@ export function useDeleteCustomer() {
         .from("customers")
         .delete()
         .eq("id", id)
+        .eq("organization_id", organization!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys(organization?.id).all });
+    },
+  });
+}
+
+export function useBulkDeleteCustomers() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .in("id", ids)
+        .eq("organization_id", organization!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys(organization?.id).all });
+    },
+  });
+}
+
+export function useSetCustomersActive() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+
+  return useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: string[]; isActive: boolean }) => {
+      const { error } = await supabase
+        .from("customers")
+        .update({ is_active: isActive, updated_at: new Date().toISOString() })
+        .in("id", ids)
         .eq("organization_id", organization!.id);
       if (error) throw error;
     },
