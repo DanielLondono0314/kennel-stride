@@ -312,16 +312,13 @@
     display: block !important;
   }
 
-  /* Sin break-inside:avoid aquí: forzaba cada pestaña completa (aunque
-     estuviera casi vacía) a empezar en una página nueva, dejando el resto
-     de la página anterior en blanco. Deja que el contenido fluya corrido y
-     solo evita cortar tarjetas individuales a la mitad. */
+  /* Sin break-inside:avoid: tarjetas altas (ej. temperamento con varios
+     sliders) son más altas que el espacio libre en la página y el navegador
+     terminaba partiéndolas igual, mal — dejaba huecos y a veces contenido
+     de otra sección se veía mezclado en el borde. Se deja fluir 100% corrido;
+     que una tarjeta cruce de una página a otra es normal al imprimir. */
   .print-all-tabs [role="tabpanel"] {
     margin-top: 0.75rem;
-  }
-
-  .print-all-tabs [role="tabpanel"] > * {
-    break-inside: avoid;
   }
 
   .print-all-tabs [role="tablist"] {
