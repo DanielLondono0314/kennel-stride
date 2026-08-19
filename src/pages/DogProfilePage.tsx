@@ -20,6 +20,7 @@ import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
   Loader2, User, Printer, GraduationCap, UtensilsCrossed,
+  AlertTriangle, Pill,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -52,6 +53,13 @@ interface DbDog {
     portion_unit?: string;
     instructions?: string;
   } | null;
+  aggression_details: {
+    severity?: string;
+    handling?: string;
+    requires_muzzle?: boolean;
+    handle_alone?: boolean;
+    no_other_dogs?: boolean;
+  } | null;
   customer_id: string;
   preferred_unit_id: string | null;
   customers?: { id: string; first_name: string; last_name: string; phone: string | null } | null;
@@ -76,6 +84,29 @@ interface ReportCardRow {
   is_sent: boolean;
   staff_members: { first_name: string; last_name: string } | null;
 }
+
+interface AllergyRow {
+  id: string;
+  allergen: string;
+  type: string;
+  reaction: string | null;
+  severity: string | null;
+}
+
+interface MedicationRow {
+  id: string;
+  name: string;
+  dose: string | null;
+  frequency: string | null;
+  duration_days: number | null;
+  start_date: string | null;
+  route: string | null;
+  with_food: boolean;
+}
+
+const SEVERITY_LABELS: Record<string, string> = { baja: "Baja", media: "Media", alta: "Alta" };
+const ALLERGY_TYPE_LABELS: Record<string, string> = { comida: "Comida", ambiental: "Ambiental", medicamento: "Medicamento" };
+const MED_ROUTE_LABELS: Record<string, string> = { oral: "Oral", topica: "Tópica", inyectable: "Inyectable" };
 
 const FOOD_TYPE_LABELS: Record<string, string> = {
   seco: "Seco",
@@ -117,6 +148,8 @@ export default function DogProfilePage() {
   const [dog, setDog] = useState<DbDog | null>(null);
   const [reservations, setReservations] = useState<ReservationRow[]>([]);
   const [reportCards, setReportCards] = useState<ReportCardRow[]>([]);
+  const [allergies, setAllergies] = useState<AllergyRow[]>([]);
+  const [medications, setMedications] = useState<MedicationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -155,10 +188,20 @@ export default function DogProfilePage() {
     if (data) setReportCards(data as unknown as ReportCardRow[]);
   }, [id, organization]);
 
+  const fetchClinicalDetails = useCallback(async () => {
+    if (!id || !organization) return;
+    const [aRes, mRes] = await Promise.all([
+      supabase.from("dog_allergies").select("id, allergen, type, reaction, severity").eq("dog_id", id).eq("organization_id", organization!.id),
+      supabase.from("dog_medications").select("id, name, dose, frequency, duration_days, start_date, route, with_food").eq("dog_id", id).eq("organization_id", organization!.id),
+    ]);
+    if (aRes.data) setAllergies(aRes.data as AllergyRow[]);
+    if (mRes.data) setMedications(mRes.data as MedicationRow[]);
+  }, [id, organization]);
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchDog(), fetchReservations(), fetchReportCards()]).finally(() => setLoading(false));
-  }, [fetchDog, fetchReservations, fetchReportCards]);
+    Promise.all([fetchDog(), fetchReservations(), fetchReportCards(), fetchClinicalDetails()]).finally(() => setLoading(false));
+  }, [fetchDog, fetchReservations, fetchReportCards, fetchClinicalDetails]);
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -180,17 +223,48 @@ export default function DogProfilePage() {
       medical_notes: data.medical_notes || "",
       photo_url: data.photo_url ?? null,
       feeding: data.feeding ?? null,
+      aggression_details: data.is_aggressive ? data.aggression_details ?? null : null,
       updated_at: new Date().toISOString(),
     };
 
     const { error } = await supabase.from("dogs").update(payload).eq("id", id!);
     if (error) {
       toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
-    } else {
-      toast.success("Perfil actualizado");
-      setEditOpen(false);
-      fetchDog();
+      return;
     }
+
+    // Sincronizar alergias y medicación (mismo patrón que DogsPage: delete-all + insert).
+    const orgId = organization!.id;
+    const allergyRows = (data.allergies ?? []).map((a: any) => ({
+      dog_id: id!, organization_id: orgId,
+      allergen: a.allergen, type: a.type,
+      reaction: a.reaction || null, severity: a.severity || null,
+    }));
+    const medRows = (data.medications ?? []).map((m: any) => ({
+      dog_id: id!, organization_id: orgId,
+      name: m.name, dose: m.dose || null, frequency: m.frequency || null,
+      duration_days: m.duration_days === "" ? null : m.duration_days,
+      start_date: m.start_date || null, route: m.route || null,
+      with_food: !!m.with_food,
+    }));
+
+    const delA = await supabase.from("dog_allergies").delete().eq("dog_id", id!);
+    const insA = allergyRows.length ? await supabase.from("dog_allergies").insert(allergyRows) : { error: null };
+    const delM = await supabase.from("dog_medications").delete().eq("dog_id", id!);
+    const insM = medRows.length ? await supabase.from("dog_medications").insert(medRows) : { error: null };
+    const syncError = delA.error || insA.error || delM.error || insM.error;
+
+    setEditOpen(false);
+    fetchDog();
+    fetchClinicalDetails();
+
+    if (syncError) {
+      toast.error("El perro se guardó, pero falló la sincronización clínica", {
+        description: "Vuelve a abrir el perro y revisa alergias/medicación.",
+      });
+      return;
+    }
+    toast.success("Perfil actualizado");
   };
 
   const getAge = (birthDate?: string | null) => getSharedAge(birthDate, "Desconocida");
@@ -439,6 +513,74 @@ export default function DogProfilePage() {
                     {dog.feeding.instructions && (
                       <p className="text-muted-foreground whitespace-pre-wrap pt-1 border-t">{dog.feeding.instructions}</p>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+              {dog.is_aggressive && dog.aggression_details && (
+                <Card className="border-destructive/30">
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <p className="font-semibold mb-2 flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-4 w-4" />Agresividad
+                    </p>
+                    {dog.aggression_details.severity && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Severidad</span>
+                        <span className="font-medium">{SEVERITY_LABELS[dog.aggression_details.severity] || dog.aggression_details.severity}</span>
+                      </div>
+                    )}
+                    {(dog.aggression_details.requires_muzzle || dog.aggression_details.handle_alone || dog.aggression_details.no_other_dogs) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {dog.aggression_details.requires_muzzle && <Badge variant="destructive" className="text-xs">Requiere bozal</Badge>}
+                        {dog.aggression_details.handle_alone && <Badge variant="destructive" className="text-xs">Manejar solo</Badge>}
+                        {dog.aggression_details.no_other_dogs && <Badge variant="destructive" className="text-xs">Sin otros perros</Badge>}
+                      </div>
+                    )}
+                    {dog.aggression_details.handling && (
+                      <p className="text-muted-foreground whitespace-pre-wrap pt-1 border-t">{dog.aggression_details.handling}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {allergies.length > 0 && (
+                <Card className="border-warning/30">
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <p className="font-semibold mb-2 flex items-center gap-2 text-warning">
+                      <AlertTriangle className="h-4 w-4" />Alergias
+                    </p>
+                    {allergies.map((a) => (
+                      <div key={a.id} className="flex items-start justify-between gap-2 pb-2 border-b last:border-0 last:pb-0">
+                        <div>
+                          <p className="font-medium">{a.allergen}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ALLERGY_TYPE_LABELS[a.type] || a.type}
+                            {a.reaction && ` · ${a.reaction}`}
+                          </p>
+                        </div>
+                        {a.severity && (
+                          <Badge variant="outline" className="text-xs shrink-0">{SEVERITY_LABELS[a.severity] || a.severity}</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {medications.length > 0 && (
+                <Card>
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <p className="font-semibold mb-2 flex items-center gap-2">
+                      <Pill className="h-4 w-4" />Medicación
+                    </p>
+                    {medications.map((m) => (
+                      <div key={m.id} className="pb-2 border-b last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">{m.name}</p>
+                          {m.with_food && <Badge variant="outline" className="text-xs">Con comida</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {[m.dose, m.frequency, m.route && MED_ROUTE_LABELS[m.route]].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
               )}
