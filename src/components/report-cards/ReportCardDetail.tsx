@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { StarRating } from "./StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Dog, PawPrint } from "lucide-react";
+import { Dog, PawPrint, Pencil, Send, Loader2 } from "lucide-react";
 
 interface ReportCardDetailProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reportCard: any;
   trainerName?: string;
+  onEdit?: () => void;
+  onSend?: () => void | Promise<void>;
+  sending?: boolean;
 }
 
-export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }: ReportCardDetailProps) {
+export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, onEdit, onSend, sending }: ReportCardDetailProps) {
   const { organization } = useOrganization();
   const [history, setHistory] = useState<any[]>([]);
   const [dogInfo, setDogInfo] = useState<{ breed: string; weight: number | null; gender: string; customer_name: string } | null>(null);
@@ -196,6 +200,21 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName }
             </div>
           </div>
         )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+          {onEdit && (
+            <Button variant="outline" onClick={onEdit} className="gap-1.5">
+              <Pencil className="h-4 w-4" />Editar
+            </Button>
+          )}
+          {onSend && !reportCard.is_sent && (
+            <Button onClick={onSend} disabled={sending} className="gap-1.5">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar al dueño
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

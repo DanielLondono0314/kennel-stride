@@ -65,6 +65,7 @@ export default function ReportCardsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useReportCards({ page });
   const reportCards = useMemo(() => data?.cards ?? [], [data?.cards]);
@@ -127,15 +128,18 @@ export default function ReportCardsPage() {
   }
 
   async function handleSendToOwner(rc: any) {
+    setSendingId(rc.id);
     const { data, error } = await supabase.functions.invoke("send-report-card", {
       body: { reportCardId: rc.id },
     });
+    setSendingId(null);
     if (error || !data?.success) {
       toast.error("No se pudo enviar el report card", {
         description: data?.error || error?.message || "Revisa tu conexión e inténtalo de nuevo.",
       });
     } else {
       toast.success(`Report card de ${rc.dog_name} enviado al dueño por correo`);
+      setDetailOpen(false);
       queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });
     }
   }
@@ -284,7 +288,15 @@ export default function ReportCardsPage() {
         editData={editData}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] })}
       />
-      <ReportCardDetail open={detailOpen} onOpenChange={setDetailOpen} reportCard={detailData} trainerName={detailData ? getTrainerName(detailData.trainer_id) : undefined} />
+      <ReportCardDetail
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        reportCard={detailData}
+        trainerName={detailData ? getTrainerName(detailData.trainer_id) : undefined}
+        onEdit={() => { setDetailOpen(false); openEdit(detailData); }}
+        onSend={() => handleSendToOwner(detailData)}
+        sending={!!detailData && sendingId === detailData.id}
+      />
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
