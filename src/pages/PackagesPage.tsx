@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
+import { formatCurrency } from "@/lib/currency";
+import { getEffectivePackageStatus as getEffectiveStatus } from "@/lib/packageStatus";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -90,7 +92,7 @@ export default function PackagesPage() {
     notes: "",
   });
 
-  const { data: pkgData, isLoading, isError, refetch } = usePackages({ page: 0, search, status: statusFilter });
+  const { data: pkgData, isLoading, isError, refetch } = usePackages({ page: 0, search });
   const packages = pkgData?.packages ?? [];
   const { data: allCustomersData } = useQuery({
     queryKey: ["customers-for-form", organization?.id],
@@ -180,15 +182,15 @@ export default function PackagesPage() {
     const matchesSearch = !search ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       customerName.includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || getEffectiveStatus(p) === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // KPIs
-  const activeCount = packages.filter((p: any) => p.status === "active").length;
-  const totalCreditsRemaining = packages.filter((p: any) => p.status === "active").reduce((s: number, p: any) => s + p.remaining_credits, 0);
+  const activeCount = packages.filter((p: any) => getEffectiveStatus(p) === "active").length;
+  const totalCreditsRemaining = packages.filter((p: any) => getEffectiveStatus(p) === "active").reduce((s: number, p: any) => s + p.remaining_credits, 0);
   const expiringCount = packages.filter((p: any) => {
-    if (p.status !== "active") return false;
+    if (getEffectiveStatus(p) !== "active") return false;
     const days = (new Date(p.expires_at).getTime() - Date.now()) / 86400000;
     return days <= 7 && days >= 0;
   }).length;
@@ -255,7 +257,7 @@ export default function PackagesPage() {
                 <Package className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">${totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                 <p className="text-xs text-muted-foreground">Ingresos Totales</p>
               </div>
             </div>
@@ -319,8 +321,9 @@ export default function PackagesPage() {
               <TableBody>
                 {filteredPackages.map((pkg: any) => {
                   const daysLeft = Math.ceil((new Date(pkg.expires_at).getTime() - Date.now()) / 86400000);
-                  const isExpiringSoon = daysLeft <= 7 && daysLeft >= 0;
-                  const cfg = statusConfig[pkg.status] || statusConfig.active;
+                  const effectiveStatus = getEffectiveStatus(pkg);
+                  const isExpiringSoon = effectiveStatus === "active" && daysLeft <= 7 && daysLeft >= 0;
+                  const cfg = statusConfig[effectiveStatus] || statusConfig.active;
                   // Support both embedded customers (from hook) and flat customer (from old shape)
                   const customerName = pkg.customers
                     ? `${pkg.customers.first_name} ${pkg.customers.last_name}`
@@ -357,7 +360,7 @@ export default function PackagesPage() {
                           />
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">${Number(pkg.price).toFixed(2)}</TableCell>
+                      <TableCell className="font-medium">{formatCurrency(pkg.price)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -383,7 +386,7 @@ export default function PackagesPage() {
                             <DropdownMenuItem onClick={() => openEdit(pkg)}>
                               Editar
                             </DropdownMenuItem>
-                            {pkg.status === "active" && (
+                            {effectiveStatus === "active" && (
                               <DropdownMenuItem onClick={() => handleDeductCredit(pkg)}>
                                 <TrendingDown className="h-4 w-4 mr-2" />
                                 Descontar Crédito

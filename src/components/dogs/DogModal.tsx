@@ -81,6 +81,8 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
   const [hasAllergies, setHasAllergies] = useState(false);
   const [onMedication, setOnMedication] = useState(false);
   const [microchipNumber, setMicrochipNumber] = useState("");
+  const [preferredUnitId, setPreferredUnitId] = useState("");
+  const [facilityUnits, setFacilityUnits] = useState<{ id: string; name: string }[]>([]);
   const [notes, setNotes] = useState("");
   const [behaviorNotes, setBehaviorNotes] = useState("");
   const [medicalNotes, setMedicalNotes] = useState("");
@@ -123,6 +125,19 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       });
   }, [orgId]);
 
+  // Perreras de la org, para asignar (opcionalmente) una preferida al crear/editar.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from("facility_units")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .order("name")
+      .then(({ data }) => {
+        if (data) setFacilityUnits(data);
+      });
+  }, [orgId]);
+
   // Cargar alergias/medicación al abrir en modo edición.
   useEffect(() => {
     if (!open || !dog?.id) return;
@@ -158,6 +173,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setHasAllergies(dog.has_allergies ?? false);
       setOnMedication(dog.on_medication ?? false);
       setMicrochipNumber(dog.microchip_number || "");
+      setPreferredUnitId(dog.preferred_unit_id || "");
       setNotes(dog.notes || "");
       setBehaviorNotes(dog.behavior_notes || "");
       setMedicalNotes(dog.medical_notes || "");
@@ -172,7 +188,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
       setIsAggressive(false);
       setHasAllergies(false);
       setOnMedication(false);
-      setMicrochipNumber(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
+      setMicrochipNumber(""); setPreferredUnitId(""); setNotes(""); setBehaviorNotes(""); setMedicalNotes("");
       setAggression(emptyAggression());
       setFeeding(emptyFeeding());
       setAllergies([]);
@@ -346,6 +362,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
         has_allergies: hasAllergies,
         on_medication: onMedication,
         microchip_number: microchipNumber || null,
+        preferred_unit_id: preferredUnitId || null,
         notes,
         behavior_notes: behaviorNotes,
         medical_notes: medicalNotes,
@@ -581,6 +598,24 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
             <div className="flex items-center gap-3">
               <Switch id="dog-neutered" checked={isNeutered} onCheckedChange={setIsNeutered} />
               <Label htmlFor="dog-neutered">{gender === "male" ? "Castrado" : "Esterilizada"}</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dog-preferred-unit">Perrera preferida (opcional)</Label>
+              <Select value={preferredUnitId || "_none"} onValueChange={(v) => setPreferredUnitId(v === "_none" ? "" : v)}>
+                <SelectTrigger id="dog-preferred-unit">
+                  <SelectValue placeholder="Sin asignar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Sin asignar</SelectItem>
+                  {facilityUnits.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Solo de referencia — el check-in real ocupa la perrera según disponibilidad.
+              </p>
             </div>
           </TabsContent>
 

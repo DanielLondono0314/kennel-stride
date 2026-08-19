@@ -197,25 +197,48 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
       highlights: form.highlights,
       areas_to_improve: form.areas_to_improve,
       photos: form.photos,
-      is_sent: sendToOwner,
-      sent_at: sendToOwner ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     };
 
     let error;
+    let savedId = editData?.id as string | undefined;
     if (editData?.id) {
       ({ error } = await supabase.from("report_cards").update({ ...payload, organization_id: organization!.id }).eq("id", editData.id));
     } else {
-      ({ error } = await supabase.from("report_cards").insert({ ...payload, organization_id: organization!.id }));
+      const { data, error: insertError } = await supabase
+        .from("report_cards")
+        .insert({ ...payload, organization_id: organization!.id })
+        .select("id")
+        .single();
+      error = insertError;
+      savedId = data?.id;
     }
 
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error("No se pudo guardar el report card", { description: "Revisa tu conexión e inténtalo de nuevo." });
       return;
     }
 
-    toast.success(sendToOwner ? "Report card enviado al dueño" : "Borrador guardado");
+    if (sendToOwner && savedId) {
+      const { data: sendData, error: sendError } = await supabase.functions.invoke("send-report-card", {
+        body: { reportCardId: savedId },
+      });
+      setSaving(false);
+      if (sendError || !sendData?.success) {
+        toast.error("Se guardó, pero no se pudo enviar el correo", {
+          description: sendData?.error || sendError?.message || "Puedes reintentar el envío desde la lista.",
+        });
+        onOpenChange(false);
+        onSaved();
+        return;
+      }
+      toast.success("Report card enviado al dueño por correo");
+    } else {
+      setSaving(false);
+      toast.success("Borrador guardado");
+    }
+
     onOpenChange(false);
     onSaved();
   }

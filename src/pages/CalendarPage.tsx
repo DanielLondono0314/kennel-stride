@@ -20,6 +20,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
   const [newReservationDate, setNewReservationDate] = useState<Date | undefined>(undefined);
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 
   const fetchRange = useCallback(() => {
     let start: Date;
@@ -93,14 +94,14 @@ export default function CalendarPage() {
         <WeekView
           currentDate={currentDate}
           reservations={visibleReservations}
-          onSelectReservation={() => {}}
+          onSelectReservation={setEditingReservation}
           onSelectSlot={openNewReservation}
         />
       ) : (
         <MonthView
           currentDate={currentDate}
           reservations={visibleReservations}
-          onSelectReservation={() => {}}
+          onSelectReservation={setEditingReservation}
           onSelectDay={(date) => {
             handleSelectDay(date);
             openNewReservation(date);
@@ -113,6 +114,23 @@ export default function CalendarPage() {
         onOpenChange={setNewReservationOpen}
         initialDate={newReservationDate}
         onSaved={fetchRange}
+      />
+
+      <NewReservationModal
+        open={!!editingReservation}
+        onOpenChange={(o) => { if (!o) setEditingReservation(null); }}
+        onSaved={fetchRange}
+        editData={editingReservation ? {
+          id: editingReservation.id,
+          serviceType: editingReservation.service?.type ?? "daycare",
+          startDate: editingReservation.startDate,
+          endDate: editingReservation.endDate,
+          totalPrice: editingReservation.totalPrice,
+          notes: editingReservation.notes,
+          status: editingReservation.status,
+          dogName: editingReservation.dog?.name,
+          customerName: `${editingReservation.customer?.firstName ?? ""} ${editingReservation.customer?.lastName ?? ""}`.trim(),
+        } : undefined}
       />
     </div>
   );

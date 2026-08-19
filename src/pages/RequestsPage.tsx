@@ -31,11 +31,12 @@ import { es } from "date-fns/locale";
 import {
   Check, X, Dog, AlertTriangle, Search, Eye, Clock, MapPin,
   User, Phone, Calendar, Filter, CheckCircle, XCircle,
-  UserPlus, Inbox, Loader2, Plus,
+  UserPlus, Inbox, Loader2, Plus, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
+import { formatCurrency } from "@/lib/currency";
 
 const serviceTypeLabels: Record<string, string> = {
   daycare: "Guardería",
@@ -79,6 +80,7 @@ export default function RequestsPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
 
@@ -328,7 +330,7 @@ export default function RequestsPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">${r.totalPrice.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(r.totalPrice)}</span>
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={r.status} />
@@ -339,6 +341,12 @@ export default function RequestsPage() {
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
+                    {!isPending && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingReservation(r)}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                    )}
                     {isPending && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => openReject(r)}>
@@ -525,7 +533,7 @@ export default function RequestsPage() {
                           </p>
                         </div>
                       </div>
-                      <p className="text-2xl font-bold">${selectedRequest.totalPrice.toFixed(2)}</p>
+                      <p className="text-2xl font-bold">{formatCurrency(selectedRequest.totalPrice)}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -573,6 +581,12 @@ export default function RequestsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDetailModalOpen(false)}>Cerrar</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setDetailModalOpen(false); setEditingReservation(selectedRequest); }}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />Editar
+                </Button>
                 {selectedRequest.status === ReservationStatus.REQUESTED && (
                   <>
                     <Button variant="outline" onClick={() => { setDetailModalOpen(false); openReject(selectedRequest); }}>
@@ -610,7 +624,7 @@ export default function RequestsPage() {
                 <div>
                   <p className="font-medium">{selectedRequest.dog?.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedRequest.service?.name} · ${selectedRequest.totalPrice.toFixed(2)}
+                    {selectedRequest.service?.name} · {formatCurrency(selectedRequest.totalPrice)}
                   </p>
                 </div>
               </div>
@@ -710,6 +724,23 @@ export default function RequestsPage() {
         open={newReservationOpen}
         onOpenChange={setNewReservationOpen}
         onSaved={refetch}
+      />
+
+      <NewReservationModal
+        open={!!editingReservation}
+        onOpenChange={(o) => { if (!o) setEditingReservation(null); }}
+        onSaved={refetch}
+        editData={editingReservation ? {
+          id: editingReservation.id,
+          serviceType: editingReservation.service?.type ?? "daycare",
+          startDate: editingReservation.startDate,
+          endDate: editingReservation.endDate,
+          totalPrice: editingReservation.totalPrice,
+          notes: editingReservation.notes,
+          status: editingReservation.status,
+          dogName: editingReservation.dog?.name,
+          customerName: `${editingReservation.customer?.firstName ?? ""} ${editingReservation.customer?.lastName ?? ""}`.trim(),
+        } : undefined}
       />
 
       {/* Batch Reject Dialog */}

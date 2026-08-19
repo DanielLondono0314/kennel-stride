@@ -13,6 +13,7 @@ import {
 } from '@/types';
 import { vaccinationNames, documentNames } from '@/lib/constants';
 import { differenceInDays } from 'date-fns';
+import { formatCurrency } from '@/lib/currency';
 
 // Balance thresholds for check-in blocking. These are business rules configurable
 // per organization in a future settings feature — for now centralized here.
@@ -215,7 +216,7 @@ export function validateCheckIn(
       type: 'payment',
       severity,
       title: 'Saldo Pendiente',
-      message: `El cliente tiene un saldo de $${Math.abs(customer.balance).toFixed(2)} pendiente`,
+      message: `El cliente tiene un saldo de ${formatCurrency(Math.abs(customer.balance))} pendiente`,
       blocksOperation,
       details: {
         balance: customer.balance,

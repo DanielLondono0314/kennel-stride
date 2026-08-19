@@ -26,6 +26,7 @@ import { toast } from "sonner";
 interface Props { dogId: string; dogName: string; }
 
 const recordTypes: Record<string, { label: string; color: string }> = {
+  admission_checkup: { label: "Chequeo de Ingreso", color: "bg-accent/10 text-accent-foreground" },
   consultation: { label: "Consulta", color: "bg-info/10 text-info" },
   surgery: { label: "Cirugía", color: "bg-destructive/10 text-destructive" },
   emergency: { label: "Emergencia", color: "bg-destructive/10 text-destructive" },

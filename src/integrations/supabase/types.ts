@@ -492,6 +492,7 @@ export type Database = {
           on_medication: boolean
           organization_id: string | null
           photo_url: string | null
+          preferred_unit_id: string | null
           updated_at: string
           weight: number | null
         }
@@ -516,6 +517,7 @@ export type Database = {
           on_medication?: boolean
           organization_id?: string | null
           photo_url?: string | null
+          preferred_unit_id?: string | null
           updated_at?: string
           weight?: number | null
         }
@@ -540,6 +542,7 @@ export type Database = {
           on_medication?: boolean
           organization_id?: string | null
           photo_url?: string | null
+          preferred_unit_id?: string | null
           updated_at?: string
           weight?: number | null
         }
@@ -556,6 +559,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dogs_preferred_unit_id_fkey"
+            columns: ["preferred_unit_id"]
+            isOneToOne: false
+            referencedRelation: "facility_units"
             referencedColumns: ["id"]
           },
         ]
@@ -1404,6 +1414,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "report_cards_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "report_cards_organization_id_fkey"
             columns: ["organization_id"]

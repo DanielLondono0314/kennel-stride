@@ -82,14 +82,63 @@ export function WeekView({
   const calculateEventPosition = (reservation: Reservation) => {
     const startDate = new Date(reservation.startDate);
     const endDate = new Date(reservation.endDate);
-    
+
     const startHour = getHours(startDate) + getMinutes(startDate) / 60;
     const endHour = getHours(endDate) + getMinutes(endDate) / 60;
-    
+
     const top = (startHour - START_HOUR) * HOUR_HEIGHT;
     const height = Math.max((endHour - startHour) * HOUR_HEIGHT, 24);
-    
+
     return { top, height };
+  };
+
+  // Empaqueta las reservas de un día en columnas para que las que se solapan en
+  // horario queden lado a lado en vez de una encima de otra.
+  const layoutDayEvents = (dayReservations: Reservation[]) => {
+    const sorted = [...dayReservations].sort((a, b) => {
+      const startDiff = new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      if (startDiff !== 0) return startDiff;
+      return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+    });
+
+    type Positioned = { reservation: Reservation; col: number; totalCols: number };
+    const result: Positioned[] = [];
+    let cluster: Positioned[] = [];
+    let clusterEnd = -Infinity;
+    let columnsEnd: number[] = [];
+
+    const flushCluster = () => {
+      if (cluster.length === 0) return;
+      const maxCols = Math.max(...cluster.map((p) => p.col)) + 1;
+      cluster.forEach((p) => { p.totalCols = maxCols; });
+      result.push(...cluster);
+      cluster = [];
+    };
+
+    for (const r of sorted) {
+      const start = new Date(r.startDate).getTime();
+      const end = new Date(r.endDate).getTime();
+
+      if (start >= clusterEnd) {
+        flushCluster();
+        columnsEnd = [];
+        clusterEnd = -Infinity;
+      }
+
+      let col = columnsEnd.findIndex((e) => e <= start);
+      if (col === -1) {
+        col = columnsEnd.length;
+        columnsEnd.push(end);
+      } else {
+        columnsEnd[col] = end;
+      }
+
+      clusterEnd = Math.max(clusterEnd, end);
+      cluster.push({ reservation: r, col, totalCols: 1 });
+    }
+    flushCluster();
+
+    return result;
   };
 
   const handleSlotClick = (day: Date, hour: number) => {
@@ -164,20 +213,27 @@ export function WeekView({
                 ))}
 
                 {/* Reservation events */}
-                {dayReservations.map((reservation) => {
+                {layoutDayEvents(dayReservations).map(({ reservation, col, totalCols }) => {
                   const { top, height } = calculateEventPosition(reservation);
                   const colorClass = serviceColors[reservation.service?.type || ServiceType.DAYCARE];
                   const statusClass = statusIndicators[reservation.status];
+                  const widthPct = 100 / totalCols;
+                  const leftPct = col * widthPct;
 
                   return (
                     <Tooltip key={reservation.id}>
                       <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "absolute left-1 right-1 rounded-md border px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden",
+                            "absolute rounded-md border px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-20 overflow-hidden",
                             colorClass
                           )}
-                          style={{ top: `${top}px`, height: `${height}px` }}
+                          style={{
+                            top: `${top}px`,
+                            height: `${height}px`,
+                            left: `calc(${leftPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectReservation(reservation);

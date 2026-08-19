@@ -19,12 +19,14 @@ export function AppLayout() {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar
-          noticeCount={unreadNotices}
-          requestCount={pendingRequests}
-          mobileOpen={mobileMenuOpen}
-          onMobileClose={() => setMobileMenuOpen(false)}
-        />
+        <div className="no-print contents">
+          <AppSidebar
+            noticeCount={unreadNotices}
+            requestCount={pendingRequests}
+            mobileOpen={mobileMenuOpen}
+            onMobileClose={() => setMobileMenuOpen(false)}
+          />
+        </div>
         {/* Mobile backdrop */}
         {mobileMenuOpen && (
           <div
@@ -33,10 +35,12 @@ export function AppLayout() {
           />
         )}
         <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-          <AppHeader
-            noticeCount={unreadNotices}
-            onMenuToggle={() => setMobileMenuOpen((prev) => !prev)}
-          />
+          <div className="no-print contents">
+            <AppHeader
+              noticeCount={unreadNotices}
+              onMenuToggle={() => setMobileMenuOpen((prev) => !prev)}
+            />
+          </div>
           <main className="flex-1 overflow-auto p-4 md:p-6">
             <Suspense fallback={null}>
               <Outlet />

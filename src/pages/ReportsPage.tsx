@@ -1,16 +1,23 @@
 import { useState, useMemo } from "react";
 import { useReportsData, DateRange } from "@/hooks/queries/useReportsData";
+import { useAdminSummary } from "@/hooks/queries/useAdminSummary";
+import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, TrendingUp, DollarSign, Users, PawPrint, BarChart3, PieChart as PieChartIcon, Activity } from "lucide-react";
+import {
+  Loader2, TrendingUp, DollarSign, Users, PawPrint, BarChart3, PieChart as PieChartIcon, Activity,
+  ShieldCheck, Warehouse, UserCog, ClipboardList, ChevronRight,
+} from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { formatCurrency } from "@/lib/currency";
+import { getEffectivePackageStatus } from "@/lib/packageStatus";
 
 const COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 20%)", "hsl(142, 76%, 36%)",
@@ -19,8 +26,10 @@ const COLORS = [
 
 export default function ReportsPage() {
   const [range, setRange] = useState<DateRange>("30d");
+  const orgNavigate = useOrgNavigate();
 
   const { data, isLoading } = useReportsData(range);
+  const { data: adminSummary, isLoading: adminLoading } = useAdminSummary();
 
   const invoices = data?.invoices ?? [];
   const newCustomers = data?.newCustomers ?? [];
@@ -108,7 +117,8 @@ export default function ReportsPage() {
   const pkgBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
     packages.forEach((p) => {
-      const label = p.status === "active" ? "Activos" : p.status === "depleted" ? "Agotados" : p.status === "expired" ? "Expirados" : "Cancelados";
+      const effectiveStatus = getEffectivePackageStatus(p);
+      const label = effectiveStatus === "active" ? "Activos" : effectiveStatus === "depleted" ? "Agotados" : effectiveStatus === "expired" ? "Expirados" : "Cancelados";
       counts[label] = (counts[label] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
@@ -163,7 +173,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-2xl font-bold">${totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                 <p className="text-xs text-muted-foreground">Ingresos Cobrados</p>
               </div>
             </div>
@@ -174,7 +184,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><TrendingUp className="h-5 w-5 text-warning" /></div>
               <div>
-                <p className="text-2xl font-bold">${totalPending.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
                 <p className="text-xs text-muted-foreground">Por Cobrar</p>
               </div>
             </div>
@@ -226,12 +236,212 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="financial" className="space-y-4">
+      <Tabs defaultValue="admin" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="admin" className="gap-1.5"><ShieldCheck className="h-4 w-4" />Administración</TabsTrigger>
           <TabsTrigger value="financial" className="gap-1.5"><BarChart3 className="h-4 w-4" />Financiero</TabsTrigger>
           <TabsTrigger value="operations" className="gap-1.5"><Activity className="h-4 w-4" />Operaciones</TabsTrigger>
           <TabsTrigger value="clients" className="gap-1.5"><Users className="h-4 w-4" />Clientes</TabsTrigger>
         </TabsList>
+
+        {/* Admin Tab — vista general para la parte administrativa */}
+        <TabsContent value="admin" className="space-y-4">
+          {adminLoading || !adminSummary ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-success/10"><PawPrint className="h-5 w-5 text-success" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{adminSummary.activeDogsCount}</p>
+                        <p className="text-xs text-muted-foreground">Perros Activos</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted"><PawPrint className="h-5 w-5 text-muted-foreground" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{adminSummary.inactiveDogsCount}</p>
+                        <p className="text-xs text-muted-foreground">Perros Inactivos</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-info/10"><Warehouse className="h-5 w-5 text-info" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{occupiedKennels}/{totalKennels}</p>
+                        <p className="text-xs text-muted-foreground">Perreras Ocupadas</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10"><Users className="h-5 w-5 text-primary" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{adminSummary.totalCustomers}</p>
+                        <p className="text-xs text-muted-foreground">Clientes Totales</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-accent/20"><UserCog className="h-5 w-5 text-accent-foreground" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{adminSummary.activeStaffCount}</p>
+                        <p className="text-xs text-muted-foreground">Empleados Activos</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="card-kpi">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-warning/10"><ClipboardList className="h-5 w-5 text-warning" /></div>
+                      <div>
+                        <p className="text-2xl font-bold">{adminSummary.pendingTasksCount}</p>
+                        <p className="text-xs text-muted-foreground">Tareas Pendientes</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Contabilidad */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Contabilidad</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-success/10">
+                      <span className="text-sm font-medium">Ingresos Cobrados</span>
+                      <span className="text-lg font-bold text-success">{formatCurrency(totalRevenue)}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10">
+                      <span className="text-sm font-medium">Cuentas por Cobrar</span>
+                      <span className="text-lg font-bold text-warning">{formatCurrency(totalPending)}</span>
+                    </div>
+                    <button
+                      className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
+                      onClick={() => orgNavigate("/invoices")}
+                    >
+                      Ver todas las facturas
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </CardContent>
+                </Card>
+
+                {/* Capacidad */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Capacidad</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-info/10">
+                      <span className="text-sm font-medium">Ocupación actual</span>
+                      <span className="text-lg font-bold text-info">{occupancyRate}% ({occupiedKennels}/{totalKennels})</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
+                      <span className="text-sm font-medium">Perreras disponibles</span>
+                      <span className="text-lg font-bold">{Math.max(totalKennels - occupiedKennels, 0)}</span>
+                    </div>
+                    <button
+                      className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
+                      onClick={() => orgNavigate("/facility")}
+                    >
+                      Ver mapa de perreras
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Perros y perreras asignadas */}
+                <Card>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">Perros y Perreras</CardTitle>
+                    <Badge variant="secondary">{adminSummary.dogs.length}</Badge>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-80 overflow-y-auto divide-y">
+                      {adminSummary.dogs.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-8 text-center">Sin perros registrados</p>
+                      ) : (
+                        adminSummary.dogs.map((d) => (
+                          <button
+                            key={d.id}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
+                            onClick={() => orgNavigate(`/dogs/${d.id}`)}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{d.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{d.customerName}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                              <Badge variant="outline" className="text-xs font-normal">
+                                {d.kennelName ?? "Sin perrera"}
+                              </Badge>
+                              <Badge variant={d.isActive ? "default" : "secondary"} className="text-xs">
+                                {d.isActive ? "Activo" : "Inactivo"}
+                              </Badge>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Personal */}
+                <Card>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">Personal</CardTitle>
+                    <Badge variant="secondary">{adminSummary.staff.length}</Badge>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-80 overflow-y-auto divide-y">
+                      {adminSummary.staff.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-8 text-center">Sin empleados registrados</p>
+                      ) : (
+                        adminSummary.staff.map((s) => (
+                          <button
+                            key={s.id}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
+                            onClick={() => orgNavigate("/staff")}
+                          >
+                            <p className="font-medium truncate">{s.first_name} {s.last_name}</p>
+                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                              <Badge variant="outline" className="text-xs font-normal capitalize">{s.role}</Badge>
+                              <Badge variant={s.is_active ? "default" : "secondary"} className="text-xs">
+                                {s.is_active ? "Activo" : "Inactivo"}
+                              </Badge>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </TabsContent>
 
         {/* Financial Tab */}
         <TabsContent value="financial" className="space-y-4">
@@ -249,7 +459,7 @@ export default function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="name" fontSize={12} />
                       <YAxis fontSize={12} tickFormatter={(v) => `$${v}`} />
-                      <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "Ingresos"]} />
+                      <Tooltip formatter={(v: number) => [formatCurrency(v), "Ingresos"]} />
                       <Bar dataKey="ingresos" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -295,7 +505,7 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{packages.filter((p) => p.status === "active").length}</p>
+                  <p className="text-3xl font-bold">{packages.filter((p) => getEffectivePackageStatus(p) === "active").length}</p>
                   <p className="text-sm text-muted-foreground mt-1">Paquetes Activos</p>
                 </div>
               </CardContent>
@@ -372,7 +582,7 @@ export default function ReportsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                     <XAxis type="number" fontSize={12} tickFormatter={(v) => `$${v}`} />
                     <YAxis type="category" dataKey="name" fontSize={12} width={140} />
-                    <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "Gasto Total"]} />
+                    <Tooltip formatter={(v: number) => [formatCurrency(v), "Gasto Total"]} />
                     <Bar dataKey="total" fill="hsl(222, 47%, 20%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -391,7 +601,7 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">${activeCustomers > 0 ? Math.round(totalRevenue / activeCustomers).toLocaleString() : 0}</p>
+                  <p className="text-3xl font-bold">{formatCurrency(activeCustomers > 0 ? totalRevenue / activeCustomers : 0)}</p>
                   <p className="text-sm text-muted-foreground mt-1">Ingreso Promedio por Cliente</p>
                 </div>
               </CardContent>

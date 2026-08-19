@@ -19,11 +19,12 @@ import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
-  Loader2, User,
+  Loader2, User, Printer,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAge as getSharedAge } from "@/lib/age";
+import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 
 interface DbDog {
@@ -44,7 +45,9 @@ interface DbDog {
   medical_notes: string | null;
   photo_url: string | null;
   customer_id: string;
+  preferred_unit_id: string | null;
   customers?: { id: string; first_name: string; last_name: string; phone: string | null } | null;
+  facility_units?: { id: string; name: string } | null;
 }
 
 interface ReservationRow {
@@ -86,7 +89,7 @@ export default function DogProfilePage() {
     if (!id || !organization) return;
     const { data } = await supabase
       .from("dogs")
-      .select("*, customers(id, first_name, last_name, phone)")
+      .select("*, customers(id, first_name, last_name, phone), facility_units(id, name)")
       .eq("id", id)
       .eq("organization_id", organization!.id)
       .single();
@@ -124,6 +127,7 @@ export default function DogProfilePage() {
       has_allergies: data.has_allergies ?? false,
       on_medication: data.on_medication ?? false,
       microchip_number: data.microchip_number || null,
+      preferred_unit_id: data.preferred_unit_id || null,
       notes: data.notes || "",
       behavior_notes: data.behavior_notes || "",
       medical_notes: data.medical_notes || "",
@@ -167,7 +171,7 @@ export default function DogProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back */}
-      <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={() => orgNavigate("/dogs")}>
+      <Button variant="ghost" size="sm" className="gap-2 -ml-2 no-print" onClick={() => orgNavigate("/dogs")}>
         <ArrowLeft className="h-4 w-4" />
         Volver a Perros
       </Button>
@@ -202,10 +206,16 @@ export default function DogProfilePage() {
                 size="md"
               />
             </div>
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
+            <div className="flex gap-2 no-print">
+              <Button size="sm" variant="outline" onClick={() => window.print()}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            </div>
           </div>
 
           {dog.customers && (
@@ -263,7 +273,7 @@ export default function DogProfilePage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><Palette className="h-4 w-4 text-warning" /></div>
               <div>
-                <p className="text-xl font-bold">${totalSpent.toLocaleString()}</p>
+                <p className="text-xl font-bold">{formatCurrency(totalSpent)}</p>
                 <p className="text-xs text-muted-foreground">Gasto Total</p>
               </div>
             </div>
@@ -274,7 +284,7 @@ export default function DogProfilePage() {
       <Separator />
 
       {/* Tabs */}
-      <Tabs defaultValue="info">
+      <Tabs defaultValue="info" className="print-all-tabs">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="info" className="gap-1.5">
             <Dog className="h-4 w-4" />Info
@@ -300,7 +310,7 @@ export default function DogProfilePage() {
         </TabsList>
 
         {/* Info Tab */}
-        <TabsContent value="info" className="mt-6">
+        <TabsContent value="info" className="mt-6" forceMount>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardContent className="pt-4 space-y-3 text-sm">
@@ -336,6 +346,10 @@ export default function DogProfilePage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Microchip</span>
                   <span className="font-medium font-mono text-xs">{dog.microchip_number || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Perrera preferida</span>
+                  <span className="font-medium">{dog.facility_units?.name || "Sin asignar"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -377,7 +391,7 @@ export default function DogProfilePage() {
         </TabsContent>
 
         {/* Reservations Tab */}
-        <TabsContent value="reservations" className="mt-6">
+        <TabsContent value="reservations" className="mt-6" forceMount>
           {reservations.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -397,7 +411,7 @@ export default function DogProfilePage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">${Number(r.total_price).toFixed(2)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(r.total_price)}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[r.status] || "bg-muted text-muted-foreground"}`}>
                         {statusLabels[r.status] || r.status}
                       </span>
@@ -410,19 +424,19 @@ export default function DogProfilePage() {
         </TabsContent>
 
         {/* Clinic tabs — reuse existing components */}
-        <TabsContent value="vaccinations" className="mt-6">
+        <TabsContent value="vaccinations" className="mt-6" forceMount>
           <VaccinationTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
-        <TabsContent value="medical" className="mt-6">
+        <TabsContent value="medical" className="mt-6" forceMount>
           <MedicalHistoryTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
-        <TabsContent value="deworming" className="mt-6">
+        <TabsContent value="deworming" className="mt-6" forceMount>
           <DewormingTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
-        <TabsContent value="conditions" className="mt-6">
+        <TabsContent value="conditions" className="mt-6" forceMount>
           <ConditionsTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
-        <TabsContent value="temperament" className="mt-6">
+        <TabsContent value="temperament" className="mt-6" forceMount>
           <TemperamentTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
       </Tabs>

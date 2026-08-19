@@ -18,11 +18,13 @@ import {
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Dog, Package,
   FileText, Edit, CreditCard, Calendar, AlertTriangle,
-  CheckCircle2, Clock, Loader2,
+  CheckCircle2, Clock, Loader2, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import type { DbCustomer } from "@/pages/CustomersPage";
+import { formatCurrency } from "@/lib/currency";
+import { getEffectivePackageStatus } from "@/lib/packageStatus";
 
 interface DbDog {
   id: string;
@@ -194,7 +196,7 @@ export default function CustomerProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back button */}
-      <Button variant="ghost" size="sm" onClick={() => orgNavigate("/customers")} className="-ml-2">
+      <Button variant="ghost" size="sm" onClick={() => orgNavigate("/customers")} className="-ml-2 no-print">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Clientes
       </Button>
@@ -226,10 +228,16 @@ export default function CustomerProfilePage() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditModalOpen(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
-        </Button>
+        <div className="flex gap-2 no-print">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir
+          </Button>
+          <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Editar
+          </Button>
+        </div>
       </div>
 
       {/* KPI row */}
@@ -249,21 +257,21 @@ export default function CustomerProfilePage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Total gastado</p>
-            <p className="text-3xl font-bold mt-1">${totalSpent.toFixed(0)}</p>
+            <p className="text-3xl font-bold mt-1">{formatCurrency(totalSpent)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Balance</p>
             <p className={`text-3xl font-bold mt-1 ${customer.balance < 0 ? "text-destructive" : customer.balance > 0 ? "text-success" : ""}`}>
-              {customer.balance < 0 ? "-" : ""}${Math.abs(customer.balance).toFixed(0)}
+              {customer.balance < 0 ? "-" : ""}{formatCurrency(Math.abs(customer.balance))}
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="dogs">
+      <Tabs defaultValue="dogs" className="print-all-tabs">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="dogs" className="gap-2">
             <Dog className="h-4 w-4" />
@@ -288,7 +296,7 @@ export default function CustomerProfilePage() {
         </TabsList>
 
         {/* Dogs Tab */}
-        <TabsContent value="dogs" className="mt-4">
+        <TabsContent value="dogs" className="mt-4" forceMount>
           {dogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
               <Dog className="h-10 w-10" />
@@ -342,7 +350,7 @@ export default function CustomerProfilePage() {
         </TabsContent>
 
         {/* Reservations Tab */}
-        <TabsContent value="reservations" className="mt-4">
+        <TabsContent value="reservations" className="mt-4" forceMount>
           <div className="border rounded-lg bg-card overflow-x-auto">
             <Table>
               <TableHeader>
@@ -368,7 +376,7 @@ export default function CustomerProfilePage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(r.start_date), "d MMM yyyy", { locale: es })}
                     </TableCell>
-                    <TableCell>${r.total_price.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(r.total_price)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[r.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {statusLabels[r.status] ?? r.status}
@@ -382,7 +390,7 @@ export default function CustomerProfilePage() {
         </TabsContent>
 
         {/* Packages Tab */}
-        <TabsContent value="packages" className="mt-4">
+        <TabsContent value="packages" className="mt-4" forceMount>
           {packages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
               <Package className="h-10 w-10" />
@@ -392,14 +400,15 @@ export default function CustomerProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {packages.map((pkg) => {
                 const pct = Math.round((pkg.remaining_credits / pkg.total_credits) * 100);
-                const isActive = pkg.status === "active";
+                const effectiveStatus = getEffectivePackageStatus(pkg);
+                const isActive = effectiveStatus === "active";
                 return (
                   <Card key={pkg.id} className={isActive ? "" : "opacity-60"}>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">{pkg.name}</CardTitle>
                         <Badge variant={isActive ? "default" : "secondary"}>
-                          {isActive ? "Activo" : pkg.status === "expired" ? "Vencido" : "Agotado"}
+                          {isActive ? "Activo" : effectiveStatus === "expired" ? "Vencido" : "Agotado"}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -418,7 +427,7 @@ export default function CustomerProfilePage() {
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Vence: {format(new Date(pkg.expires_at), "d MMM yyyy", { locale: es })}</span>
-                        <span>${pkg.price.toFixed(2)}</span>
+                        <span>{formatCurrency(pkg.price)}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -429,7 +438,7 @@ export default function CustomerProfilePage() {
         </TabsContent>
 
         {/* Invoices Tab */}
-        <TabsContent value="invoices" className="mt-4">
+        <TabsContent value="invoices" className="mt-4" forceMount>
           <div className="border rounded-lg bg-card overflow-x-auto">
             <Table>
               <TableHeader>
@@ -453,7 +462,7 @@ export default function CustomerProfilePage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(inv.due_date), "d MMM yyyy", { locale: es })}
                     </TableCell>
-                    <TableCell className="font-medium">${inv.total.toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(inv.total)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm">
                         {inv.status === "paid" ? (
@@ -475,7 +484,7 @@ export default function CustomerProfilePage() {
         </TabsContent>
 
         {/* Info Tab */}
-        <TabsContent value="info" className="mt-4">
+        <TabsContent value="info" className="mt-4" forceMount>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
             <Card>
               <CardHeader className="pb-3">

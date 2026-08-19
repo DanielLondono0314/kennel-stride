@@ -3,6 +3,7 @@ import { Reservation, ReservationStatus, ServiceType } from "@/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -251,7 +252,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servicio</h4>
                             <div className="space-y-1 text-sm">
                               <p>{reservation.service?.name}</p>
-                              <p className="text-muted-foreground">${reservation.totalPrice.toFixed(2)}</p>
+                              <p className="text-muted-foreground">{formatCurrency(reservation.totalPrice)}</p>
                             </div>
                           </div>
                           <div className="space-y-2">

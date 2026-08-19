@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/currency";
 import {
   Dog,
   Clock,
@@ -92,6 +93,7 @@ export function CheckOutModal({
         .eq("status", "active")
         .eq("organization_id", organization.id)
         .gt("remaining_credits", 0)
+        .gte("expires_at", new Date().toISOString().slice(0, 10))
         .order("expires_at")
         .limit(1)
         .maybeSingle();
@@ -267,7 +269,7 @@ export function CheckOutModal({
                   </p>
                 </div>
                 <p className="text-xl font-bold">
-                  ${reservation.totalPrice.toFixed(2)}
+                  {formatCurrency(reservation.totalPrice)}
                 </p>
               </div>
             </CardContent>
@@ -339,7 +341,7 @@ export function CheckOutModal({
                       Pago inmediato en efectivo
                     </p>
                   </div>
-                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
+                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
                 </label>
 
                 {/* Card option */}
@@ -359,7 +361,7 @@ export function CheckOutModal({
                       Pago con tarjeta de crédito/débito
                     </p>
                   </div>
-                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
+                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
                 </label>
 
                 {/* Invoice option */}
@@ -379,12 +381,12 @@ export function CheckOutModal({
                       Cobrar después con factura
                       {customer && customer.balance < 0 && (
                         <span className="text-warning ml-1">
-                          (Saldo actual: ${Math.abs(customer.balance).toFixed(2)})
+                          (Saldo actual: {formatCurrency(Math.abs(customer.balance))})
                         </span>
                       )}
                     </p>
                   </div>
-                  <Badge variant="outline">${reservation.totalPrice.toFixed(2)}</Badge>
+                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
                 </label>
               </RadioGroup>
             )}

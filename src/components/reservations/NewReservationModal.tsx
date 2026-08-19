@@ -38,6 +38,31 @@ const SERVICE_OPTIONS = [
   { type: "evaluation", name: "Evaluación" },
 ];
 
+/** Formatea a "yyyy-MM-ddTHH:mm" en hora LOCAL (para <input type="datetime-local">). */
+function formatLocalDateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+const STATUS_OPTIONS = [
+  { value: "requested", label: "Solicitada" },
+  { value: "scheduled", label: "Aprobada / Programada" },
+  { value: "cancelled", label: "Cancelada / Rechazada" },
+  { value: "completed", label: "Completada" },
+];
+
+interface EditReservationData {
+  id: string;
+  serviceType: string;
+  startDate: Date;
+  endDate: Date;
+  totalPrice: number;
+  notes?: string;
+  status: string;
+  dogName?: string;
+  customerName?: string;
+}
+
 interface NewReservationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +70,8 @@ interface NewReservationModalProps {
   initialDogId?: string;
   initialDate?: Date;
   onSaved?: () => void;
+  /** Cuando se pasa, el modal edita esta reserva existente en vez de crear una nueva. */
+  editData?: EditReservationData;
 }
 
 export function NewReservationModal({
@@ -54,7 +81,9 @@ export function NewReservationModal({
   initialDogId,
   initialDate,
   onSaved,
+  editData,
 }: NewReservationModalProps) {
+  const isEditing = !!editData;
   const { organization } = useOrganization();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -78,6 +107,7 @@ export function NewReservationModal({
   const [endDate, setEndDate] = useState("");
   const [totalPrice, setTotalPrice] = useState("");
   const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState("requested");
 
   // Data
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -98,13 +128,25 @@ export function NewReservationModal({
     });
 
     // Reset on open
-    setCustomerId(initialCustomerId ?? "");
-    setDogId(initialDogId ?? "");
-    setServiceType("daycare");
-    setStartDate(initialDate ? initialDate.toISOString().slice(0, 16) : "");
-    setEndDate("");
-    setTotalPrice("");
-    setNotes("");
+    if (editData) {
+      setCustomerId("");
+      setDogId("");
+      setServiceType(editData.serviceType);
+      setStartDate(formatLocalDateTime(editData.startDate));
+      setEndDate(formatLocalDateTime(editData.endDate));
+      setTotalPrice(String(editData.totalPrice ?? ""));
+      setNotes(editData.notes ?? "");
+      setStatus(editData.status);
+    } else {
+      setCustomerId(initialCustomerId ?? "");
+      setDogId(initialDogId ?? "");
+      setServiceType("daycare");
+      setStartDate(initialDate ? initialDate.toISOString().slice(0, 16) : "");
+      setEndDate("");
+      setTotalPrice("");
+      setNotes("");
+      setStatus("requested");
+    }
     setErrors({});
     // Reset intencional SOLO al abrir: los initial* son props que cambian de
     // identidad en cada render del padre y borrarían lo que el usuario escribe.
@@ -119,6 +161,7 @@ export function NewReservationModal({
 
   // Auto-select dog if only one
   useEffect(() => {
+    if (isEditing) return;
     if (filteredDogs.length === 1 && !dogId) {
       setDogId(filteredDogs[0].id);
     }
@@ -130,8 +173,10 @@ export function NewReservationModal({
   const handleSave = async () => {
     if (!organization) return;
     const errs: Record<string, string> = {};
-    if (!customerId) errs.customerId = "Selecciona un cliente";
-    if (!dogId) errs.dogId = "Selecciona una mascota";
+    if (!isEditing) {
+      if (!customerId) errs.customerId = "Selecciona un cliente";
+      if (!dogId) errs.dogId = "Selecciona una mascota";
+    }
     if (!startDate) errs.startDate = "Indica la fecha de inicio";
     if (!endDate) errs.endDate = "Indica la fecha de fin";
     else if (startDate && new Date(endDate) <= new Date(startDate)) {
@@ -146,6 +191,29 @@ export function NewReservationModal({
 
     setSaving(true);
     const serviceName = SERVICE_OPTIONS.find((s) => s.type === serviceType)?.name ?? serviceType;
+
+    if (isEditing && editData) {
+      const { error } = await supabase.rpc("update_reservation", {
+        p_reservation_id: editData.id,
+        p_service_type: serviceType,
+        p_service_name: serviceName,
+        p_start: new Date(startDate).toISOString(),
+        p_end: new Date(endDate).toISOString(),
+        p_total_price: totalPrice ? parseFloat(totalPrice) : 0,
+        p_notes: notes || "",
+        p_status: status,
+      });
+
+      setSaving(false);
+      if (error) {
+        toast.error(error.message || "Error al guardar los cambios");
+        return;
+      }
+      toast.success("Reserva actualizada");
+      onOpenChange(false);
+      onSaved?.();
+      return;
+    }
 
     // Try to link this reservation to the current user's staff record (if any)
     // so it shows up in the dashboard's "My Tasks" section.
@@ -195,10 +263,12 @@ export function NewReservationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Nueva Reserva
+            {isEditing ? "Editar Reserva" : "Nueva Reserva"}
           </DialogTitle>
           <DialogDescription>
-            Registra una nueva solicitud de reserva
+            {isEditing
+              ? "Ajusta fecha, servicio, precio o estado de esta reserva"
+              : "Registra una nueva solicitud de reserva"}
           </DialogDescription>
         </DialogHeader>
 
@@ -208,62 +278,77 @@ export function NewReservationModal({
           </div>
         ) : (
           <div className="space-y-4 mt-2">
-            {/* Customer */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Cliente *
-              </Label>
-              <Select value={customerId} onValueChange={(v) => { setCustomerId(v); clearError("customerId"); }}>
-                <SelectTrigger
-                  aria-invalid={errors.customerId ? true : undefined}
-                  aria-describedby={errors.customerId ? "res-customer-error" : undefined}
-                  className={errors.customerId ? "border-destructive focus:ring-destructive" : ""}
-                >
-                  <SelectValue placeholder="Seleccionar cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name}
-                      <span className="text-muted-foreground text-xs ml-2">{c.email}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.customerId && <p id="res-customer-error" className="text-xs text-destructive">{errors.customerId}</p>}
-            </div>
+            {isEditing ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm">
+                <Dog className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium">{editData?.dogName}</span>
+                {editData?.customerName && (
+                  <>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-muted-foreground">{editData.customerName}</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Customer */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Cliente *
+                  </Label>
+                  <Select value={customerId} onValueChange={(v) => { setCustomerId(v); clearError("customerId"); }}>
+                    <SelectTrigger
+                      aria-invalid={errors.customerId ? true : undefined}
+                      aria-describedby={errors.customerId ? "res-customer-error" : undefined}
+                      className={errors.customerId ? "border-destructive focus:ring-destructive" : ""}
+                    >
+                      <SelectValue placeholder="Seleccionar cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.first_name} {c.last_name}
+                          <span className="text-muted-foreground text-xs ml-2">{c.email}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.customerId && <p id="res-customer-error" className="text-xs text-destructive">{errors.customerId}</p>}
+                </div>
 
-            {/* Dog */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Dog className="h-4 w-4" />
-                Mascota *
-              </Label>
-              <Select value={dogId} onValueChange={(v) => { setDogId(v); clearError("dogId"); }} disabled={!customerId}>
-                <SelectTrigger
-                  aria-invalid={errors.dogId ? true : undefined}
-                  aria-describedby={errors.dogId ? "res-dog-error" : undefined}
-                  className={errors.dogId ? "border-destructive focus:ring-destructive" : ""}
-                >
-                  <SelectValue placeholder={customerId ? "Seleccionar mascota..." : "Primero selecciona un cliente"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredDogs.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                      <span className="text-muted-foreground text-xs ml-2">{d.breed}</span>
-                    </SelectItem>
-                  ))}
-                  {filteredDogs.length === 0 && (
-                    <SelectItem value="_none" disabled>
-                      Sin mascotas registradas
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.dogId && <p id="res-dog-error" className="text-xs text-destructive">{errors.dogId}</p>}
-            </div>
+                {/* Dog */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Dog className="h-4 w-4" />
+                    Mascota *
+                  </Label>
+                  <Select value={dogId} onValueChange={(v) => { setDogId(v); clearError("dogId"); }} disabled={!customerId}>
+                    <SelectTrigger
+                      aria-invalid={errors.dogId ? true : undefined}
+                      aria-describedby={errors.dogId ? "res-dog-error" : undefined}
+                      className={errors.dogId ? "border-destructive focus:ring-destructive" : ""}
+                    >
+                      <SelectValue placeholder={customerId ? "Seleccionar mascota..." : "Primero selecciona un cliente"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredDogs.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                          <span className="text-muted-foreground text-xs ml-2">{d.breed}</span>
+                        </SelectItem>
+                      ))}
+                      {filteredDogs.length === 0 && (
+                        <SelectItem value="_none" disabled>
+                          Sin mascotas registradas
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.dogId && <p id="res-dog-error" className="text-xs text-destructive">{errors.dogId}</p>}
+                </div>
+              </>
+            )}
 
             {/* Service */}
             <div className="space-y-2">
@@ -324,6 +409,23 @@ export function NewReservationModal({
               />
             </div>
 
+            {/* Status (solo edición) */}
+            {isEditing && (
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Notes */}
             <div className="space-y-2">
               <Label>Notas del cliente (opcional)</Label>
@@ -348,7 +450,7 @@ export function NewReservationModal({
             ) : (
               <Calendar className="h-4 w-4 mr-2" />
             )}
-            Crear reserva
+            {isEditing ? "Guardar cambios" : "Crear reserva"}
           </Button>
         </DialogFooter>
       </DialogContent>

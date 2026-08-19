@@ -127,14 +127,15 @@ export default function ReportCardsPage() {
   }
 
   async function handleSendToOwner(rc: any) {
-    const { error } = await supabase
-      .from("report_cards")
-      .update({ is_sent: true, sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("id", rc.id);
-    if (error) {
-      toast.error("No se pudo enviar el report card", { description: "Revisa tu conexión e inténtalo de nuevo." });
+    const { data, error } = await supabase.functions.invoke("send-report-card", {
+      body: { reportCardId: rc.id },
+    });
+    if (error || !data?.success) {
+      toast.error("No se pudo enviar el report card", {
+        description: data?.error || error?.message || "Revisa tu conexión e inténtalo de nuevo.",
+      });
     } else {
-      toast.success(`Report card de ${rc.dog_name} enviado al dueño`);
+      toast.success(`Report card de ${rc.dog_name} enviado al dueño por correo`);
       queryClient.invalidateQueries({ queryKey: ["report-cards", organization?.id] });
     }
   }

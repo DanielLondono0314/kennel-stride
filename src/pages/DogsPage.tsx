@@ -76,6 +76,7 @@ export default function DogsPage() {
       has_allergies: data.has_allergies ?? false,
       on_medication: data.on_medication ?? false,
       microchip_number: data.microchip_number || null,
+      preferred_unit_id: data.preferred_unit_id || null,
       notes: data.notes || "",
       behavior_notes: data.behavior_notes || "",
       medical_notes: data.medical_notes || "",

@@ -25,6 +25,7 @@ import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
+import { formatCurrency } from "@/lib/currency";
 
 export type { DbCustomer };
 
@@ -219,7 +220,7 @@ export default function CustomersPage() {
                   <TableCell>
                     {hasBalance ? (
                       <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
-                        {isOwing ? "-" : "+"}${Math.abs(customer.balance).toFixed(2)}
+                        {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">$0.00</span>
@@ -341,7 +342,7 @@ export default function CustomersPage() {
                     </div>
                     {hasBalance ? (
                       <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
-                        {isOwing ? "-" : "+"}${Math.abs(customer.balance).toFixed(2)}
+                        {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">$0.00</span>

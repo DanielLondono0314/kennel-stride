@@ -32,6 +32,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { invoiceSchema } from "@/lib/schemas";
+import { formatCurrency } from "@/lib/currency";
 import {
   useInvoices, useInvoiceCustomers, useMarkInvoicePaid, useCancelInvoice,
   InvoiceRow, InvoiceItemRow, InvoiceCustomer,
@@ -261,7 +262,7 @@ export default function InvoicesPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10"><CheckCircle2 className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-2xl font-bold">${totalPaid.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalPaid)}</p>
                 <p className="text-xs text-muted-foreground">Cobrado</p>
               </div>
             </div>
@@ -272,7 +273,7 @@ export default function InvoicesPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><Clock className="h-5 w-5 text-warning" /></div>
               <div>
-                <p className="text-2xl font-bold">${totalPending.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
                 <p className="text-xs text-muted-foreground">Por Cobrar</p>
               </div>
             </div>
@@ -358,7 +359,7 @@ export default function InvoicesPage() {
                         <div className="text-xs text-muted-foreground">{format(new Date(inv.created_at), "d MMM yyyy", { locale: es })}</div>
                       </TableCell>
                       <TableCell>{inv.customer?.first_name} {inv.customer?.last_name}</TableCell>
-                      <TableCell className="font-bold">${Number(inv.total).toFixed(2)}</TableCell>
+                      <TableCell className="font-bold">{formatCurrency(inv.total)}</TableCell>
                       <TableCell>{format(new Date(inv.due_date), "d MMM yyyy", { locale: es })}</TableCell>
                       <TableCell>
                         {inv.payment_method ? (
@@ -479,7 +480,7 @@ export default function InvoicesPage() {
               <div className="flex justify-end pt-2">
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-xl font-bold">${subtotal.toFixed(2)}</p>
+                  <p className="text-xl font-bold">{formatCurrency(subtotal)}</p>
                 </div>
               </div>
             </div>
@@ -543,13 +544,13 @@ export default function InvoicesPage() {
               {detailItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between text-sm py-1">
                   <span>{item.description} <span className="text-muted-foreground">×{item.quantity}</span></span>
-                  <span className="font-medium">${Number(item.total).toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(item.total)}</span>
                 </div>
               ))}
               <Separator />
               <div className="flex items-center justify-between font-bold">
                 <span>Total</span>
-                <span>${Number(detailInvoice?.total || 0).toFixed(2)}</span>
+                <span>{formatCurrency(detailInvoice?.total || 0)}</span>
               </div>
             </div>
             {detailInvoice?.notes && (
