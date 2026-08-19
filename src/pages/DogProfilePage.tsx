@@ -19,7 +19,7 @@ import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
-  Loader2, User, Printer, GraduationCap,
+  Loader2, User, Printer, GraduationCap, UtensilsCrossed,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -44,6 +44,14 @@ interface DbDog {
   behavior_notes: string | null;
   medical_notes: string | null;
   photo_url: string | null;
+  feeding: {
+    food_type?: string;
+    brand?: string;
+    meals_per_day?: number | string;
+    portion_amount?: number | string;
+    portion_unit?: string;
+    instructions?: string;
+  } | null;
   customer_id: string;
   preferred_unit_id: string | null;
   customers?: { id: string; first_name: string; last_name: string; phone: string | null } | null;
@@ -68,6 +76,13 @@ interface ReportCardRow {
   is_sent: boolean;
   staff_members: { first_name: string; last_name: string } | null;
 }
+
+const FOOD_TYPE_LABELS: Record<string, string> = {
+  seco: "Seco",
+  humedo: "Húmedo",
+  crudo: "Crudo",
+  mixto: "Mixto",
+};
 
 const REPORT_CARD_SERVICE_LABELS: Record<string, string> = {
   daycare: "Guardería",
@@ -164,6 +179,7 @@ export default function DogProfilePage() {
       behavior_notes: data.behavior_notes || "",
       medical_notes: data.medical_notes || "",
       photo_url: data.photo_url ?? null,
+      feeding: data.feeding ?? null,
       updated_at: new Date().toISOString(),
     };
 
@@ -390,6 +406,42 @@ export default function DogProfilePage() {
             </Card>
 
             <div className="space-y-4">
+              {dog.feeding && (dog.feeding.food_type || dog.feeding.brand || dog.feeding.meals_per_day) && (
+                <Card>
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <p className="font-semibold mb-2 flex items-center gap-2">
+                      <UtensilsCrossed className="h-4 w-4" />Alimentación
+                    </p>
+                    {dog.feeding.food_type && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tipo de comida</span>
+                        <span className="font-medium capitalize">{FOOD_TYPE_LABELS[dog.feeding.food_type] || dog.feeding.food_type}</span>
+                      </div>
+                    )}
+                    {dog.feeding.brand && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Marca</span>
+                        <span className="font-medium">{dog.feeding.brand}</span>
+                      </div>
+                    )}
+                    {dog.feeding.meals_per_day && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Comidas al día</span>
+                        <span className="font-medium">{dog.feeding.meals_per_day}</span>
+                      </div>
+                    )}
+                    {dog.feeding.portion_amount && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Porción</span>
+                        <span className="font-medium">{dog.feeding.portion_amount} {dog.feeding.portion_unit || ""}</span>
+                      </div>
+                    )}
+                    {dog.feeding.instructions && (
+                      <p className="text-muted-foreground whitespace-pre-wrap pt-1 border-t">{dog.feeding.instructions}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
               {dog.notes && (
                 <Card>
                   <CardContent className="pt-4 text-sm">
