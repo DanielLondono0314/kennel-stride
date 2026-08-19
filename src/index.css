@@ -292,8 +292,15 @@
     display: none !important;
   }
 
-  main {
+  main,
+  .app-shell,
+  .app-shell-content {
     overflow: visible !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  main {
     padding: 0 !important;
   }
 
@@ -305,9 +312,16 @@
     display: block !important;
   }
 
+  /* Sin break-inside:avoid aquí: forzaba cada pestaña completa (aunque
+     estuviera casi vacía) a empezar en una página nueva, dejando el resto
+     de la página anterior en blanco. Deja que el contenido fluya corrido y
+     solo evita cortar tarjetas individuales a la mitad. */
   .print-all-tabs [role="tabpanel"] {
+    margin-top: 0.75rem;
+  }
+
+  .print-all-tabs [role="tabpanel"] > * {
     break-inside: avoid;
-    margin-top: 1.5rem;
   }
 
   .print-all-tabs [role="tablist"] {

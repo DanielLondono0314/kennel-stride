@@ -18,7 +18,7 @@ export function AppLayout() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="app-shell flex min-h-screen w-full bg-background">
         <div className="no-print contents">
           <AppSidebar
             noticeCount={unreadNotices}
@@ -34,7 +34,7 @@ export function AppLayout() {
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
-        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <div className="app-shell-content flex-1 flex flex-col min-h-screen overflow-hidden">
           <div className="no-print contents">
             <AppHeader
               noticeCount={unreadNotices}
