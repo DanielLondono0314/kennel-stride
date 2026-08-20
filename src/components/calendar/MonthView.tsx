@@ -10,20 +10,21 @@ import {
   isSameDay,
   isToday,
 } from "date-fns";
-import { es } from "date-fns/locale";
-import { Reservation, ReservationStatus, ServiceType } from "@/types";
+import { ServiceType } from "@/types";
+import { CalendarEvent } from "./calendarEvent";
+import { TASK_TYPE_LABELS, type TaskType } from "@/lib/worker";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Dog } from "lucide-react";
+import { Dog, ClipboardList } from "lucide-react";
 
 interface MonthViewProps {
   currentDate: Date;
-  reservations: Reservation[];
-  onSelectReservation: (reservation: Reservation) => void;
+  events: CalendarEvent[];
+  onSelectEvent: (event: CalendarEvent) => void;
   onSelectDay: (date: Date) => void;
 }
 
@@ -39,8 +40,8 @@ const serviceColorsDot: Record<ServiceType, string> = {
 
 export function MonthView({
   currentDate,
-  reservations,
-  onSelectReservation,
+  events,
+  onSelectEvent,
   onSelectDay,
 }: MonthViewProps) {
   const calendarDays = useMemo(() => {
@@ -51,18 +52,15 @@ export function MonthView({
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentDate]);
 
-  // Group reservations by day
-  const reservationsByDay = useMemo(() => {
-    const grouped: Record<string, Reservation[]> = {};
+  // Group events by day
+  const eventsByDay = useMemo(() => {
+    const grouped: Record<string, CalendarEvent[]> = {};
     calendarDays.forEach((day) => {
       const dayKey = format(day, "yyyy-MM-dd");
-      grouped[dayKey] = reservations.filter((r) => {
-        const resDate = new Date(r.startDate);
-        return isSameDay(resDate, day);
-      });
+      grouped[dayKey] = events.filter((e) => isSameDay(e.startDate, day));
     });
     return grouped;
-  }, [reservations, calendarDays]);
+  }, [events, calendarDays]);
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
@@ -92,10 +90,10 @@ export function MonthView({
           <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[120px]">
             {week.map((day) => {
               const dayKey = format(day, "yyyy-MM-dd");
-              const dayReservations = reservationsByDay[dayKey] || [];
+              const dayEvents = eventsByDay[dayKey] || [];
               const isCurrentMonth = isSameMonth(day, currentDate);
-              const displayedReservations = dayReservations.slice(0, 3);
-              const remainingCount = dayReservations.length - 3;
+              const displayedEvents = dayEvents.slice(0, 3);
+              const remainingCount = dayEvents.length - 3;
 
               return (
                 <div
@@ -121,50 +119,53 @@ export function MonthView({
                     </span>
                   </div>
 
-                  {/* Reservations */}
+                  {/* Events */}
                   <div className="space-y-1">
-                    {displayedReservations.map((reservation) => {
-                      const dotColor =
-                        serviceColorsDot[
-                          reservation.service?.type || ServiceType.DAYCARE
-                        ];
+                    {displayedEvents.map((event) => {
+                      const isTask = event.kind === "task";
+                      const dotColor = isTask
+                        ? "bg-muted-foreground"
+                        : serviceColorsDot[event.reservation?.service?.type || ServiceType.DAYCARE];
+                      const primaryLabel = isTask ? (event.task!.dogName ?? event.task!.title) : event.reservation!.dog?.name;
+                      const secondaryLabel = isTask
+                        ? (TASK_TYPE_LABELS[event.task!.type as TaskType] ?? event.task!.type)
+                        : event.reservation!.service?.name;
 
                       return (
-                        <Tooltip key={reservation.id}>
+                        <Tooltip key={`${event.kind}-${event.id}`}>
                           <TooltipTrigger asChild>
                             <div
                               className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs bg-muted/60 hover:bg-muted cursor-pointer truncate"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onSelectReservation(reservation);
+                                onSelectEvent(event);
                               }}
                             >
-                              <div
-                                className={cn(
-                                  "w-2 h-2 rounded-full flex-shrink-0",
-                                  dotColor
-                                )}
-                              />
+                              {isTask ? (
+                                <ClipboardList className="h-2.5 w-2.5 flex-shrink-0 text-muted-foreground" />
+                              ) : (
+                                <div className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />
+                              )}
                               <span className="truncate font-medium">
-                                {reservation.dog?.name}
+                                {primaryLabel}
                               </span>
                               <span className="text-muted-foreground ml-auto">
-                                {format(new Date(reservation.startDate), "HH:mm")}
+                                {format(event.startDate, "HH:mm")}
                               </span>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <Dog className="h-4 w-4" />
-                                <span className="font-semibold">
-                                  {reservation.dog?.name}
-                                </span>
+                                {isTask ? <ClipboardList className="h-4 w-4" /> : <Dog className="h-4 w-4" />}
+                                <span className="font-semibold">{primaryLabel}</span>
                               </div>
-                              <p className="text-sm">{reservation.service?.name}</p>
+                              <p className="text-sm">{secondaryLabel}</p>
+                              {event.zoneName && (
+                                <p className="text-xs text-muted-foreground">Área: {event.zoneName}</p>
+                              )}
                               <p className="text-xs text-muted-foreground">
-                                {format(new Date(reservation.startDate), "HH:mm")} -{" "}
-                                {format(new Date(reservation.endDate), "HH:mm")}
+                                {format(event.startDate, "HH:mm")} - {format(event.endDate, "HH:mm")}
                               </p>
                             </div>
                           </TooltipContent>

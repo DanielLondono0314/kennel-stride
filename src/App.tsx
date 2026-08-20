@@ -46,6 +46,7 @@ const DogProfilePage       = lazy(() => import("./pages/DogProfilePage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
 
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
+const MySchedulePage       = lazy(() => import("./pages/worker/MySchedulePage"));
 const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailPage"));
 const WorkerNoticesPage    = lazy(() => import("./pages/worker/WorkerNoticesPage"));
 const WorkerProfilePage    = lazy(() => import("./pages/worker/WorkerProfilePage"));
@@ -87,6 +88,7 @@ const App = () => {
                     <Route path="worker" element={<WorkerRoute />}>
                       <Route element={<WorkerLayout />}>
                         <Route index element={<MyDayPage />} />
+                        <Route path="schedule" element={<MySchedulePage />} />
                         <Route path="reservation/:id" element={<WorkerTaskDetailPage />} />
                         <Route path="task/:id" element={<WorkerTaskDetailPage />} />
                         <Route path="notices" element={<WorkerNoticesPage />} />
