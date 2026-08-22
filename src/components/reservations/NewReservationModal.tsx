@@ -19,6 +19,7 @@ import {
 import { Loader2, Calendar, Dog, User, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { focusFirstInvalid } from "@/lib/forms";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 
 interface Customer {
   id: string;
@@ -34,19 +35,24 @@ interface Dog {
   customer_id: string;
 }
 
-const SERVICE_OPTIONS = [
-  { type: "daycare", name: "Guardería" },
-  { type: "board_and_train", name: "Internado + Entrenamiento" },
-  { type: "training_session", name: "Sesión de Entrenamiento" },
-  { type: "grooming", name: "Estética / Grooming" },
-  { type: "evaluation", name: "Evaluación" },
-];
-
 /** Formatea a "yyyy-MM-ddTHH:mm" en hora LOCAL (para <input type="datetime-local">). */
 function formatLocalDateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+
+/** startDate (string "yyyy-MM-ddTHH:mm") + N horas, mismo formato de salida. */
+function addHoursToLocalDateTime(startDate: string, hours: number): string {
+  const start = new Date(startDate);
+  return formatLocalDateTime(new Date(start.getTime() + hours * 60 * 60 * 1000));
+}
+
+const DURATION_SHORTCUTS = [
+  { hours: 0.5, label: "30 min" },
+  { hours: 1, label: "1 h" },
+  { hours: 1.5, label: "1h 30" },
+  { hours: 2, label: "2 h" },
+];
 
 const STATUS_OPTIONS = [
   { value: "requested", label: "Solicitada" },
@@ -89,6 +95,7 @@ export function NewReservationModal({
 }: NewReservationModalProps) {
   const isEditing = !!editData;
   const { organization } = useOrganization();
+  const { options: serviceTypeOptions } = useServiceTypes();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   // Errores inline por campo (PR-13).
@@ -195,7 +202,7 @@ export function NewReservationModal({
     setErrors({});
 
     setSaving(true);
-    const serviceName = SERVICE_OPTIONS.find((s) => s.type === serviceType)?.name ?? serviceType;
+    const serviceName = serviceTypeOptions.find((s) => s.value === serviceType)?.label ?? serviceType;
 
     if (isEditing && editData) {
       const { error } = await supabase.rpc("update_reservation", {
@@ -378,9 +385,9 @@ export function NewReservationModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SERVICE_OPTIONS.map((s) => (
-                    <SelectItem key={s.type} value={s.type}>
-                      {s.name}
+                  {serviceTypeOptions.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -414,6 +421,28 @@ export function NewReservationModal({
                 />
                 {errors.endDate && <p id="res-end-error" className="text-xs text-destructive">{errors.endDate}</p>}
               </div>
+            </div>
+
+            {/* Duración rápida — para citas cortas (consultas, evaluaciones) es
+                más fácil elegir cuánto dura que teclear la fecha/hora de fin. */}
+            <div className="flex items-center gap-2 -mt-2">
+              <span className="text-xs text-muted-foreground">Duración:</span>
+              {DURATION_SHORTCUTS.map((d) => (
+                <Button
+                  key={d.hours}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  disabled={!startDate}
+                  onClick={() => {
+                    setEndDate(addHoursToLocalDateTime(startDate, d.hours));
+                    clearError("endDate");
+                  }}
+                >
+                  {d.label}
+                </Button>
+              ))}
             </div>
 
             {/* Price */}

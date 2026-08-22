@@ -30,13 +30,15 @@ interface MonthViewProps {
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-const serviceColorsDot: Record<ServiceType, string> = {
+const serviceColorsDot: Record<string, string> = {
   [ServiceType.DAYCARE]: "bg-info",
   [ServiceType.BOARD_AND_TRAIN]: "bg-primary",
   [ServiceType.TRAINING_SESSION]: "bg-success",
   [ServiceType.GROOMING]: "bg-warning",
   [ServiceType.EVALUATION]: "bg-status-requested",
 };
+// Servicio personalizado (agregado en Ajustes) sin color propio en la paleta.
+const DEFAULT_SERVICE_DOT = "bg-accent";
 
 export function MonthView({
   currentDate,
@@ -125,7 +127,7 @@ export function MonthView({
                       const isTask = event.kind === "task";
                       const dotColor = isTask
                         ? "bg-muted-foreground"
-                        : serviceColorsDot[event.reservation?.service?.type || ServiceType.DAYCARE];
+                        : (serviceColorsDot[event.reservation?.service?.type ?? ""] ?? DEFAULT_SERVICE_DOT);
                       const primaryLabel = isTask ? (event.task!.dogName ?? event.task!.title) : event.reservation!.dog?.name;
                       const secondaryLabel = isTask
                         ? (TASK_TYPE_LABELS[event.task!.type as TaskType] ?? event.task!.type)

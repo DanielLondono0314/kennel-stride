@@ -36,13 +36,15 @@ const START_HOUR = 6;
 const END_HOUR = 21;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 
-const serviceColors: Record<ServiceType, string> = {
+const serviceColors: Record<string, string> = {
   [ServiceType.DAYCARE]: "bg-info/20 border-info text-info",
   [ServiceType.BOARD_AND_TRAIN]: "bg-primary/20 border-primary text-primary",
   [ServiceType.TRAINING_SESSION]: "bg-success/20 border-success text-success",
   [ServiceType.GROOMING]: "bg-warning/20 border-warning text-warning",
   [ServiceType.EVALUATION]: "bg-status-requested/20 border-status-requested text-status-requested",
 };
+// Servicio personalizado (agregado en Ajustes) sin color propio en la paleta.
+const DEFAULT_SERVICE_COLOR = "bg-accent/20 border-accent text-accent-foreground";
 
 const statusIndicators: Record<ReservationStatus, string> = {
   [ReservationStatus.REQUESTED]: "bg-status-requested",
@@ -218,7 +220,7 @@ export function WeekView({
                   const isTask = event.kind === "task";
                   const colorClass = isTask
                     ? taskColorClass
-                    : serviceColors[event.reservation?.service?.type || ServiceType.DAYCARE];
+                    : (serviceColors[event.reservation?.service?.type ?? ""] ?? DEFAULT_SERVICE_COLOR);
                   const statusClass = isTask ? undefined : statusIndicators[event.reservation!.status];
                   const widthPct = 100 / totalCols;
                   const leftPct = col * widthPct;

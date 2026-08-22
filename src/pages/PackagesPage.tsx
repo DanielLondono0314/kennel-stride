@@ -29,6 +29,7 @@ import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { formatCurrency } from "@/lib/currency";
 import { getEffectivePackageStatus as getEffectiveStatus } from "@/lib/packageStatus";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -59,13 +60,6 @@ interface CustomerRow {
   phone: string;
 }
 
-const serviceTypeLabels: Record<string, string> = {
-  daycare: "Guardería",
-  board_and_train: "Internado + Entrenamiento",
-  training_session: "Sesión de Entrenamiento",
-  grooming: "Estética",
-  evaluation: "Evaluación",
-};
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Activo", variant: "default" },
@@ -75,6 +69,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 
 export default function PackagesPage() {
   const { organization } = useOrganization();
+  const { labels: serviceTypeLabels } = useServiceTypes();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);

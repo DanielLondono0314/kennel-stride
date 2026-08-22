@@ -20,14 +20,7 @@ import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval,
 } from "date-fns";
 import { fetchReservationsRange, mapDbToReservation } from "@/hooks/useReservations";
-
-const RESERVATION_TYPE_OPTIONS = [
-  { value: "daycare", label: "Guardería" },
-  { value: "board_and_train", label: "Internado + Entrenamiento" },
-  { value: "training_session", label: "Sesión de Entrenamiento" },
-  { value: "grooming", label: "Estética / Grooming" },
-  { value: "evaluation", label: "Evaluación" },
-];
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 
 const TASK_TYPE_OPTIONS = [
   { value: "cleaning", label: "Aseo" },
@@ -56,6 +49,7 @@ export default function CalendarPage() {
   const [zoneFilter, setZoneFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  const { options: serviceTypeOptions } = useServiceTypes();
   const { data: staffMembers = [] } = useStaffMembers();
   const { data: zones = [] } = useFacilityZones();
   const { data: tasksData = [] } = useTasks();
@@ -216,7 +210,7 @@ export default function CalendarPage() {
             <SelectItem value="all">Todos los tipos</SelectItem>
             <SelectGroup>
               <SelectLabel>Servicios</SelectLabel>
-              {RESERVATION_TYPE_OPTIONS.map((o) => (
+              {serviceTypeOptions.map((o) => (
                 <SelectItem key={`svc:${o.value}`} value={`svc:${o.value}`}>{o.label}</SelectItem>
               ))}
             </SelectGroup>
