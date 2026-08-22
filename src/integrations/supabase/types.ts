@@ -473,6 +473,54 @@ export type Database = {
           },
         ]
       }
+      dog_weight_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dog_id: string
+          id: string
+          notes: string | null
+          organization_id: string
+          recorded_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dog_id: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          recorded_at?: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dog_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          recorded_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_weight_logs_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_weight_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dogs: {
         Row: {
           aggression_details: Json | null

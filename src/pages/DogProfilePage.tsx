@@ -13,6 +13,7 @@ import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
 import { VaccinationTab } from "@/components/clinic/VaccinationTab";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
+import { WeightTab } from "@/components/clinic/WeightTab";
 import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
@@ -420,6 +421,9 @@ export default function DogProfilePage() {
           <TabsTrigger value="medical" className="gap-1.5">
             <ClipboardList className="h-4 w-4" />Historial
           </TabsTrigger>
+          <TabsTrigger value="weight" className="gap-1.5">
+            <Scale className="h-4 w-4" />Peso
+          </TabsTrigger>
           <TabsTrigger value="deworming" className="gap-1.5">
             <Activity className="h-4 w-4" />Desparasitación
           </TabsTrigger>
@@ -658,6 +662,9 @@ export default function DogProfilePage() {
         </TabsContent>
         <TabsContent value="medical" className="mt-6" forceMount>
           <MedicalHistoryTab dogId={dog.id} dogName={dog.name} />
+        </TabsContent>
+        <TabsContent value="weight" className="mt-6" forceMount>
+          <WeightTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
         <TabsContent value="deworming" className="mt-6" forceMount>
           <DewormingTab dogId={dog.id} dogName={dog.name} />
