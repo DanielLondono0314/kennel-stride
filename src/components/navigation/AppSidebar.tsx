@@ -31,9 +31,10 @@ interface AppSidebarProps {
   requestCount?: number;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  className?: string;
 }
 
-export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = false, onMobileClose }: AppSidebarProps) {
+export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = false, onMobileClose, className }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const { organization } = useOrganization();
@@ -51,7 +52,8 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
           ? "fixed inset-y-0 left-0 z-40 w-72 flex"
           : "hidden md:flex",
         !mobileOpen && (collapsed ? "md:w-16" : "md:w-64"),
-        mobileOpen && "md:relative md:w-64"
+        mobileOpen && "md:relative md:w-64",
+        className
       )}
     >
       {/* Logo */}

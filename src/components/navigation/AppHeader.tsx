@@ -15,13 +15,15 @@ import { Search, Bell, LogOut, User, Settings, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   noticeCount?: number;
   onMenuToggle?: () => void;
+  className?: string;
 }
 
-export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
+export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeaderProps) {
   const navigate = useNavigate();
   const orgNavigate = useOrgNavigate();
   const { user, signOut } = useAuth();
@@ -70,7 +72,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle }: AppHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card gap-3">
+      <header className={cn("sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 border-b bg-card gap-3", className)}>
         {/* Mobile hamburger */}
         <Button
           variant="ghost"
