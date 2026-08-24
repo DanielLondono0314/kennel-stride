@@ -200,7 +200,74 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     setPhotoPreview(null);
     setErrors({});
     setActiveTab("basicos");
+    setHasDraft(false);
   }, [dog, preselectedCustomerId, open]);
+
+  // Borrador local: si cambian de pestaña/app o cierran el modal por accidente
+  // mientras registran un perro NUEVO (sin guardar), no se pierde el trabajo —
+  // se recupera solo al volver a abrir "Nuevo perro". Solo para creación: al
+  // editar, el prop `dog` ya trae los valores guardados, así que el riesgo de
+  // "empezar de cero" no aplica igual.
+  const draftKey = orgId && !isEditing ? `dogDraft:${orgId}:new` : null;
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    if (!open || !draftKey) return;
+    const raw = localStorage.getItem(draftKey);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      if (d.customerId) setCustomerId(d.customerId);
+      if (d.name) setName(d.name);
+      if (d.breed) setBreed(d.breed);
+      if (d.birthDate) setBirthDate(d.birthDate);
+      if (d.weight) setWeight(d.weight);
+      if (d.color) setColor(d.color);
+      if (d.gender) setGender(d.gender);
+      setIsNeutered(!!d.isNeutered);
+      setIsAggressive(!!d.isAggressive);
+      setHasAllergies(!!d.hasAllergies);
+      setOnMedication(!!d.onMedication);
+      if (d.microchipNumber) setMicrochipNumber(d.microchipNumber);
+      if (d.preferredUnitId) setPreferredUnitId(d.preferredUnitId);
+      if (d.notes) setNotes(d.notes);
+      if (d.behaviorNotes) setBehaviorNotes(d.behaviorNotes);
+      if (d.medicalNotes) setMedicalNotes(d.medicalNotes);
+      if (d.aggression) setAggression(d.aggression);
+      if (d.feeding) setFeeding(d.feeding);
+      if (Array.isArray(d.allergies)) setAllergies(d.allergies);
+      if (Array.isArray(d.medications)) setMedications(d.medications);
+      setHasDraft(true);
+      toast.info("Recuperamos un borrador sin guardar", {
+        description: "Tenías datos de un registro anterior que no se guardó.",
+      });
+    } catch {
+      localStorage.removeItem(draftKey);
+    }
+    // Solo al abrir — no se debe re-disparar mientras escriben.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, draftKey]);
+
+  useEffect(() => {
+    if (!open || !draftKey) return;
+    const isEmpty = !name.trim() && !breed.trim() && !notes.trim() && !behaviorNotes.trim()
+      && !medicalNotes.trim() && !weight && !color.trim() && !microchipNumber.trim()
+      && allergies.length === 0 && medications.length === 0;
+    if (isEmpty) {
+      localStorage.removeItem(draftKey);
+      return;
+    }
+    const snapshot = {
+      customerId, name, breed, birthDate, weight, color, gender, isNeutered, isAggressive,
+      hasAllergies, onMedication, microchipNumber, preferredUnitId, notes, behaviorNotes,
+      medicalNotes, aggression, feeding, allergies, medications,
+    };
+    localStorage.setItem(draftKey, JSON.stringify(snapshot));
+  }, [
+    open, draftKey, customerId, name, breed, birthDate, weight, color, gender, isNeutered,
+    isAggressive, hasAllergies, onMedication, microchipNumber, preferredUnitId, notes,
+    behaviorNotes, medicalNotes, aggression, feeding, allergies, medications,
+  ]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -372,6 +439,7 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
         allergies: hasAllergies ? allergies : [],
         medications: onMedication ? medications : [],
       });
+      if (draftKey) localStorage.removeItem(draftKey);
     } finally {
       setIsSubmitting(false);
     }
@@ -397,6 +465,29 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           <DialogDescription>
             {isEditing ? `Editar información de ${dog?.name}` : "Registrar una nueva mascota"}
           </DialogDescription>
+          {hasDraft && (
+            <div className="flex items-center justify-between rounded-md bg-info/10 px-3 py-2 text-xs text-info">
+              <span>Recuperamos un borrador sin guardar de un registro anterior.</span>
+              <button
+                type="button"
+                className="font-medium underline underline-offset-2 hover:no-underline shrink-0 ml-2"
+                onClick={() => {
+                  if (draftKey) localStorage.removeItem(draftKey);
+                  setHasDraft(false);
+                  setCustomerId(preselectedCustomerId || "");
+                  setName(""); setBreed(""); setBirthDate(""); setWeight("");
+                  setColor(""); setGender("male"); setIsNeutered(false);
+                  setIsAggressive(false); setHasAllergies(false); setOnMedication(false);
+                  setMicrochipNumber(""); setPreferredUnitId(""); setNotes("");
+                  setBehaviorNotes(""); setMedicalNotes("");
+                  setAggression(emptyAggression()); setFeeding(emptyFeeding());
+                  setAllergies([]); setMedications([]);
+                }}
+              >
+                Descartar borrador
+              </button>
+            </div>
+          )}
         </DialogHeader>
 
         <div ref={contentRef}>
