@@ -27,24 +27,36 @@ type Mode = "customers" | "dogs";
 
 const CUSTOMER_HEADERS = [
   "first_name", "last_name", "email", "phone",
-  "address", "city", "state", "zip_code", "notes",
+  "address", "city", "state", "zip_code",
+  "emergency_contact_name", "emergency_contact_phone", "notes",
 ];
 
 const DOG_HEADERS = [
   "name", "breed", "gender", "birth_date", "weight", "color",
-  "microchip_number", "is_neutered", "is_aggressive", "has_allergies",
-  "on_medication", "notes", "owner_email", "owner_phone",
+  "microchip_number", "is_neutered", "is_aggressive", "has_allergies", "on_medication",
+  "behavior_notes", "medical_notes",
+  "feeding_type", "feeding_brand", "feeding_meals_per_day", "feeding_portion_amount", "feeding_portion_unit", "feeding_instructions",
+  "aggression_severity", "aggression_handling", "aggression_requires_muzzle", "aggression_handle_alone", "aggression_no_other_dogs",
+  "allergies", "medications",
+  "preferred_unit_name",
+  "notes", "owner_email", "owner_phone",
 ];
+
+// Columnas de "grupo repetido" (un perro puede tener varias alergias o
+// medicamentos): un campo de texto con entradas separadas por ";", cada
+// entrada con sus partes separadas por ":". Se documenta en el modal.
+// allergies:   alergeno:tipo:reaccion:severidad        (tipo: comida|ambiental|medicamento; severidad: baja|media|alta)
+// medications: nombre:dosis:frecuencia:via:con_comida  (via: oral|topica|inyectable; con_comida: true|false)
 
 const CUSTOMER_SAMPLE =
   CUSTOMER_HEADERS.join(",") +
-  "\nJuan,Pérez,juan@example.com,5551234567,Calle 1,CDMX,CDMX,01000,Cliente VIP" +
-  "\nAna,García,ana@example.com,5557654321,,,,,";
+  "\nJuan,Pérez,juan@example.com,5551234567,Calle 1,CDMX,CDMX,01000,María Pérez,5559876543,Cliente VIP" +
+  "\nAna,García,ana@example.com,5557654321,,,,,,,";
 
 const DOG_SAMPLE =
   DOG_HEADERS.join(",") +
-  "\nFirulais,Labrador,male,2020-05-12,28,Negro,9821374,true,false,false,false,Muy juguetón,juan@example.com," +
-  "\nLuna,Poodle,female,,7,Blanco,,false,false,true,false,Alérgica al pollo,ana@example.com,";
+  "\nFirulais,Labrador,male,2020-05-12,28,Negro,9821374,true,false,false,false,Muy juguetón,Sin novedades,seco,Marca X,2,300,g,Separar de otros perros,,,,,,,,Perrera 3,,juan@example.com," +
+  "\nLuna,Poodle,female,,7,Blanco,,false,true,true,false,,,humedo,,3,150,g,,media,Manejar con correa corta,true,true,true,Pollo:comida:Picazón:media,Apoquel:5mg:cada 12h:oral:false,,Alérgica al pollo,ana@example.com,";
 
 function normalizeRow(row: RawRow): RawRow {
   const out: RawRow = {};
@@ -56,6 +68,38 @@ function normalizeRow(row: RawRow): RawRow {
 
 function parseBool(v: string): boolean {
   return ["true", "1", "yes", "sí", "si", "x"].includes(v.toLowerCase());
+}
+
+interface AllergyEntry { allergen: string; type: string; reaction: string | null; severity: string | null; }
+interface MedicationEntry { name: string; dose: string | null; frequency: string | null; route: string | null; with_food: boolean; }
+
+// "alergeno:tipo:reaccion:severidad" por entrada, separadas por ";".
+function parseAllergies(raw: string): AllergyEntry[] {
+  if (!raw?.trim()) return [];
+  return raw.split(";").map((s) => s.trim()).filter(Boolean).map((entry) => {
+    const [allergen, type, reaction, severity] = entry.split(":").map((p) => p?.trim() ?? "");
+    return {
+      allergen: allergen || entry,
+      type: type || "comida",
+      reaction: reaction || null,
+      severity: severity || null,
+    };
+  });
+}
+
+// "nombre:dosis:frecuencia:via:con_comida" por entrada, separadas por ";".
+function parseMedications(raw: string): MedicationEntry[] {
+  if (!raw?.trim()) return [];
+  return raw.split(";").map((s) => s.trim()).filter(Boolean).map((entry) => {
+    const [name, dose, frequency, route, withFood] = entry.split(":").map((p) => p?.trim() ?? "");
+    return {
+      name: name || entry,
+      dose: dose || null,
+      frequency: frequency || null,
+      route: route || null,
+      with_food: parseBool(withFood || ""),
+    };
+  });
 }
 
 function downloadTemplate(mode: Mode) {
@@ -147,6 +191,8 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         city: r.city || null,
         state: r.state || null,
         zip_code: r.zip_code || null,
+        emergency_contact_name: r.emergency_contact_name || null,
+        emergency_contact_phone: r.emergency_contact_phone || null,
         notes: r.notes || null,
       };
       const existingId = existingMap.get(payload.email);
@@ -174,6 +220,13 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
       .eq("organization_id", organization.id);
     const byEmail = new Map<string, string>((customers ?? []).map(c => [c.email.toLowerCase(), c.id] as [string, string]));
     const byPhone = new Map<string, string>((customers ?? []).filter(c => !!c.phone).map(c => [c.phone, c.id] as [string, string]));
+
+    // Perreras de la org, para resolver preferred_unit_name -> preferred_unit_id
+    const { data: units } = await supabase
+      .from("facility_units")
+      .select("id, name")
+      .eq("organization_id", organization.id);
+    const unitByName = new Map<string, string>((units ?? []).map(u => [u.name.toLowerCase(), u.id] as [string, string]));
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
@@ -215,6 +268,33 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         continue;
       }
 
+      const allergyEntries = parseAllergies(r.allergies);
+      const medicationEntries = parseMedications(r.medications);
+      const isAggressive = parseBool(r.is_aggressive);
+
+      const hasFeedingData = !!(r.feeding_type || r.feeding_brand || r.feeding_meals_per_day || r.feeding_portion_amount || r.feeding_instructions);
+      const feeding = hasFeedingData ? {
+        food_type: r.feeding_type || "",
+        brand: r.feeding_brand || "",
+        meals_per_day: r.feeding_meals_per_day ? Number(r.feeding_meals_per_day) || "" : "",
+        portion_amount: r.feeding_portion_amount ? Number(r.feeding_portion_amount) || "" : "",
+        portion_unit: r.feeding_portion_unit || "",
+        instructions: r.feeding_instructions || "",
+      } : null;
+
+      const aggressionDetails = isAggressive ? {
+        severity: r.aggression_severity || "",
+        handling: r.aggression_handling || "",
+        requires_muzzle: parseBool(r.aggression_requires_muzzle),
+        handle_alone: parseBool(r.aggression_handle_alone),
+        no_other_dogs: parseBool(r.aggression_no_other_dogs),
+      } : null;
+
+      const preferredUnitId = r.preferred_unit_name ? unitByName.get(r.preferred_unit_name.toLowerCase()) ?? null : null;
+      if (r.preferred_unit_name && !preferredUnitId) {
+        out.errors.push({ row: i + 2, reason: `Perrera "${r.preferred_unit_name}" no encontrada — se creó el perro sin asignar` });
+      }
+
       const payload = {
         organization_id: organization.id,
         customer_id: customerId,
@@ -226,14 +306,36 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         color: r.color || null,
         microchip_number: r.microchip_number || null,
         is_neutered: parseBool(r.is_neutered),
-        is_aggressive: parseBool(r.is_aggressive),
-        has_allergies: parseBool(r.has_allergies),
-        on_medication: parseBool(r.on_medication),
+        is_aggressive: isAggressive,
+        has_allergies: parseBool(r.has_allergies) || allergyEntries.length > 0,
+        on_medication: parseBool(r.on_medication) || medicationEntries.length > 0,
+        behavior_notes: r.behavior_notes || null,
+        medical_notes: r.medical_notes || null,
+        feeding,
+        aggression_details: aggressionDetails,
+        preferred_unit_id: preferredUnitId,
         notes: r.notes || null,
       };
-      const { error } = await supabase.from("dogs").insert(payload);
-      if (error) out.errors.push({ row: i + 2, reason: error.message });
-      else out.created++;
+      const { data: newDog, error } = await supabase.from("dogs").insert(payload).select("id").single();
+      if (error || !newDog) {
+        out.errors.push({ row: i + 2, reason: error?.message ?? "No se pudo crear el perro" });
+        continue;
+      }
+
+      if (allergyEntries.length > 0) {
+        const { error: allergyErr } = await supabase.from("dog_allergies").insert(
+          allergyEntries.map((a) => ({ ...a, dog_id: newDog.id, organization_id: organization.id }))
+        );
+        if (allergyErr) out.errors.push({ row: i + 2, reason: "Perro creado, pero fallaron sus alergias: " + allergyErr.message });
+      }
+      if (medicationEntries.length > 0) {
+        const { error: medErr } = await supabase.from("dog_medications").insert(
+          medicationEntries.map((m) => ({ ...m, dog_id: newDog.id, organization_id: organization.id }))
+        );
+        if (medErr) out.errors.push({ row: i + 2, reason: "Perro creado, pero fallaron sus medicamentos: " + medErr.message });
+      }
+
+      out.created++;
     }
     return out;
   };
@@ -297,8 +399,15 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
                 <p className="text-xs text-muted-foreground mt-2">
                   {mode === "customers"
                     ? "Requeridos: first_name, last_name, email."
-                    : "Requeridos: name, breed. Usa owner_email para vincular al dueño (se crea cliente automático si no existe)."}
+                    : "Requeridos: name, breed. Usa owner_email para vincular al dueño (se crea cliente automático si no existe). preferred_unit_name debe coincidir con el nombre exacto de una perrera ya creada en Instalaciones."}
                 </p>
+                {mode === "dogs" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <b>allergies</b> y <b>medications</b> aceptan varias entradas separadas por "<code>;</code>", cada una con sus partes separadas por "<code>:</code>": <br />
+                    allergies → <code>alergeno:tipo:reaccion:severidad</code> (tipo: comida/ambiental/medicamento) <br />
+                    medications → <code>nombre:dosis:frecuencia:via:con_comida</code> (via: oral/topica/inyectable)
+                  </p>
+                )}
               </AlertDescription>
             </Alert>
 
