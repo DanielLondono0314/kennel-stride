@@ -16,6 +16,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDraftForm } from "@/hooks/useDraftForm";
+import { DraftBanner } from "@/components/shared/DraftBanner";
 
 interface ReportCardFormData {
   dog_id: string;
@@ -140,6 +142,21 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
     }
   }, [open, editData, SERVICE_TYPES, loadTrainers, loadDogs]);
 
+  // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
+  // Escape, clic afuera), no se pierde lo llenado. Solo para creación.
+  const draftKey = organization?.id && !editData ? `reportCardDraft:${organization.id}:new` : null;
+  const { hasDraft, clearDraft } = useDraftForm({
+    key: draftKey,
+    active: open,
+    value: form,
+    apply: (d) => setForm({ ...d, session_date: new Date(d.session_date) }),
+    isEmpty: (v) => !v.dog_id && !v.notes.trim() && !v.highlights.trim() && !v.areas_to_improve.trim() && v.photos.length === 0,
+  });
+
+  const discardDraft = () => {
+    clearDraft();
+    setForm({ ...defaultForm, service_type: SERVICE_TYPES[0]?.value ?? "daycare" });
+  };
 
   function handleDogChange(dogId: string) {
     const dog = dogs.find((d) => d.id === dogId);
@@ -220,6 +237,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
       toast.error("No se pudo guardar el report card", { description: "Revisa tu conexión e inténtalo de nuevo." });
       return;
     }
+    clearDraft();
 
     if (sendToOwner && savedId) {
       const { data: sendData, error: sendError } = await supabase.functions.invoke("send-report-card", {
@@ -258,6 +276,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editData ? "Editar Report Card" : "Nuevo Report Card"}</DialogTitle>
+          {hasDraft && <DraftBanner onDiscard={discardDraft} />}
         </DialogHeader>
 
         <div className="grid gap-4 py-2">

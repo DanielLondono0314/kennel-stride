@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { customerSchema } from "@/lib/schemas";
 import { zodFieldErrors, focusFirstInvalid } from "@/lib/forms";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { useDraftForm } from "@/hooks/useDraftForm";
+import { DraftBanner } from "@/components/shared/DraftBanner";
 
 interface CustomerModalProps {
   customer?: DbCustomer | null;
@@ -21,6 +24,7 @@ interface CustomerModalProps {
 
 export function CustomerModal({ customer, open, onOpenChange, onSave }: CustomerModalProps) {
   const isEditing = !!customer;
+  const { organization } = useOrganization();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -65,6 +69,31 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
     setErrors({});
   }, [customer, open]);
 
+  // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
+  // Escape, clic afuera), no se pierde lo escrito. Solo para creación.
+  const draftKey = organization?.id && !isEditing ? `customerDraft:${organization.id}:new` : null;
+  const draftValue = { firstName, lastName, email, phone, address, city, state, zipCode, emergencyContactName, emergencyContactPhone, notes };
+  const { hasDraft, clearDraft } = useDraftForm({
+    key: draftKey,
+    active: open,
+    value: draftValue,
+    apply: (d) => {
+      setFirstName(d.firstName ?? ""); setLastName(d.lastName ?? "");
+      setEmail(d.email ?? ""); setPhone(d.phone ?? "");
+      setAddress(d.address ?? ""); setCity(d.city ?? ""); setState(d.state ?? ""); setZipCode(d.zipCode ?? "");
+      setEmergencyContactName(d.emergencyContactName ?? ""); setEmergencyContactPhone(d.emergencyContactPhone ?? "");
+      setNotes(d.notes ?? "");
+    },
+    isEmpty: (v) => !v.firstName.trim() && !v.lastName.trim() && !v.email.trim() && !v.phone.trim() && !v.notes.trim(),
+  });
+
+  const discardDraft = () => {
+    clearDraft();
+    setFirstName(""); setLastName(""); setEmail(""); setPhone("");
+    setAddress(""); setCity(""); setState(""); setZipCode("");
+    setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
+  };
+
   const handleSubmit = async () => {
     const candidate = {
       first_name: firstName,
@@ -101,6 +130,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       emergency_contact_phone: emergencyContactPhone.trim() || null,
       notes: data.notes || null,
     });
+    clearDraft();
     setIsSubmitting(false);
   };
 
@@ -117,6 +147,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
               ? `Editar información de ${customer.first_name}`
               : "Registrar un nuevo cliente"}
           </DialogDescription>
+          {hasDraft && <DraftBanner onDiscard={discardDraft} />}
         </DialogHeader>
 
         <div className="space-y-6 mt-4">

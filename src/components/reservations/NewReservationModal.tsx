@@ -20,6 +20,8 @@ import { Loader2, Calendar, Dog, User, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { focusFirstInvalid } from "@/lib/forms";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { useDraftForm } from "@/hooks/useDraftForm";
+import { DraftBanner } from "@/components/shared/DraftBanner";
 
 interface Customer {
   id: string;
@@ -165,6 +167,31 @@ export function NewReservationModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, organization]);
 
+  // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
+  // Escape, clic afuera), no se pierde lo llenado. Solo para reservas nuevas.
+  const draftKey = organization?.id && !isEditing ? `reservationDraft:${organization.id}:new` : null;
+  const draftValue = { customerId, dogId, serviceType, startDate, endDate, totalPrice, notes };
+  const { hasDraft, clearDraft } = useDraftForm({
+    key: draftKey,
+    active: open,
+    value: draftValue,
+    apply: (d) => {
+      setCustomerId(d.customerId ?? ""); setDogId(d.dogId ?? "");
+      setServiceType(d.serviceType ?? "daycare");
+      setStartDate(d.startDate ?? ""); setEndDate(d.endDate ?? "");
+      setTotalPrice(d.totalPrice ?? ""); setNotes(d.notes ?? "");
+    },
+    isEmpty: (v) => !v.customerId && !v.dogId && !v.startDate && !v.endDate && !v.totalPrice && !v.notes.trim(),
+  });
+
+  const discardDraft = () => {
+    clearDraft();
+    setCustomerId(initialCustomerId ?? ""); setDogId(initialDogId ?? "");
+    setServiceType("daycare");
+    setStartDate(initialDate ? initialDate.toISOString().slice(0, 16) : "");
+    setEndDate(""); setTotalPrice(""); setNotes("");
+  };
+
   // Filter dogs by selected customer (memoizado para poder usarlo como dep)
   const filteredDogs = useMemo(
     () => (customerId ? dogs.filter((d) => d.customer_id === customerId) : dogs),
@@ -262,6 +289,7 @@ export function NewReservationModal({
     }
 
     setSaving(false);
+    clearDraft();
     toast.success("Reserva creada", {
       description: "La solicitud ha sido registrada y está pendiente de aprobación.",
     });
@@ -297,6 +325,7 @@ export function NewReservationModal({
               ? "Ajusta fecha, servicio, precio o estado de esta reserva"
               : "Registra una nueva solicitud de reserva"}
           </DialogDescription>
+          {hasDraft && <DraftBanner onDiscard={discardDraft} />}
         </DialogHeader>
 
         {loadingData ? (

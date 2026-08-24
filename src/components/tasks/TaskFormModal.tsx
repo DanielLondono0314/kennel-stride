@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useDraftForm } from "@/hooks/useDraftForm";
+import { DraftBanner } from "@/components/shared/DraftBanner";
 import {
   TASK_TYPES,
   TASK_TYPE_LABELS,
@@ -114,6 +116,28 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
       .then(({ data }) => { if (data) setZones(data as NamedRow[]); });
   }, [open, orgId]);
 
+  // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
+  // Escape, clic afuera), no se pierde lo llenado.
+  const draftKey = orgId ? `taskDraft:${orgId}:new` : null;
+  const draftValue = { type, title, dogId, zoneId, assigneeId, dueAt, priority };
+  const { hasDraft, clearDraft } = useDraftForm({
+    key: draftKey,
+    active: open,
+    value: draftValue,
+    apply: (d) => {
+      setType(d.type); setTitle(d.title ?? "");
+      setDogId(d.dogId ?? NONE); setZoneId(d.zoneId ?? NONE); setAssigneeId(d.assigneeId ?? NONE);
+      setDueAt(d.dueAt ?? ""); setPriority(d.priority ?? "normal");
+    },
+    isEmpty: (v) => !v.title.trim() && v.dogId === NONE && v.zoneId === NONE && v.assigneeId === NONE && !v.dueAt,
+  });
+
+  const discardDraft = () => {
+    clearDraft();
+    setType("cleaning"); setTitle(""); setDogId(NONE); setZoneId(NONE);
+    setAssigneeId(NONE); setDueAt(""); setPriority("normal");
+  };
+
   // Specialty-aware task type options: when an assignee with a specialty is chosen,
   // restrict the selectable task types to that specialty's allowed set.
   const selectedWorker = workers.find((w) => w.id === assigneeId);
@@ -148,6 +172,7 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
     try {
       await createTask.mutateAsync(parsed.data);
       toast.success("Tarea creada");
+      clearDraft();
       onOpenChange(false);
       onSaved?.();
     } catch (err: any) {
@@ -162,6 +187,7 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva tarea</DialogTitle>
+          {hasDraft && <DraftBanner onDiscard={discardDraft} />}
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
