@@ -1749,6 +1749,89 @@ export type Database = {
           },
         ]
       }
+      welfare_check_entries: {
+        Row: {
+          created_at: string
+          dog_id: string
+          flags: Json
+          id: string
+          notes: string | null
+          present: boolean
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          dog_id: string
+          flags?: Json
+          id?: string
+          notes?: string | null
+          present?: boolean
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          dog_id?: string
+          flags?: Json
+          id?: string
+          notes?: string | null
+          present?: boolean
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_check_entries_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_check_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      welfare_check_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          organization_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          organization_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          organization_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_check_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vaccination_schedule: {
         Row: {
           batch_number: string | null

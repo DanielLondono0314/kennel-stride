@@ -10,6 +10,7 @@ export interface WorkItem {
   dogId: string | null;
   dogName: string | null;
   serviceType: string | null;
+  taskType: string | null;
   time: string | null;
   notes: string | null;
   flags: { aggressive: boolean; allergies: boolean; medication: boolean };
@@ -44,6 +45,7 @@ export function useWorkItem(kind: "task" | "reservation", id: string | undefined
           dogId: d.dog_id,
           dogName: d.dogs?.name ?? null,
           serviceType: d.service_type,
+          taskType: null,
           time: d.start_date,
           notes: d.notes,
           flags: {
@@ -73,6 +75,7 @@ export function useWorkItem(kind: "task" | "reservation", id: string | undefined
         dogId: d.dog_id,
         dogName: d.dogs?.name ?? null,
         serviceType: null,
+        taskType: d.type,
         time: d.due_at,
         notes: d.notes,
         flags: {

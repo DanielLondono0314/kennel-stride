@@ -75,6 +75,7 @@ export default function WorkerTaskDetailPage() {
     dogId: item.dogId,
     dogName: item.dogName,
     serviceType: item.serviceType,
+    taskType: item.taskType,
   };
 
   return (

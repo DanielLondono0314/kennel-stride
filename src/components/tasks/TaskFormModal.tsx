@@ -36,7 +36,7 @@ import {
 } from "@/lib/worker";
 
 const taskSchema = z.object({
-  type: z.enum(["cleaning", "feeding", "walk", "vet_check", "grooming", "other"]),
+  type: z.enum(["cleaning", "feeding", "walk", "vet_check", "grooming", "other", "welfare_check"]),
   title: z.string().trim().min(1, "El título es obligatorio").max(200),
   dog_id: z.string().uuid().nullable(),
   zone_id: z.string().uuid().nullable(),

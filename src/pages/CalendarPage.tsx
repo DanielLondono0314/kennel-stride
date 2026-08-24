@@ -21,15 +21,9 @@ import {
 } from "date-fns";
 import { fetchReservationsRange, mapDbToReservation } from "@/hooks/useReservations";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/worker";
 
-const TASK_TYPE_OPTIONS = [
-  { value: "cleaning", label: "Aseo" },
-  { value: "feeding", label: "Alimentación" },
-  { value: "walk", label: "Paseo" },
-  { value: "vet_check", label: "Chequeo veterinario" },
-  { value: "grooming", label: "Grooming" },
-  { value: "other", label: "Otro" },
-];
+const TASK_TYPE_OPTIONS = TASK_TYPES.map((value) => ({ value, label: TASK_TYPE_LABELS[value] }));
 
 export default function CalendarPage() {
   const { organization } = useOrganization();

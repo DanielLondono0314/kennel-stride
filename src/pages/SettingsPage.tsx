@@ -5,9 +5,10 @@ import { BusinessProfileTab } from "@/components/settings/BusinessProfileTab";
 import { StaffManagementTab } from "@/components/settings/StaffManagementTab";
 import { UserProfileTab } from "@/components/settings/UserProfileTab";
 import { InviteMembersTab } from "@/components/settings/InviteMembersTab";
-import { Building2, Users, User, Users2 } from "lucide-react";
+import { TaskChecklistsTab } from "@/components/settings/TaskChecklistsTab";
+import { Building2, Users, User, Users2, ClipboardCheck } from "lucide-react";
 
-const VALID_TABS = ["business", "staff", "team", "profile"] as const;
+const VALID_TABS = ["business", "staff", "team", "tasks", "profile"] as const;
 type SettingsTab = typeof VALID_TABS[number];
 
 export default function SettingsPage() {
@@ -39,7 +40,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full max-w-xl grid-cols-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-5">
           <TabsTrigger value="business" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Negocio</span>
@@ -51,6 +52,10 @@ export default function SettingsPage() {
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users2 className="h-4 w-4" />
             <span className="hidden sm:inline">Equipo</span>
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Tareas</span>
           </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
@@ -66,6 +71,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="team" className="mt-6">
           <InviteMembersTab />
+        </TabsContent>
+        <TabsContent value="tasks" className="mt-6">
+          <TaskChecklistsTab />
         </TabsContent>
         <TabsContent value="profile" className="mt-6">
           <UserProfileTab />

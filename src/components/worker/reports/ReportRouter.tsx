@@ -4,6 +4,7 @@ import { VetReportForm } from "./VetReportForm";
 import { CleaningReportForm } from "./CleaningReportForm";
 import { WelfareReportForm } from "./WelfareReportForm";
 import { GroomerReportForm } from "./GroomerReportForm";
+import { WelfareCheckForm } from "./WelfareCheckForm";
 
 export interface ReportTarget {
   kind: "task" | "reservation";
@@ -11,6 +12,8 @@ export interface ReportTarget {
   dogId: string | null;
   dogName: string | null;
   serviceType: string | null;
+  /** tasks.type — used to route the welfare-check round before the specialty switch. */
+  taskType?: string | null;
 }
 
 export interface ReportFormProps {
@@ -25,6 +28,11 @@ export function ReportRouter({
   specialty,
   ...props
 }: ReportFormProps & { specialty: Specialty | null }) {
+  // La ronda de bienestar cubre TODOS los perros presentes (multi-perro), no
+  // encaja en ningún formulario por especialidad — se rutea aparte.
+  if (props.target.kind === "task" && props.target.taskType === "welfare_check") {
+    return <WelfareCheckForm {...props} />;
+  }
   switch (specialty) {
     case "trainer":
       return <TrainerReportForm {...props} />;
