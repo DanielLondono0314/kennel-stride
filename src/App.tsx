@@ -9,9 +9,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OrgGuard } from "@/components/auth/OrgGuard";
 import { WorkerRoute, AdminOnlyRoute } from "@/components/auth/WorkerRoute";
+import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
 import { RoleHome } from "@/components/auth/RoleHome";
 import { WorkerLayout } from "@/components/worker/WorkerLayout";
 import { AppLayout } from "@/components/navigation/AppLayout";
+import { PlatformAdminLayout } from "@/components/platform-admin/PlatformAdminLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const LandingPage          = lazy(() => import("./pages/LandingPage"));
@@ -44,6 +46,11 @@ const CustomerProfilePage  = lazy(() => import("./pages/CustomerProfilePage"));
 const StaffPage            = lazy(() => import("./pages/StaffPage"));
 const DogProfilePage       = lazy(() => import("./pages/DogProfilePage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
+
+const PlatformAdminOverviewPage      = lazy(() => import("./pages/platform-admin/PlatformAdminOverviewPage"));
+const PlatformAdminOrganizationsPage = lazy(() => import("./pages/platform-admin/PlatformAdminOrganizationsPage"));
+const PlatformAdminOrgDetailPage     = lazy(() => import("./pages/platform-admin/PlatformAdminOrgDetailPage"));
+const PlatformAdminAuditLogPage      = lazy(() => import("./pages/platform-admin/PlatformAdminAuditLogPage"));
 
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
 const MySchedulePage       = lazy(() => import("./pages/worker/MySchedulePage"));
@@ -118,6 +125,16 @@ const App = () => {
                       <Route path="staff"            element={<StaffPage />} />
                       <Route path="settings"         element={<SettingsPage />} />
                     </Route>
+                    </Route>
+                  </Route>
+
+                  {/* Panel interno de plataforma (equipo KennelStride, no un kennel) */}
+                  <Route path="/platform-admin" element={<PlatformAdminGuard />}>
+                    <Route element={<PlatformAdminLayout />}>
+                      <Route index element={<PlatformAdminOverviewPage />} />
+                      <Route path="organizations" element={<PlatformAdminOrganizationsPage />} />
+                      <Route path="organizations/:orgId" element={<PlatformAdminOrgDetailPage />} />
+                      <Route path="audit-log" element={<PlatformAdminAuditLogPage />} />
                     </Route>
                   </Route>
 

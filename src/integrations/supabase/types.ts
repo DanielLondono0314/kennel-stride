@@ -1352,6 +1352,71 @@ export type Database = {
           },
         ]
       }
+      platform_admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_org_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_org_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_org_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admin_audit_log_target_org_id_fkey"
+            columns: ["target_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       processed_webhooks: {
         Row: {
           event_id: string
@@ -1949,10 +2014,15 @@ export type Database = {
       get_my_first_org_slug: { Args: never; Returns: string }
       get_my_staff_ids: { Args: never; Returns: string[] }
       get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
+      get_platform_admin_role: { Args: never; Returns: string }
       get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
       get_scheduler_org_ids: { Args: never; Returns: string[] }
       get_user_org_ids: { Args: never; Returns: string[] }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
+      platform_admin_list_organizations: { Args: never; Returns: Json }
+      platform_admin_org_detail: { Args: { p_org_id: string }; Returns: Json }
+      platform_admin_overview_stats: { Args: never; Returns: Json }
       recompute_customer_balance: {
         Args: { p_customer_id: string }
         Returns: undefined
