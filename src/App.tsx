@@ -51,6 +51,7 @@ const PlatformAdminOverviewPage      = lazy(() => import("./pages/platform-admin
 const PlatformAdminOrganizationsPage = lazy(() => import("./pages/platform-admin/PlatformAdminOrganizationsPage"));
 const PlatformAdminOrgDetailPage     = lazy(() => import("./pages/platform-admin/PlatformAdminOrgDetailPage"));
 const PlatformAdminUsersPage         = lazy(() => import("./pages/platform-admin/PlatformAdminUsersPage"));
+const PlatformAdminUsagePage         = lazy(() => import("./pages/platform-admin/PlatformAdminUsagePage"));
 const PlatformAdminAuditLogPage      = lazy(() => import("./pages/platform-admin/PlatformAdminAuditLogPage"));
 
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
@@ -136,6 +137,7 @@ const App = () => {
                       <Route path="organizations" element={<PlatformAdminOrganizationsPage />} />
                       <Route path="organizations/:orgId" element={<PlatformAdminOrgDetailPage />} />
                       <Route path="users" element={<PlatformAdminUsersPage />} />
+                      <Route path="usage" element={<PlatformAdminUsagePage />} />
                       <Route path="audit-log" element={<PlatformAdminAuditLogPage />} />
                     </Route>
                   </Route>

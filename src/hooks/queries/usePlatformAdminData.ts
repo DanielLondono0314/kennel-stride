@@ -38,6 +38,8 @@ export interface PlatformOrganizationRow {
   active_staff_count: number;
   dogs_count: number;
   customers_count: number;
+  reservations_count: number;
+  campaigns_count: number;
   last_reservation_at: string | null;
 }
 
@@ -51,6 +53,28 @@ export function usePlatformAdminOrganizations() {
       const { data, error } = await supabase.rpc("platform_admin_list_organizations");
       if (error) throw error;
       return (data ?? []) as unknown as PlatformOrganizationRow[];
+    },
+  });
+}
+
+export interface PlatformCreditConsumptionRow {
+  organization_id: string;
+  name: string;
+  slug: string;
+  credits_consumed: number;
+  deductions_count: number;
+}
+
+export function usePlatformAdminCreditConsumption(days: number) {
+  const { isPlatformAdmin } = usePlatformAdmin();
+  return useQuery({
+    queryKey: ["platform-admin", "credit-consumption", days],
+    enabled: isPlatformAdmin,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("platform_admin_credit_consumption", { p_days: days });
+      if (error) throw error;
+      return (data ?? []) as unknown as PlatformCreditConsumptionRow[];
     },
   });
 }

@@ -2024,6 +2024,7 @@ export type Database = {
         Args: { p_delta: number; p_package_id: string; p_reason: string }
         Returns: Json
       }
+      platform_admin_credit_consumption: { Args: { p_days?: number }; Returns: Json }
       platform_admin_list_organizations: { Args: never; Returns: Json }
       platform_admin_org_detail: { Args: { p_org_id: string }; Returns: Json }
       platform_admin_overview_stats: { Args: never; Returns: Json }
