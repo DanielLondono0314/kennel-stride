@@ -4,11 +4,12 @@ import { cn } from "@/lib/utils";
 import { usePlatformAdmin } from "@/contexts/PlatformAdminContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { LayoutDashboard, Building2, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Building2, Users, ShieldCheck, LogOut } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/platform-admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/platform-admin/organizations", label: "Organizaciones", icon: Building2, end: false },
+  { to: "/platform-admin/users", label: "Usuarios", icon: Users, end: false },
   { to: "/platform-admin/audit-log", label: "Auditoría", icon: ShieldCheck, end: false },
 ];
 

@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlatformAdmin } from "@/contexts/PlatformAdminContext";
+import { getFunctionErrorMessage } from "@/lib/functionError";
 
 export interface PlatformOverviewStats {
   total_organizations: number;
@@ -123,6 +124,71 @@ export function usePlatformAdminOrgDetail(orgId: string | undefined) {
       const { data, error } = await supabase.rpc("platform_admin_org_detail", { p_org_id: orgId! });
       if (error) throw error;
       return data as unknown as PlatformOrgDetail;
+    },
+  });
+}
+
+export interface PlatformUserRow {
+  id: string;
+  email: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  memberships: Array<{
+    organization_id: string;
+    role: string;
+    organizations: { name: string; slug: string } | null;
+  }>;
+}
+
+export function usePlatformAdminUsers() {
+  const { isPlatformAdmin } = usePlatformAdmin();
+  return useQuery({
+    queryKey: ["platform-admin", "users"],
+    enabled: isPlatformAdmin,
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("platform-admin-users");
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Error al cargar usuarios"));
+      return (data?.users ?? []) as PlatformUserRow[];
+    },
+  });
+}
+
+export function useAdjustPackageCredits(orgId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ packageId, delta, reason }: { packageId: string; delta: number; reason: string }) => {
+      const { data, error } = await supabase.rpc("platform_admin_adjust_package_credits", {
+        p_package_id: packageId,
+        p_delta: delta,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "organization", orgId] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "audit-log"] });
+    },
+  });
+}
+
+export function useSetSubscriptionStatus(orgId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ status, reason }: { status: string; reason: string }) => {
+      const { data, error } = await supabase.rpc("platform_admin_set_subscription_status", {
+        p_org_id: orgId!,
+        p_status: status,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "organization", orgId] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "audit-log"] });
     },
   });
 }

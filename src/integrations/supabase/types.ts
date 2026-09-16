@@ -2020,9 +2020,17 @@ export type Database = {
       get_user_org_ids: { Args: never; Returns: string[] }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
+      platform_admin_adjust_package_credits: {
+        Args: { p_delta: number; p_package_id: string; p_reason: string }
+        Returns: Json
+      }
       platform_admin_list_organizations: { Args: never; Returns: Json }
       platform_admin_org_detail: { Args: { p_org_id: string }; Returns: Json }
       platform_admin_overview_stats: { Args: never; Returns: Json }
+      platform_admin_set_subscription_status: {
+        Args: { p_org_id: string; p_reason: string; p_status: string }
+        Returns: Json
+      }
       recompute_customer_balance: {
         Args: { p_customer_id: string }
         Returns: undefined

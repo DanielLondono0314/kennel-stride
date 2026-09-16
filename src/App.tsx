@@ -50,6 +50,7 @@ const NotFound             = lazy(() => import("./pages/NotFound"));
 const PlatformAdminOverviewPage      = lazy(() => import("./pages/platform-admin/PlatformAdminOverviewPage"));
 const PlatformAdminOrganizationsPage = lazy(() => import("./pages/platform-admin/PlatformAdminOrganizationsPage"));
 const PlatformAdminOrgDetailPage     = lazy(() => import("./pages/platform-admin/PlatformAdminOrgDetailPage"));
+const PlatformAdminUsersPage         = lazy(() => import("./pages/platform-admin/PlatformAdminUsersPage"));
 const PlatformAdminAuditLogPage      = lazy(() => import("./pages/platform-admin/PlatformAdminAuditLogPage"));
 
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
@@ -134,6 +135,7 @@ const App = () => {
                       <Route index element={<PlatformAdminOverviewPage />} />
                       <Route path="organizations" element={<PlatformAdminOrganizationsPage />} />
                       <Route path="organizations/:orgId" element={<PlatformAdminOrgDetailPage />} />
+                      <Route path="users" element={<PlatformAdminUsersPage />} />
                       <Route path="audit-log" element={<PlatformAdminAuditLogPage />} />
                     </Route>
                   </Route>
