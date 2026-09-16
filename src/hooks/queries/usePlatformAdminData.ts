@@ -138,6 +138,57 @@ export function usePlatformAdminAuditLog() {
   });
 }
 
+export interface VercelDeployment {
+  uid: string;
+  url: string;
+  state: string;
+  target: string | null;
+  created: number;
+  commitMessage: string | null;
+  creatorUsername: string | null;
+}
+
+export function usePlatformAdminVercelStatus() {
+  const { isPlatformAdmin } = usePlatformAdmin();
+  return useQuery({
+    queryKey: ["platform-admin", "vercel-status"],
+    enabled: isPlatformAdmin,
+    staleTime: 1000 * 60,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("platform-admin-vercel-status");
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Error al consultar Vercel"));
+      return (data?.deployments ?? []) as VercelDeployment[];
+    },
+  });
+}
+
+export interface SupabaseHealthCheck {
+  name: string;
+  healthy: boolean;
+  status?: string;
+}
+
+export interface SupabaseMetrics {
+  project: { id: string; name: string; region: string; status: string; database?: { version?: string } } | null;
+  health: SupabaseHealthCheck[] | null;
+}
+
+export function usePlatformAdminSupabaseMetrics() {
+  const { isPlatformAdmin } = usePlatformAdmin();
+  return useQuery({
+    queryKey: ["platform-admin", "supabase-metrics"],
+    enabled: isPlatformAdmin,
+    staleTime: 1000 * 60,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("platform-admin-supabase-metrics");
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Error al consultar Supabase"));
+      return data as SupabaseMetrics;
+    },
+  });
+}
+
 export function usePlatformAdminOrgDetail(orgId: string | undefined) {
   const { isPlatformAdmin } = usePlatformAdmin();
   return useQuery({
