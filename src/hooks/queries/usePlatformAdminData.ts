@@ -189,6 +189,33 @@ export function usePlatformAdminSupabaseMetrics() {
   });
 }
 
+export interface SentryIssue {
+  id: string;
+  title: string;
+  culprit: string | null;
+  level: string;
+  count: string;
+  userCount: number;
+  firstSeen: string;
+  lastSeen: string;
+  permalink: string;
+}
+
+export function usePlatformAdminSentryIssues() {
+  const { isPlatformAdmin } = usePlatformAdmin();
+  return useQuery({
+    queryKey: ["platform-admin", "sentry-issues"],
+    enabled: isPlatformAdmin,
+    staleTime: 1000 * 60,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("platform-admin-sentry-issues");
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Error al consultar Sentry"));
+      return (data?.issues ?? []) as SentryIssue[];
+    },
+  });
+}
+
 export function usePlatformAdminOrgDetail(orgId: string | undefined) {
   const { isPlatformAdmin } = usePlatformAdmin();
   return useQuery({

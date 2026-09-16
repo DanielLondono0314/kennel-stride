@@ -3,6 +3,7 @@ import { es } from "date-fns/locale";
 import {
   usePlatformAdminVercelStatus,
   usePlatformAdminSupabaseMetrics,
+  usePlatformAdminSentryIssues,
 } from "@/hooks/queries/usePlatformAdminData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -131,16 +132,80 @@ function SupabaseSection() {
   );
 }
 
+function levelVariant(level: string): "default" | "secondary" | "destructive" | "outline" {
+  if (level === "fatal" || level === "error") return "destructive";
+  if (level === "warning") return "secondary";
+  return "outline";
+}
+
+function SentrySection() {
+  const { data, isLoading, isError, error, refetch } = usePlatformAdminSentryIssues();
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">Sentry — issues sin resolver (últimos 14 días)</CardTitle>
+        <a
+          href="https://kennelstride.sentry.io/issues/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          Abrir dashboard <ExternalLink className="h-3 w-3" />
+        </a>
+      </CardHeader>
+      <CardContent>
+        {isError ? (
+          <QueryErrorState
+            title="No se pudo consultar Sentry"
+            description={(error as Error)?.message}
+            onRetry={() => refetch()}
+          />
+        ) : isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : !data || data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin issues sin resolver — buena señal.</p>
+        ) : (
+          <div className="space-y-2">
+            {data.map((issue) => (
+              <a
+                key={issue.id}
+                href={issue.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-md border p-3 text-sm hover:bg-muted/50"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{issue.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {issue.culprit ?? "—"} · {issue.count} eventos · {issue.userCount} usuarios ·{" "}
+                    última vez {formatDistanceToNow(new Date(issue.lastSeen), { addSuffix: true, locale: es })}
+                  </p>
+                </div>
+                <Badge variant={levelVariant(issue.level)}>{issue.level}</Badge>
+              </a>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PlatformAdminInfraPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-semibold">Infraestructura</h1>
         <p className="text-sm text-muted-foreground">
-          Estado de deploys (Vercel) y salud del proyecto (Supabase). Errores en producción viven en Sentry — todavía no configurado.
+          Estado de deploys (Vercel), salud del proyecto (Supabase) y errores de producción (Sentry).
         </p>
       </div>
 
+      <SentrySection />
       <VercelSection />
       <SupabaseSection />
     </div>
