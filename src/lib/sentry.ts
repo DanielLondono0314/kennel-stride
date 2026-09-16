@@ -8,7 +8,13 @@ export function initSentry() {
     dsn,
     environment: import.meta.env.MODE,
     tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
-    integrations: [Sentry.browserTracingIntegration()],
+    // Session Replay: queda con los defaults de Sentry (maskAllText +
+    // blockAllMedia) porque la app maneja datos sensibles de mascotas/
+    // clientes (medicación, alergias, facturación) — nunca desactivar el
+    // masking para "ver mejor" un replay.
+    replaysSessionSampleRate: import.meta.env.PROD ? 0.1 : 0,
+    replaysOnErrorSampleRate: import.meta.env.PROD ? 1.0 : 0,
+    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
     enabled: true,
   });
 }
