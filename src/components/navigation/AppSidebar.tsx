@@ -24,6 +24,7 @@ import {
   Stethoscope,
   UserCog,
   ListTodo,
+  HeartPulse,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -96,6 +97,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         )}
         <AppNavLink to={`${base}/customers`}    icon={Users}       label="Clientes"      collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/dogs`}         icon={Dog}         label="Perros"        collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to={`${base}/dog-panel`}    icon={HeartPulse}  label="Panel de perros" collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/staff`}        icon={UserCog}     label="Personal"      collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/report-cards`} icon={FileText}    label="Report Cards"  collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/clinic`}       icon={Stethoscope} label="Clínica"       collapsed={collapsed} onClick={onMobileClose} />

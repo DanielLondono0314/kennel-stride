@@ -28,7 +28,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload, Power, PowerOff, Trash2 } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload, Power, PowerOff, Trash2, HeartPulse } from "lucide-react";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { getAge } from "@/lib/age";
 import { toast } from "sonner";
@@ -192,6 +192,10 @@ export default function DogsPage() {
           <p className="text-muted-foreground">Administra los perfiles de las mascotas registradas</p>
         </div>
         <div className="flex gap-2 self-start sm:self-auto">
+          <Button variant="outline" onClick={() => orgNavigate("/dog-panel")}>
+            <HeartPulse className="h-4 w-4 mr-2" />
+            Panel
+          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Importar

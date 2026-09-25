@@ -11,7 +11,9 @@ export type Permission =
   | "view_reports"
   | "send_campaign"
   | "manage_facility"
-  | "manage_tasks";
+  | "manage_tasks"
+  | "record_weight"
+  | "delete_weight";
 
 type PermissionMatrix = Record<Permission, OrgRole[]>;
 
@@ -27,6 +29,10 @@ const PERMISSIONS: PermissionMatrix = {
   send_campaign:     ["admin", "manager"],
   manage_facility:   ["admin", "manager"],
   manage_tasks:      ["admin", "manager", "front_desk"],
+  // Espejo de la RLS de dog_weight_logs: registrar = todo el personal;
+  // borrar = get_clinical_writer_org_ids() (el worker vet borra desde su app).
+  record_weight:     ["admin", "manager", "front_desk", "worker"],
+  delete_weight:     ["admin", "manager"],
 };
 
 export function usePermission(action: Permission): boolean {

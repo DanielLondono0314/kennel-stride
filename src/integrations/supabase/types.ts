@@ -475,6 +475,7 @@ export type Database = {
       }
       dog_weight_logs: {
         Row: {
+          body_condition_score: number | null
           created_at: string
           created_by: string | null
           dog_id: string
@@ -485,6 +486,7 @@ export type Database = {
           weight: number
         }
         Insert: {
+          body_condition_score?: number | null
           created_at?: string
           created_by?: string | null
           dog_id: string
@@ -495,6 +497,7 @@ export type Database = {
           weight: number
         }
         Update: {
+          body_condition_score?: number | null
           created_at?: string
           created_by?: string | null
           dog_id?: string
@@ -1159,6 +1162,7 @@ export type Database = {
           city: string | null
           closing_time: string | null
           created_at: string
+          dog_dashboard_config: Json
           email: string | null
           id: string
           logo_url: string | null
@@ -1180,6 +1184,7 @@ export type Database = {
           city?: string | null
           closing_time?: string | null
           created_at?: string
+          dog_dashboard_config?: Json
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -1201,6 +1206,7 @@ export type Database = {
           city?: string | null
           closing_time?: string | null
           created_at?: string
+          dog_dashboard_config?: Json
           email?: string | null
           id?: string
           logo_url?: string | null

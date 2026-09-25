@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, Pill, Leaf, Loader2, ArrowLeft } from "lucide-react";
+import { AlertTriangle, Pill, Leaf, Loader2, ArrowLeft, Scale } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,9 @@ import { useUpdateReservationStatus } from "@/hooks/queries/useReservationStatus
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { reservationBucket, STATUS_LABELS } from "@/lib/worker";
 import { ReportRouter, type ReportTarget } from "@/components/worker/reports/ReportRouter";
+import { WeightEntryDialog } from "@/components/weight/WeightEntryDialog";
+import { useLatestDogWeight } from "@/hooks/queries/useDogWeightLog";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function WorkerTaskDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,9 @@ export default function WorkerTaskDetailPage() {
   const updateReservation = useUpdateReservationStatus();
   const [reporting, setReporting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [weighing, setWeighing] = useState(false);
+  const canRecordWeight = usePermission("record_weight");
+  const { data: lastWeight } = useLatestDogWeight(item?.dogId);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Cargando…</p>;
   if (!item) {
@@ -116,6 +122,12 @@ export default function WorkerTaskDetailPage() {
             </div>
           )}
           {item.notes && <p className="text-sm">{item.notes}</p>}
+          {item.dogId && canRecordWeight && (
+            <Button variant="outline" className="w-full gap-2" onClick={() => setWeighing(true)}>
+              <Scale className="h-4 w-4" />
+              Registrar peso{lastWeight ? ` · último ${lastWeight.toLocaleString("es")} kg` : ""}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -144,6 +156,16 @@ export default function WorkerTaskDetailPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {item.dogId && (
+        <WeightEntryDialog
+          open={weighing}
+          onOpenChange={setWeighing}
+          dogId={item.dogId}
+          dogName={item.dogName ?? "el perro"}
+          lastWeight={lastWeight ?? null}
+        />
+      )}
     </div>
   );
 }
