@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
@@ -14,6 +15,10 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  type RawRow, normalizeRow, decodeCsvBytes, toIsoDate, parseImportDate, isDescriptionRow,
+  looksLikeEmail, parseBool, parseDecimal, digitsOnly, parseAllergies, parseMedications,
+} from "@/lib/importParsing";
 
 interface Props {
   open: boolean;
@@ -22,7 +27,6 @@ interface Props {
   onImported?: () => void;
 }
 
-type RawRow = Record<string, string>;
 type Mode = "customers" | "dogs";
 
 const CUSTOMER_HEADERS = [
@@ -44,7 +48,8 @@ const DOG_HEADERS = [
 
 // Columnas de "grupo repetido" (un perro puede tener varias alergias o
 // medicamentos): un campo de texto con entradas separadas por ";", cada
-// entrada con sus partes separadas por ":". Se documenta en el modal.
+// entrada con sus partes separadas por ":". Se documenta en el modal
+// (parseo en src/lib/importParsing.ts).
 // allergies:   alergeno:tipo:reaccion:severidad        (tipo: comida|ambiental|medicamento; severidad: baja|media|alta)
 // medications: nombre:dosis:frecuencia:via:con_comida  (via: oral|topica|inyectable; con_comida: true|false)
 
@@ -58,48 +63,41 @@ const DOG_SAMPLE =
   "\nFirulais,Labrador,male,2020-05-12,28,Negro,9821374,true,false,false,false,Muy juguetón,Sin novedades,seco,Marca X,2,300,g,Separar de otros perros,,,,,,,,Perrera 3,,juan@example.com," +
   "\nLuna,Poodle,female,,7,Blanco,,false,true,true,false,,,humedo,,3,150,g,,media,Manejar con correa corta,true,true,true,Pollo:comida:Picazón:media,Apoquel:5mg:cada 12h:oral:false,,Alérgica al pollo,ana@example.com,";
 
-function normalizeRow(row: RawRow): RawRow {
-  const out: RawRow = {};
-  for (const k of Object.keys(row)) {
-    out[k.trim().toLowerCase()] = (row[k] ?? "").toString().trim();
+function isExcelFile(file: File): boolean {
+  return (
+    /\.xlsx?$/i.test(file.name) ||
+    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    file.type === "application/vnd.ms-excel"
+  );
+}
+
+// Lee la primera hoja de un .xlsx/.xls y la devuelve como filas planas. Las
+// celdas de fecha se convierten a aaaa-mm-dd desde su valor real: el texto
+// formateado depende del formato de celda (p. ej. "5/10/26" en mm-dd-yy) y
+// es ambiguo.
+async function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
+  const data = new Uint8Array(await file.arrayBuffer());
+  const workbook = XLSX.read(data, { type: "array", cellNF: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const sheet = workbook.Sheets[sheetName];
+  for (const addr of Object.keys(sheet)) {
+    if (addr.startsWith("!")) continue;
+    const cell = sheet[addr] as XLSX.CellObject;
+    if (cell.t === "n" && typeof cell.v === "number" && cell.z && XLSX.SSF.is_date(cell.z)) {
+      const p = XLSX.SSF.parse_date_code(cell.v);
+      const iso = toIsoDate(p.y, p.m, p.d);
+      sheet[addr] = { t: "s", v: iso, w: iso };
+    }
   }
-  return out;
+  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
 }
 
-function parseBool(v: string): boolean {
-  return ["true", "1", "yes", "sí", "si", "x"].includes(v.toLowerCase());
-}
-
-interface AllergyEntry { allergen: string; type: string; reaction: string | null; severity: string | null; }
-interface MedicationEntry { name: string; dose: string | null; frequency: string | null; route: string | null; with_food: boolean; }
-
-// "alergeno:tipo:reaccion:severidad" por entrada, separadas por ";".
-function parseAllergies(raw: string): AllergyEntry[] {
-  if (!raw?.trim()) return [];
-  return raw.split(";").map((s) => s.trim()).filter(Boolean).map((entry) => {
-    const [allergen, type, reaction, severity] = entry.split(":").map((p) => p?.trim() ?? "");
-    return {
-      allergen: allergen || entry,
-      type: type || "comida",
-      reaction: reaction || null,
-      severity: severity || null,
-    };
-  });
-}
-
-// "nombre:dosis:frecuencia:via:con_comida" por entrada, separadas por ";".
-function parseMedications(raw: string): MedicationEntry[] {
-  if (!raw?.trim()) return [];
-  return raw.split(";").map((s) => s.trim()).filter(Boolean).map((entry) => {
-    const [name, dose, frequency, route, withFood] = entry.split(":").map((p) => p?.trim() ?? "");
-    return {
-      name: name || entry,
-      dose: dose || null,
-      frequency: frequency || null,
-      route: route || null,
-      with_food: parseBool(withFood || ""),
-    };
-  });
+// CSV: se decodifica a mano para soportar los CSV Windows-1252 de Excel.
+async function parseCsvFile(file: File): Promise<{ rows: Record<string, unknown>[]; warnings: number }> {
+  const text = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
+  const res = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: "greedy" });
+  return { rows: res.data, warnings: res.errors.length };
 }
 
 function downloadTemplate(mode: Mode) {
@@ -138,28 +136,28 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
     setResult(null);
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setParsing(true);
     setResult(null);
-    Papa.parse<RawRow>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        const normalized = (res.data as RawRow[]).map(normalizeRow);
-        setRows(normalized);
-        setFileName(file.name);
-        setParsing(false);
-        if (res.errors.length > 0) {
-          toast.warning(`Archivo cargado con ${res.errors.length} advertencias`);
-        } else {
-          toast.success(`${normalized.length} fila(s) leída(s)`);
-        }
-      },
-      error: (err) => {
-        setParsing(false);
-        toast.error("Error al leer CSV: " + err.message);
-      },
-    });
+    const excel = isExcelFile(file);
+    try {
+      let data: Record<string, unknown>[];
+      let warnings = 0;
+      if (excel) {
+        data = await parseExcelFile(file);
+      } else {
+        ({ rows: data, warnings } = await parseCsvFile(file));
+      }
+      const normalized = data.map(normalizeRow);
+      setRows(normalized);
+      setFileName(file.name);
+      if (warnings > 0) toast.warning(`Archivo cargado con ${warnings} advertencias`);
+      else toast.success(`${normalized.length} fila(s) leída(s)`);
+    } catch (err) {
+      toast.error(`Error al leer ${excel ? "Excel" : "CSV"}: ` + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setParsing(false);
+    }
   };
 
   const importCustomers = async (): Promise<ImportResult> => {
@@ -177,8 +175,16 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
+      if (isDescriptionRow(r)) {
+        out.skipped++;
+        continue;
+      }
       if (!r.first_name || !r.last_name || !r.email) {
         out.errors.push({ row: i + 2, reason: "Faltan campos requeridos (first_name, last_name, email)" });
+        continue;
+      }
+      if (!looksLikeEmail(r.email)) {
+        out.errors.push({ row: i + 2, reason: `Email "${r.email}" no es válido` });
         continue;
       }
       const payload = {
@@ -195,15 +201,20 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         emergency_contact_phone: r.emergency_contact_phone || null,
         notes: r.notes || null,
       };
+      // Un dueño con varios perros suele venir repetido (una fila por perro):
+      // la primera fila lo crea y las siguientes lo actualizan.
       const existingId = existingMap.get(payload.email);
       if (existingId) {
         const { error } = await supabase.from("customers").update(payload).eq("id", existingId);
         if (error) out.errors.push({ row: i + 2, reason: error.message });
         else out.updated++;
       } else {
-        const { error } = await supabase.from("customers").insert(payload);
-        if (error) out.errors.push({ row: i + 2, reason: error.message });
-        else out.created++;
+        const { data: created, error } = await supabase.from("customers").insert(payload).select("id").single();
+        if (error || !created) out.errors.push({ row: i + 2, reason: error?.message ?? "No se pudo crear el cliente" });
+        else {
+          existingMap.set(payload.email, created.id);
+          out.created++;
+        }
       }
     }
     return out;
@@ -218,8 +229,31 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
       .from("customers")
       .select("id, email, phone, first_name, last_name")
       .eq("organization_id", organization.id);
-    const byEmail = new Map<string, string>((customers ?? []).map(c => [c.email.toLowerCase(), c.id] as [string, string]));
-    const byPhone = new Map<string, string>((customers ?? []).filter(c => !!c.phone).map(c => [c.phone, c.id] as [string, string]));
+    const byEmail = new Map<string, string>();
+    const byPhone = new Map<string, string>();
+    for (const c of customers ?? []) {
+      const email = c.email.toLowerCase();
+      if (!byEmail.has(email)) byEmail.set(email, c.id);
+      const phone = digitsOnly(c.phone);
+      if (phone && !byPhone.has(phone)) byPhone.set(phone, c.id);
+    }
+    const emailById = new Map<string, string>((customers ?? []).map(c => [c.id, c.email.toLowerCase()] as [string, string]));
+
+    // Perros existentes, para que reimportar el mismo archivo actualice en vez
+    // de duplicar. Se identifican por microchip o por (email del dueño, nombre).
+    const { data: existingDogs } = await supabase
+      .from("dogs")
+      .select("id, name, customer_id, microchip_number")
+      .eq("organization_id", organization.id);
+    const dogKey = (ownerEmail: string, name: string) => `${ownerEmail}|${name.trim().toLowerCase()}`;
+    const dogByChip = new Map<string, string>();
+    const dogByOwnerName = new Map<string, string>();
+    for (const d of existingDogs ?? []) {
+      const chip = digitsOnly(d.microchip_number ?? "");
+      if (chip) dogByChip.set(chip, d.id);
+      const ownerEmail = emailById.get(d.customer_id);
+      if (ownerEmail) dogByOwnerName.set(dogKey(ownerEmail, d.name), d.id);
+    }
 
     // Perreras de la org, para resolver preferred_unit_name -> preferred_unit_id
     const { data: units } = await supabase
@@ -230,6 +264,10 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
+      if (isDescriptionRow(r)) {
+        out.skipped++;
+        continue;
+      }
       if (!r.name || !r.breed) {
         out.errors.push({ row: i + 2, reason: "Faltan campos requeridos (name, breed)" });
         continue;
@@ -238,7 +276,12 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
       // Resolve customer
       let customerId: string | undefined;
       if (r.owner_email) customerId = byEmail.get(r.owner_email.toLowerCase());
-      if (!customerId && r.owner_phone) customerId = byPhone.get(r.owner_phone);
+      if (!customerId && r.owner_phone) customerId = byPhone.get(digitsOnly(r.owner_phone));
+
+      if (!customerId && r.owner_email && !looksLikeEmail(r.owner_email)) {
+        out.errors.push({ row: i + 2, reason: `owner_email "${r.owner_email}" no es un email válido` });
+        continue;
+      }
 
       // Auto-create a placeholder customer if we have owner_email but no match
       if (!customerId && r.owner_email) {
@@ -295,14 +338,20 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         out.errors.push({ row: i + 2, reason: `Perrera "${r.preferred_unit_name}" no encontrada — se creó el perro sin asignar` });
       }
 
+      // Una fecha mala no debe dejar al perro fuera: se crea sin fecha y se avisa.
+      const birth = parseImportDate(r.birth_date);
+      if (birth.error) {
+        out.errors.push({ row: i + 2, reason: `${birth.error} — el perro se importó sin fecha de nacimiento` });
+      }
+
       const payload = {
         organization_id: organization.id,
         customer_id: customerId,
         name: r.name,
         breed: r.breed,
         gender: ["female", "hembra", "f"].includes(r.gender?.toLowerCase()) ? "female" : "male",
-        birth_date: r.birth_date || null,
-        weight: r.weight ? Number(r.weight) || null : null,
+        birth_date: birth.value,
+        weight: parseDecimal(r.weight),
         color: r.color || null,
         microchip_number: r.microchip_number || null,
         is_neutered: parseBool(r.is_neutered),
@@ -316,26 +365,58 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         preferred_unit_id: preferredUnitId,
         notes: r.notes || null,
       };
-      const { data: newDog, error } = await supabase.from("dogs").insert(payload).select("id").single();
-      if (error || !newDog) {
-        out.errors.push({ row: i + 2, reason: error?.message ?? "No se pudo crear el perro" });
-        continue;
+      const chip = digitsOnly(payload.microchip_number ?? "");
+      const ownerKey = dogKey(emailById.get(customerId) ?? r.owner_email.toLowerCase(), payload.name);
+      const existingDogId = (chip && dogByChip.get(chip)) || dogByOwnerName.get(ownerKey);
+
+      let dogId: string;
+      if (existingDogId) {
+        const { error } = await supabase.from("dogs").update(payload).eq("id", existingDogId);
+        if (error) {
+          out.errors.push({ row: i + 2, reason: error.message });
+          continue;
+        }
+        dogId = existingDogId;
+      } else {
+        const { data: newDog, error } = await supabase.from("dogs").insert(payload).select("id").single();
+        if (error || !newDog) {
+          out.errors.push({ row: i + 2, reason: error?.message ?? "No se pudo crear el perro" });
+          continue;
+        }
+        dogId = newDog.id;
+      }
+      if (chip) dogByChip.set(chip, dogId);
+      dogByOwnerName.set(ownerKey, dogId);
+
+      // En una actualización solo se agregan alergias/medicamentos que el perro aún no tenga.
+      let newAllergies = allergyEntries;
+      let newMedications = medicationEntries;
+      if (existingDogId && (allergyEntries.length > 0 || medicationEntries.length > 0)) {
+        const [{ data: curAllergies }, { data: curMeds }] = await Promise.all([
+          supabase.from("dog_allergies").select("allergen").eq("dog_id", dogId),
+          supabase.from("dog_medications").select("name").eq("dog_id", dogId),
+        ]);
+        const haveA = new Set((curAllergies ?? []).map((a) => a.allergen.toLowerCase()));
+        const haveM = new Set((curMeds ?? []).map((m) => m.name.toLowerCase()));
+        newAllergies = allergyEntries.filter((a) => !haveA.has(a.allergen.toLowerCase()));
+        newMedications = medicationEntries.filter((m) => !haveM.has(m.name.toLowerCase()));
       }
 
-      if (allergyEntries.length > 0) {
+      if (newAllergies.length > 0) {
         const { error: allergyErr } = await supabase.from("dog_allergies").insert(
-          allergyEntries.map((a) => ({ ...a, dog_id: newDog.id, organization_id: organization.id }))
+          newAllergies.map((a) => ({ ...a, dog_id: dogId, organization_id: organization.id }))
         );
-        if (allergyErr) out.errors.push({ row: i + 2, reason: "Perro creado, pero fallaron sus alergias: " + allergyErr.message });
+        if (allergyErr) out.errors.push({ row: i + 2, reason: "Perro guardado, pero fallaron sus alergias: " + allergyErr.message });
       }
-      if (medicationEntries.length > 0) {
+      if (newMedications.length > 0) {
         const { error: medErr } = await supabase.from("dog_medications").insert(
-          medicationEntries.map((m) => ({ ...m, dog_id: newDog.id, organization_id: organization.id }))
+          newMedications.map((m) => ({ ...m, dog_id: dogId, organization_id: organization.id }))
         );
-        if (medErr) out.errors.push({ row: i + 2, reason: "Perro creado, pero fallaron sus medicamentos: " + medErr.message });
+        if (medErr) out.errors.push({ row: i + 2, reason: "Perro guardado, pero fallaron sus medicamentos: " + medErr.message });
       }
 
-      out.created++;
+      if (existingDogId) out.updated++;
+      else out.created++;
     }
     return out;
   };
@@ -375,7 +456,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         <DialogHeader>
           <DialogTitle>Importar base de datos</DialogTitle>
           <DialogDescription>
-            Sube un archivo CSV con tus clientes o perros. Los clientes existentes
+            Sube un archivo CSV o Excel (.xlsx/.xls) con tus clientes o perros. Los clientes existentes
             (por email) se actualizan; los perros se vinculan a su dueño por <code>owner_email</code>.
           </DialogDescription>
         </DialogHeader>
@@ -414,12 +495,18 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => downloadTemplate(mode)}>
                 <Download className="h-4 w-4 mr-2" />
-                Descargar plantilla CSV
+                Descargar plantilla CSV (con ejemplo)
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <a href={mode === "customers" ? "/templates/plantilla_clientes.xlsx" : "/templates/plantilla_perros.xlsx"} download>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Descargar plantilla Excel (vacía)
+                </a>
               </Button>
               <label>
                 <input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -430,7 +517,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
                 <Button asChild variant="default" size="sm">
                   <span className="cursor-pointer">
                     <Upload className="h-4 w-4 mr-2" />
-                    Seleccionar archivo
+                    Seleccionar archivo (CSV o Excel)
                   </span>
                 </Button>
               </label>
@@ -482,6 +569,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
                     <span><b>{result.created}</b> creados</span>
                     <span><b>{result.updated}</b> actualizados</span>
                     {result.linked > 0 && <span><b>{result.linked}</b> clientes auto-creados</span>}
+                    {result.skipped > 0 && <span><b>{result.skipped}</b> fila(s) de descripción omitida(s)</span>}
                     <span><b>{result.errors.length}</b> con error</span>
                   </div>
                   {result.errors.length > 0 && (
