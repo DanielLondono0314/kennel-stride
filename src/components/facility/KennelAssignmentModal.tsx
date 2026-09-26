@@ -58,6 +58,7 @@ export function KennelAssignmentModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isOccupied = unit?.status === "occupied";
+  const isMaintenance = unit?.status === "maintenance";
 
   const handleAssign = () => {
     if (!unit || !dogId || !startDate || !endDate) return;
@@ -97,7 +98,9 @@ export function KennelAssignmentModal({
           <DialogDescription>
             {isOccupied
               ? `Asignado a ${unit.assigned_dog_name}`
-              : "Asigna un perro a esta perrera"}
+              : isMaintenance
+                ? "Fuera de servicio por mantenimiento"
+                : "Asigna un perro a esta perrera"}
           </DialogDescription>
         </DialogHeader>
 
@@ -123,6 +126,28 @@ export function KennelAssignmentModal({
               </Button>
               <Button variant="destructive" size="sm" onClick={() => unit && onRelease(unit.id)}>
                 Liberar Perrera
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : isMaintenance ? (
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-[hsl(var(--flag-warning))]/10 border border-[hsl(var(--flag-warning))]/30 space-y-1">
+              <p className="text-sm font-medium">🔧 Perrera en mantenimiento</p>
+              <p className="text-xs text-muted-foreground">
+                Quita el mantenimiento para volver a asignar perros a esta perrera.
+              </p>
+            </div>
+            <DialogFooter className="gap-2 sm:justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+              </Button>
+              <Button size="sm" onClick={() => onRelease(unit.id)}>
+                Quitar mantenimiento
               </Button>
             </DialogFooter>
           </div>
@@ -186,11 +211,9 @@ export function KennelAssignmentModal({
                 <Trash2 className="h-4 w-4 mr-1" /> Eliminar
               </Button>
               <div className="flex gap-2">
-                {unit.status !== "maintenance" && (
-                  <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
-                    Mantenimiento
-                  </Button>
-                )}
+                <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
+                  Mantenimiento
+                </Button>
                 <Button size="sm" disabled={!dogId || !startDate || !endDate} onClick={handleAssign}>
                   Asignar Perro
                 </Button>
