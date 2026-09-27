@@ -21,7 +21,7 @@ export interface Organization {
   city: string | null;
   phone: string | null;
   email: string | null;
-  service_types: Array<{ value: string; label: string }>;
+  service_types: Array<{ value: string; label: string; category?: string }>;
   route_notifications_enabled: boolean;
   route_notification_channel: "sms" | "whatsapp";
 }

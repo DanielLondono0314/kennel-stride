@@ -154,7 +154,9 @@ export function DogRosterCard({ dog, fields, onOpen }: { dog: DashboardDog; fiel
               <ClipboardCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
               {dog.lastReport ? (
                 <span className="text-foreground">
-                  {shortDate(dog.lastReport.date)} · energía {dog.lastReport.energy}/5 · apetito {dog.lastReport.appetite}/5
+                  {shortDate(dog.lastReport.date)} · general {dog.lastReport.overall}/5
+                  {dog.lastReport.energy != null && ` · energía ${dog.lastReport.energy}/5`}
+                  {dog.lastReport.appetite != null && ` · apetito ${dog.lastReport.appetite}/5`}
                 </span>
               ) : (
                 <span className="text-muted-foreground">Sin report cards recientes</span>

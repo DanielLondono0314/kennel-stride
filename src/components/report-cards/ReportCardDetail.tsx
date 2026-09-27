@@ -9,84 +9,85 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Dog, PawPrint, Pencil, Send, Loader2 } from "lucide-react";
+import { parseDateOnly } from "@/lib/age";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
+import {
+  CATEGORY_CONFIG,
+  isServiceCategory,
+  readDetails,
+  readMetrics,
+  type ServiceCategory,
+} from "@/lib/reportCardServices";
 
 interface ReportCardDetailProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reportCard: any;
-  trainerName?: string;
+  staffName?: string;
   onEdit?: () => void;
   onSend?: () => void | Promise<void>;
   sending?: boolean;
 }
 
-export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, onEdit, onSend, sending }: ReportCardDetailProps) {
+export function ReportCardDetail({ open, onOpenChange, reportCard, staffName, onEdit, onSend, sending }: ReportCardDetailProps) {
   const { organization } = useOrganization();
-  const [history, setHistory] = useState<any[]>([]);
+  const { labels: serviceLabels, categoryFor } = useServiceTypes();
+  const [history, setHistory] = useState<{ session_date: string; overall_score: number }[]>([]);
   const [dogInfo, setDogInfo] = useState<{ breed: string; weight: number | null; gender: string; customer_name: string } | null>(null);
 
   const orgId = organization?.id;
+  const category: ServiceCategory | null = reportCard
+    ? isServiceCategory(reportCard.service_category) ? reportCard.service_category : categoryFor(reportCard.service_type)
+    : null;
 
-  const loadHistory = useCallback(async (dogId: string) => {
+  // Progreso dentro del mismo tipo de servicio: comparar un baño con una
+  // sesión de entrenamiento no dice nada.
+  const loadHistory = useCallback(async (dogId: string, cat: ServiceCategory) => {
     if (!orgId) return;
     const { data } = await supabase
       .from("report_cards")
-      .select("session_date, overall_score, energy_level, socialization, obedience, appetite")
+      .select("session_date, overall_score")
       .eq("dog_id", dogId)
       .eq("organization_id", orgId)
-      .order("session_date", { ascending: true })
+      .eq("service_category", cat)
+      .order("session_date", { ascending: false })
       .limit(10);
-    if (data) setHistory(data);
+    if (data) setHistory([...data].reverse());
   }, [orgId]);
 
   useEffect(() => {
-    if (open && reportCard?.dog_id && orgId) {
-      loadHistory(reportCard.dog_id);
-      supabase
-        .from("dogs")
-        .select("breed, weight, gender, customers(first_name, last_name)")
-        .eq("id", reportCard.dog_id)
-        .eq("organization_id", orgId)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            const owner = data.customers;
-            setDogInfo({
-              breed: data.breed,
-              weight: data.weight,
-              gender: data.gender,
-              customer_name: owner ? `${owner.first_name} ${owner.last_name}` : "",
-            });
-          }
-        });
-    }
-  }, [open, reportCard?.dog_id, orgId, loadHistory]);
+    if (!open || !reportCard?.dog_id || !orgId || !category) return;
+    loadHistory(reportCard.dog_id, category);
+    supabase
+      .from("dogs")
+      .select("breed, weight, gender, customers(first_name, last_name)")
+      .eq("id", reportCard.dog_id)
+      .eq("organization_id", orgId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const owner = data.customers;
+          setDogInfo({
+            breed: data.breed,
+            weight: data.weight,
+            gender: data.gender,
+            customer_name: owner ? `${owner.first_name} ${owner.last_name}` : "",
+          });
+        }
+      });
+  }, [open, reportCard?.dog_id, orgId, category, loadHistory]);
 
-  if (!reportCard) return null;
+  if (!reportCard || !category) return null;
 
-  const metrics = [
-    { label: "General", value: reportCard.overall_score },
-    { label: "Energía", value: reportCard.energy_level },
-    { label: "Socialización", value: reportCard.socialization },
-    { label: "Obediencia", value: reportCard.obedience },
-    { label: "Apetito", value: reportCard.appetite },
-  ];
+  const cfg = CATEGORY_CONFIG[category];
+  const details = readDetails(reportCard.details);
+  const metrics = readMetrics(reportCard);
+  const serviceLabel = serviceLabels[reportCard.service_type] ?? details.service_label ?? reportCard.service_type;
 
   const chartData = history.map((h) => ({
-    date: format(new Date(h.session_date), "dd/MM"),
+    date: format(parseDateOnly(h.session_date), "dd/MM"),
     general: h.overall_score,
-    energía: h.energy_level,
-    social: h.socialization,
-    obediencia: h.obedience,
   }));
-
-  const serviceLabels: Record<string, string> = {
-    daycare: "Guardería",
-    board_and_train: "Internado + Entrenamiento",
-    training_session: "Sesión de Entrenamiento",
-    grooming: "Grooming",
-    evaluation: "Evaluación",
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,35 +112,47 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, 
               </p>
             )}
             {dogInfo?.customer_name && (
-              <p className="text-sm text-muted-foreground">
-                Dueño: {dogInfo.customer_name}
-              </p>
+              <p className="text-sm text-muted-foreground">Dueño: {dogInfo.customer_name}</p>
             )}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline">{serviceLabels[reportCard.service_type] || reportCard.service_type}</Badge>
+              <Badge variant="outline">{cfg.icon} {serviceLabel}</Badge>
               <Badge variant={reportCard.is_sent ? "default" : "secondary"}>
                 {reportCard.is_sent ? "Enviado" : "Borrador"}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {format(new Date(reportCard.session_date), "PPP", { locale: es })}
+                {format(parseDateOnly(reportCard.session_date), "PPP", { locale: es })}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Trainer */}
-        {trainerName && (
+        {staffName && (
           <p className="text-sm text-muted-foreground">
-            Entrenador: <span className="font-medium text-foreground">{trainerName}</span>
+            {details.staff_label ?? cfg.staffLabel}: <span className="font-medium text-foreground">{staffName}</span>
           </p>
+        )}
+
+        {/* Detalle propio del servicio */}
+        {details.summary && details.summary.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-semibold">Detalle de {cfg.label.toLowerCase()}</h4>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 bg-muted/30 rounded-lg p-3">
+              {details.summary.map((s) => (
+                <div key={s.label} className="min-w-0">
+                  <dt className="text-xs text-muted-foreground">{s.label}</dt>
+                  <dd className="text-sm whitespace-pre-wrap break-words">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         )}
 
         {/* Metrics */}
         <div className="space-y-2">
-          <h4 className="font-semibold">Métricas</h4>
+          <h4 className="font-semibold">¿Cómo estuvo?</h4>
           <div className="grid gap-2 bg-muted/30 rounded-lg p-3">
             {metrics.map((m) => (
-              <div key={m.label} className="flex items-center justify-between">
+              <div key={m.label} className="flex items-center justify-between gap-3">
                 <span className="text-sm">{m.label}</span>
                 <StarRating value={m.value} readonly size="sm" />
               </div>
@@ -147,7 +160,6 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, 
           </div>
         </div>
 
-        {/* Notes */}
         {reportCard.notes && (
           <div>
             <h4 className="font-semibold mb-1">Observaciones</h4>
@@ -157,44 +169,41 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, 
 
         {reportCard.highlights && (
           <div>
-            <h4 className="font-semibold mb-1">✨ Logros destacados</h4>
+            <h4 className="font-semibold mb-1">✨ {cfg.highlightsLabel}</h4>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportCard.highlights}</p>
           </div>
         )}
 
         {reportCard.areas_to_improve && (
           <div>
-            <h4 className="font-semibold mb-1">📋 Áreas de mejora</h4>
+            <h4 className="font-semibold mb-1">📋 {cfg.improveLabel}</h4>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportCard.areas_to_improve}</p>
           </div>
         )}
 
-        {/* Photos */}
         {reportCard.photos?.length > 0 && (
           <div>
-            <h4 className="font-semibold mb-2">Fotos</h4>
+            <h4 className="font-semibold mb-2">{cfg.photosLabel}</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {reportCard.photos.map((url: string, i: number) => (
-                <img key={i} src={url} alt="" width={200} height={200} loading="lazy" className="rounded-lg w-full aspect-square object-cover border" />
+                <a key={url} href={url} target="_blank" rel="noreferrer">
+                  <img src={url} alt={`Foto ${i + 1} de ${reportCard.dog_name}`} width={200} height={200} loading="lazy" className="rounded-lg w-full aspect-square object-cover border" />
+                </a>
               ))}
             </div>
           </div>
         )}
 
-        {/* Progress chart */}
         {chartData.length > 1 && (
           <div>
-            <h4 className="font-semibold mb-2">Progreso del perro</h4>
+            <h4 className="font-semibold mb-2">Progreso en {cfg.label.toLowerCase()}</h4>
             <div className="h-48 bg-muted/30 rounded-lg p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="general" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="energía" stroke="hsl(var(--info))" strokeWidth={1.5} dot={{ r: 2 }} />
-                  <Line type="monotone" dataKey="social" stroke="hsl(var(--success))" strokeWidth={1.5} dot={{ r: 2 }} />
-                  <Line type="monotone" dataKey="obediencia" stroke="hsl(var(--status-ready))" strokeWidth={1.5} dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="general" name="Puntuación general" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -208,10 +217,10 @@ export function ReportCardDetail({ open, onOpenChange, reportCard, trainerName, 
               <Pencil className="h-4 w-4" />Editar
             </Button>
           )}
-          {onSend && !reportCard.is_sent && (
+          {onSend && (
             <Button onClick={onSend} disabled={sending} className="gap-1.5">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Enviar al dueño
+              {reportCard.is_sent ? "Reenviar al dueño" : "Enviar al dueño"}
             </Button>
           )}
         </DialogFooter>

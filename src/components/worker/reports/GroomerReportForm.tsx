@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { StarRating } from "@/components/report-cards/StarRating";
+import { useCreateReportCard } from "@/hooks/queries/useReportCards";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { PhotoUploader } from "./PhotoUploader";
 import { useCloseTarget } from "./useCloseTarget";
 import type { ReportFormProps } from "./ReportRouter";
 
-/** Groomer report → grooming notes + before/after photos into the task's report_data. */
+/**
+ * Groomer report → grooming notes + before/after photos into the task's
+ * report_data, y además un report card (borrador) para que el servicio quede
+ * en el historial del perro y se pueda enviar al dueño.
+ */
 export function GroomerReportForm({ target, staffId, onDone }: ReportFormProps) {
   const { closeTask, closeReservation } = useCloseTarget(target, staffId);
+  const createReportCard = useCreateReportCard();
+  const { labels: serviceLabels } = useServiceTypes();
+  const [overall, setOverall] = useState(3);
+  const [behavior, setBehavior] = useState(3);
   const [service, setService] = useState("");
   const [notes, setNotes] = useState("");
   const [beforePhotos, setBeforePhotos] = useState<string[]>([]);
@@ -21,6 +33,35 @@ export function GroomerReportForm({ target, staffId, onDone }: ReportFormProps) 
     setSubmitting(true);
     try {
       const allPhotos = [...beforePhotos, ...afterPhotos];
+      if (target.dogId) {
+        const serviceType = target.serviceType ?? "grooming";
+        await createReportCard.mutateAsync({
+          dog_id: target.dogId,
+          dog_name: target.dogName ?? "",
+          trainer_id: staffId,
+          service_type: serviceType,
+          service_category: "grooming",
+          session_date: format(new Date(), "yyyy-MM-dd"),
+          overall_score: overall,
+          energy_level: null,
+          socialization: null,
+          obedience: null,
+          appetite: null,
+          // El servicio es texto libre: va en las observaciones para que no se
+          // pierda si luego editan el report card con el formulario completo.
+          notes: [service.trim() && `Servicio realizado: ${service.trim()}`, notes.trim()].filter(Boolean).join("\n"),
+          photos: allPhotos,
+          details: {
+            ratings: { behavior },
+            metrics: [
+              { label: "Puntuación general", value: overall },
+              { label: "Comportamiento durante el servicio", value: behavior },
+            ],
+            service_label: serviceLabels[serviceType] ?? "Grooming",
+            staff_label: "Groomer",
+          },
+        });
+      }
       if (target.kind === "task") {
         await closeTask({
           report_data: {
@@ -55,6 +96,17 @@ export function GroomerReportForm({ target, staffId, onDone }: ReportFormProps) 
           rows={2}
           placeholder="Baño, corte, uñas…"
         />
+      </div>
+
+      <div className="grid gap-3 rounded-lg bg-muted/50 p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Cómo estuvo</span>
+          <StarRating value={overall} onChange={setOverall} />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Comportamiento</span>
+          <StarRating value={behavior} onChange={setBehavior} />
+        </div>
       </div>
 
       <PhotoUploader photos={beforePhotos} onChange={setBeforePhotos} label="Fotos antes" />

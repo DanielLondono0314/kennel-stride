@@ -51,7 +51,7 @@ export interface DashboardDog {
   allergies: { allergen: string; severity: string | null; type: string }[];
   medications: { name: string; dose: string | null; frequency: string | null; withFood: boolean }[];
   vaccines: { overdue: string[]; dueSoon: string[]; nextDate: string | null };
-  lastReport: { date: string; energy: number; appetite: number; overall: number } | null;
+  lastReport: { date: string; energy: number | null; appetite: number | null; overall: number } | null;
 }
 
 export interface DashboardData {

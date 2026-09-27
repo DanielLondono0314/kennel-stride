@@ -23,7 +23,9 @@ const SERVICE_LABELS: Record<string, string> = {
   evaluation: "Evaluación",
 };
 
-const METRIC_LABELS: [key: string, label: string][] = [
+// Report cards anteriores a `details` (o creados sin él): métricas clásicas,
+// omitiendo las que no aplican (NULL).
+const LEGACY_METRICS: [key: string, label: string][] = [
   ["overall_score", "Puntuación general"],
   ["energy_level", "Energía"],
   ["socialization", "Socialización"],
@@ -31,19 +33,47 @@ const METRIC_LABELS: [key: string, label: string][] = [
   ["appetite", "Apetito"],
 ];
 
-function buildEmailBody(reportCard: Record<string, any>, orgName: string): string {
-  const serviceLabel = SERVICE_LABELS[reportCard.service_type] ?? reportCard.service_type;
+interface Details {
+  summary?: { label: string; value: string }[];
+  metrics?: { label: string; value: number }[];
+  service_label?: string;
+  staff_label?: string;
+}
+
+function buildEmailBody(
+  reportCard: Record<string, any>,
+  orgName: string,
+  staffName: string | null,
+): string {
+  const details: Details = reportCard.details && typeof reportCard.details === "object" ? reportCard.details : {};
+  const serviceLabel = details.service_label ?? SERVICE_LABELS[reportCard.service_type] ?? reportCard.service_type;
+  const [y, m, d] = String(reportCard.session_date).split("-");
+  const date = d ? `${d}/${m}/${y}` : reportCard.session_date;
+
+  const metrics = details.metrics?.length
+    ? details.metrics
+    : LEGACY_METRICS.filter(([key]) => reportCard[key] != null).map(([key, label]) => ({ label, value: reportCard[key] }));
+
   const lines = [
     `Hola,`,
     ``,
-    `Aquí está el reporte de ${reportCard.dog_name} del ${reportCard.session_date} (${serviceLabel}).`,
-    ``,
-    ...METRIC_LABELS.map(([key, label]) => `${label}: ${reportCard[key]}/5`),
-    ``,
+    `Aquí está el reporte de ${reportCard.dog_name} del ${date} (${serviceLabel}).`,
   ];
+  if (staffName) lines.push(`${details.staff_label ?? "Encargado"}: ${staffName}`);
+  lines.push(``);
+
+  if (details.summary?.length) {
+    for (const s of details.summary) lines.push(`${s.label}: ${s.value}`);
+    lines.push(``);
+  }
+
+  lines.push(`¿Cómo estuvo?`, ...metrics.map((m) => `${m.label}: ${m.value}/5`), ``);
   if (reportCard.notes) lines.push(`Observaciones: ${reportCard.notes}`, ``);
-  if (reportCard.highlights) lines.push(`Logros destacados: ${reportCard.highlights}`, ``);
-  if (reportCard.areas_to_improve) lines.push(`Áreas de mejora: ${reportCard.areas_to_improve}`, ``);
+  if (reportCard.highlights) lines.push(`Lo mejor: ${reportCard.highlights}`, ``);
+  if (reportCard.areas_to_improve) lines.push(`A tener en cuenta: ${reportCard.areas_to_improve}`, ``);
+  if (Array.isArray(reportCard.photos) && reportCard.photos.length) {
+    lines.push(`Fotos:`, ...reportCard.photos.map((url: string) => url), ``);
+  }
   lines.push(`— ${orgName}`);
   return lines.join("\n");
 }
@@ -81,7 +111,7 @@ serve(async (req: Request) => {
 
     const { data: reportCard, error: rcErr } = await adminClient
       .from("report_cards")
-      .select("*, dogs(id, name, organization_id, customers(id, first_name, email))")
+      .select("*, dogs(id, name, organization_id, customers(id, first_name, email)), staff_members(first_name, last_name)")
       .eq("id", reportCardId)
       .single();
 
@@ -139,6 +169,8 @@ serve(async (req: Request) => {
     const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
     const fromName = Deno.env.get("RESEND_FROM_NAME") ?? org?.name ?? "KennelOps";
     const orgName = org?.name ?? "el equipo";
+    const staff = (reportCard as { staff_members?: { first_name?: string; last_name?: string } | null }).staff_members;
+    const staffName = staff ? `${staff.first_name ?? ""} ${staff.last_name ?? ""}`.trim() || null : null;
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -150,7 +182,7 @@ serve(async (req: Request) => {
         from: `${fromName} <${fromEmail}>`,
         to: [recipientEmail],
         subject: `Reporte de ${reportCard.dog_name}`,
-        text: buildEmailBody(reportCard, orgName),
+        text: buildEmailBody(reportCard, orgName, staffName),
       }),
     });
 

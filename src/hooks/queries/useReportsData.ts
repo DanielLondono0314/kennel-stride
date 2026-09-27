@@ -41,7 +41,7 @@ export function useReportsData(range: DateRange) {
         fetchAll((f, t) => supabase.from("customers").select("id, created_at, city").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("packages").select("id, status, total_credits, remaining_credits, price, created_at, expires_at").eq("organization_id", orgId).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("facility_units").select("id, unit_type, status").eq("organization_id", orgId).order("id").range(f, t)),
-        fetchAll((f, t) => supabase.from("report_cards").select("id, rating, session_date").eq("organization_id", orgId).gte("session_date", dateFrom).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("report_cards").select("id, overall_score, session_date").eq("organization_id", orgId).gte("session_date", dateFrom).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", orgId).gte("start_date", dateFrom).order("id").range(f, t)),
       ]);
 

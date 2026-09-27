@@ -1823,68 +1823,74 @@ export type Database = {
       }
       report_cards: {
         Row: {
-          appetite: number
+          appetite: number | null
           areas_to_improve: string | null
           created_at: string
           dog_id: string
+          details: Json
           dog_name: string
-          energy_level: number
+          energy_level: number | null
           highlights: string | null
           id: string
           is_sent: boolean
           notes: string | null
-          obedience: number
+          obedience: number | null
           organization_id: string | null
           overall_score: number
           photos: string[] | null
           sent_at: string | null
+          service_category: string
           service_type: string
           session_date: string
-          socialization: number
+          socialization: number | null
           trainer_id: string | null
           updated_at: string
         }
         Insert: {
-          appetite?: number
+          appetite?: number | null
           areas_to_improve?: string | null
           created_at?: string
           dog_id: string
+          details?: Json
           dog_name: string
-          energy_level?: number
+          energy_level?: number | null
           highlights?: string | null
           id?: string
           is_sent?: boolean
           notes?: string | null
-          obedience?: number
+          obedience?: number | null
           organization_id?: string | null
           overall_score?: number
           photos?: string[] | null
           sent_at?: string | null
+          service_category?: string
           service_type?: string
           session_date?: string
-          socialization?: number
+          socialization?: number | null
           trainer_id?: string | null
           updated_at?: string
         }
         Update: {
-          appetite?: number
+          appetite?: number | null
           areas_to_improve?: string | null
           created_at?: string
           dog_id?: string
+          details?: Json
           dog_name?: string
-          energy_level?: number
+          energy_level?: number | null
           highlights?: string | null
           id?: string
           is_sent?: boolean
           notes?: string | null
-          obedience?: number
+          obedience?: number | null
           organization_id?: string | null
           overall_score?: number
           photos?: string[] | null
           sent_at?: string | null
+          service_category?: string
           service_type?: string
           session_date?: string
-          socialization?: number
+          socialization?: number | null
           trainer_id?: string | null
           updated_at?: string
         }

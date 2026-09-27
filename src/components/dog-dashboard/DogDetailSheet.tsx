@@ -249,8 +249,8 @@ export function DogDetailSheet({ dog, onOpenChange, settings, fields }: Props) {
             {fields.lastReport && dog.lastReport && (
               <Section icon={ClipboardCheck} title={`Último report card · ${format(parseDateOnly(dog.lastReport.date), "d MMM", { locale: es })}`}>
                 <div className="grid grid-cols-3 gap-4">
-                  <Rating label="Energía" value={dog.lastReport.energy} />
-                  <Rating label="Apetito" value={dog.lastReport.appetite} />
+                  {dog.lastReport.energy != null && <Rating label="Energía" value={dog.lastReport.energy} />}
+                  {dog.lastReport.appetite != null && <Rating label="Apetito" value={dog.lastReport.appetite} />}
                   <Rating label="General" value={dog.lastReport.overall} />
                 </div>
               </Section>

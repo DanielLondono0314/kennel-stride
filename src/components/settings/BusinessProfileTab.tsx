@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Building2, Clock, MapPin, Save, Loader2, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { CATEGORY_CONFIG, SERVICE_CATEGORIES, categoryOf, inferCategory } from "@/lib/reportCardServices";
 
 interface OrgFields {
   name: string;
@@ -19,7 +20,7 @@ interface OrgFields {
   opening_time: string;
   closing_time: string;
   timezone: string;
-  service_types: Array<{ value: string; label: string }>;
+  service_types: Array<{ value: string; label: string; category?: string }>;
   route_notifications_enabled: boolean;
   route_notification_channel: "sms" | "whatsapp";
 }
@@ -247,7 +248,7 @@ export function BusinessProfileTab() {
         <CardHeader>
           <CardTitle className="text-base">Tipos de Servicio</CardTitle>
           <CardDescription>
-            Personaliza los servicios que ofrece tu centro. Se usan en report cards y reservas.
+            Personaliza los servicios que ofrece tu centro. Se usan en reservas y report cards: la categoría define qué se diligencia en el report card (p. ej. un servicio de Spa usa el formulario de grooming).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -257,7 +258,32 @@ export function BusinessProfileTab() {
                 key={st.value}
                 className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50"
               >
-                <span className="text-sm">{st.label}</span>
+                <span className="text-sm flex-1 min-w-0 truncate">{st.label}</span>
+                <Select
+                  value={categoryOf(st)}
+                  disabled={!isAdmin}
+                  onValueChange={(v) =>
+                    setFields((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            service_types: prev.service_types.map((x, idx) => (idx === i ? { ...x, category: v } : x)),
+                          }
+                        : null
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-7 w-[180px] text-xs mx-2" aria-label={`Categoría de ${st.label}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c} className="text-xs">
+                        {CATEGORY_CONFIG[c].icon} {CATEGORY_CONFIG[c].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {isAdmin && fields.service_types.length > 1 && (
                   <button
                     type="button"
@@ -298,7 +324,7 @@ export function BusinessProfileTab() {
                         ...prev,
                         service_types: [
                           ...prev.service_types,
-                          { value: slug, label: newServiceLabel.trim() },
+                          { value: slug, label: newServiceLabel.trim(), category: inferCategory(slug, newServiceLabel.trim()) },
                         ],
                       };
                     });
@@ -324,7 +350,7 @@ export function BusinessProfileTab() {
                       ...prev,
                       service_types: [
                         ...prev.service_types,
-                        { value: slug, label: newServiceLabel.trim() },
+                        { value: slug, label: newServiceLabel.trim(), category: inferCategory(slug, newServiceLabel.trim()) },
                       ],
                     };
                   });

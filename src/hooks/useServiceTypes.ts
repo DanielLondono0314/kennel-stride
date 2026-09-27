@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { categoryOf, type ServiceCategory } from "@/lib/reportCardServices";
 
 export interface ServiceTypeOption {
   value: string;
   label: string;
+  /** Categoría para el report card; si falta se infiere del nombre. */
+  category?: string;
 }
 
 export const DEFAULT_SERVICE_TYPES: ServiceTypeOption[] = [
@@ -35,5 +38,16 @@ export function useServiceTypes() {
     [options]
   );
 
-  return { options, labels };
+  const categories = useMemo<Record<string, ServiceCategory>>(
+    () => Object.fromEntries(options.map((o) => [o.value, categoryOf(o)])),
+    [options]
+  );
+
+  /** Categoría de un service_type, aunque ya no exista en la lista de la org. */
+  const categoryFor = useCallback(
+    (value: string): ServiceCategory => categories[value] ?? categoryOf(undefined, value),
+    [categories]
+  );
+
+  return { options, labels, categories, categoryFor };
 }

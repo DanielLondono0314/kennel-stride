@@ -17,10 +17,11 @@ import { WeightTab } from "@/components/clinic/WeightTab";
 import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
+import { DogServiceHistory } from "@/components/dogs/DogServiceHistory";
 import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
-  Loader2, User, Printer, GraduationCap, UtensilsCrossed,
+  Loader2, User, Printer, ClipboardCheck, UtensilsCrossed,
   AlertTriangle, Pill, FileSignature,
 } from "lucide-react";
 import { DogContractsTab } from "@/components/contracts/DogContractsTab";
@@ -76,17 +77,6 @@ interface ReservationRow {
   total_price: number;
 }
 
-interface ReportCardRow {
-  id: string;
-  session_date: string;
-  service_type: string;
-  overall_score: number;
-  highlights: string | null;
-  areas_to_improve: string | null;
-  is_sent: boolean;
-  staff_members: { first_name: string; last_name: string } | null;
-}
-
 interface AllergyRow {
   id: string;
   allergen: string;
@@ -117,14 +107,6 @@ const FOOD_TYPE_LABELS: Record<string, string> = {
   mixto: "Mixto",
 };
 
-const REPORT_CARD_SERVICE_LABELS: Record<string, string> = {
-  daycare: "Guardería",
-  board_and_train: "Internado",
-  training_session: "Entrenamiento",
-  grooming: "Grooming",
-  evaluation: "Evaluación",
-};
-
 const statusColors: Record<string, string> = {
   completed: "bg-success/10 text-success",
   scheduled: "bg-primary/10 text-primary",
@@ -150,7 +132,6 @@ export default function DogProfilePage() {
 
   const [dog, setDog] = useState<DbDog | null>(null);
   const [reservations, setReservations] = useState<ReservationRow[]>([]);
-  const [reportCards, setReportCards] = useState<ReportCardRow[]>([]);
   const [allergies, setAllergies] = useState<AllergyRow[]>([]);
   const [medications, setMedications] = useState<MedicationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,18 +160,6 @@ export default function DogProfilePage() {
     if (data) setReservations(data as ReservationRow[]);
   }, [id, organization]);
 
-  const fetchReportCards = useCallback(async () => {
-    if (!id || !organization) return;
-    const { data } = await supabase
-      .from("report_cards")
-      .select("id, session_date, service_type, overall_score, highlights, areas_to_improve, is_sent, staff_members(first_name, last_name)")
-      .eq("dog_id", id)
-      .eq("organization_id", organization!.id)
-      .order("session_date", { ascending: false })
-      .limit(20);
-    if (data) setReportCards(data as unknown as ReportCardRow[]);
-  }, [id, organization]);
-
   const fetchClinicalDetails = useCallback(async () => {
     if (!id || !organization) return;
     const [aRes, mRes] = await Promise.all([
@@ -203,8 +172,8 @@ export default function DogProfilePage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchDog(), fetchReservations(), fetchReportCards(), fetchClinicalDetails()]).finally(() => setLoading(false));
-  }, [fetchDog, fetchReservations, fetchReportCards, fetchClinicalDetails]);
+    Promise.all([fetchDog(), fetchReservations(), fetchClinicalDetails()]).finally(() => setLoading(false));
+  }, [fetchDog, fetchReservations, fetchClinicalDetails]);
 
   const handleSave = async (data: any) => {
     const payload = {
@@ -409,10 +378,13 @@ export default function DogProfilePage() {
       <Separator />
 
       {/* Tabs */}
-      <Tabs defaultValue={searchParams.get("tab") ?? "info"} className="print-all-tabs">
+      <Tabs defaultValue={searchParams.get("tab") === "training" ? "services" : searchParams.get("tab") ?? "info"} className="print-all-tabs">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="info" className="gap-1.5">
             <Dog className="h-4 w-4" />Info
+          </TabsTrigger>
+          <TabsTrigger value="services" className="gap-1.5">
+            <ClipboardCheck className="h-4 w-4" />Servicios
           </TabsTrigger>
           <TabsTrigger value="reservations" className="gap-1.5">
             <Calendar className="h-4 w-4" />Reservas
@@ -434,9 +406,6 @@ export default function DogProfilePage() {
           </TabsTrigger>
           <TabsTrigger value="temperament" className="gap-1.5">
             <Brain className="h-4 w-4" />Temperamento
-          </TabsTrigger>
-          <TabsTrigger value="training" className="gap-1.5">
-            <GraduationCap className="h-4 w-4" />Entrenamiento
           </TabsTrigger>
           <TabsTrigger value="contracts" className="gap-1.5">
             <FileSignature className="h-4 w-4" />Contratos
@@ -686,48 +655,9 @@ export default function DogProfilePage() {
           <DogContractsTab dogId={dog.id} dogName={dog.name} customerId={dog.customer_id} />
         </TabsContent>
 
-        {/* Training / Report Cards Tab */}
-        <TabsContent value="training" className="mt-6" forceMount>
-          {reportCards.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <GraduationCap className="h-12 w-12 mb-4 opacity-50" />
-                <p>Sin sesiones de entrenamiento registradas</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {reportCards.map((rc) => (
-                <Card key={rc.id}>
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-sm">
-                          {REPORT_CARD_SERVICE_LABELS[rc.service_type] || rc.service_type}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(rc.session_date), "d MMM yyyy", { locale: es })}
-                          {rc.staff_members && ` · ${rc.staff_members.first_name} ${rc.staff_members.last_name}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-xs">{rc.overall_score}/5</Badge>
-                        <Badge variant={rc.is_sent ? "default" : "secondary"} className="text-xs">
-                          {rc.is_sent ? "Enviado" : "Borrador"}
-                        </Badge>
-                      </div>
-                    </div>
-                    {rc.highlights && (
-                      <p className="text-sm text-muted-foreground mt-2">✨ {rc.highlights}</p>
-                    )}
-                    {rc.areas_to_improve && (
-                      <p className="text-sm text-muted-foreground mt-1">📋 {rc.areas_to_improve}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+        {/* Servicios recibidos: historial trazable de report cards por tipo de servicio */}
+        <TabsContent value="services" className="mt-6" forceMount>
+          <DogServiceHistory dogId={dog.id} dogName={dog.name} />
         </TabsContent>
       </Tabs>
 

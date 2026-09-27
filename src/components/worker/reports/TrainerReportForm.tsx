@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/report-cards/StarRating";
 import { useCreateReportCard } from "@/hooks/queries/useReportCards";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { PhotoUploader } from "./PhotoUploader";
 import { useCloseTarget } from "./useCloseTarget";
 import type { ReportFormProps } from "./ReportRouter";
@@ -33,6 +34,7 @@ const METRICS = [
 /** Trainer report form → writes a report_cards row, then closes the item. */
 export function TrainerReportForm({ target, staffId, onDone }: ReportFormProps) {
   const createReportCard = useCreateReportCard();
+  const { labels: serviceLabels, categoryFor } = useServiceTypes();
   const { closeTask, closeReservation } = useCloseTarget(target, staffId);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -64,13 +66,24 @@ export function TrainerReportForm({ target, staffId, onDone }: ReportFormProps) 
       (v.energy_level + v.socialization + v.obedience + v.appetite) / 4
     );
 
+    const serviceType = target.serviceType ?? "training_session";
+
     setSubmitting(true);
     try {
       await createReportCard.mutateAsync({
         dog_id: target.dogId,
         dog_name: target.dogName ?? "",
         trainer_id: staffId,
-        service_type: target.serviceType ?? "training_session",
+        service_type: serviceType,
+        service_category: categoryFor(serviceType),
+        details: {
+          service_label: serviceLabels[serviceType] ?? serviceType,
+          staff_label: "Entrenador",
+          metrics: [
+            { label: "Puntuación general", value: overall_score },
+            ...METRICS.map((m) => ({ label: m.label, value: v[m.key] })),
+          ],
+        },
         session_date: format(new Date(), "yyyy-MM-dd"),
         overall_score,
         energy_level: v.energy_level,
