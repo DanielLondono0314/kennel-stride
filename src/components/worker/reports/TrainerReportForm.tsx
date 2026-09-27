@@ -68,7 +68,7 @@ export function TrainerReportForm({ target, staffId, onDone }: ReportFormProps) 
     try {
       await createReportCard.mutateAsync({
         dog_id: target.dogId,
-        dog_name: target.dogName,
+        dog_name: target.dogName ?? "",
         trainer_id: staffId,
         service_type: target.serviceType ?? "training_session",
         session_date: format(new Date(), "yyyy-MM-dd"),

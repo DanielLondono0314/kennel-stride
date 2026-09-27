@@ -46,7 +46,7 @@ export function WeightTab({ dogId, dogName }: Props) {
   const { data: config } = useDogDashboardConfig();
   const deleteLog = useDeleteWeightLog(dogId);
   const canRecord = usePermission("record_weight");
-  const canDelete = usePermission("delete_weight");
+  const canDelete = usePermission("clinical");
   const settings = config?.weight ?? DEFAULT_WEIGHT_SETTINGS;
 
   const [modalOpen, setModalOpen] = useState(false);

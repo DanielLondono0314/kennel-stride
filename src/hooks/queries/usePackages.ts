@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
+import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 const PAGE_SIZE = 50;
@@ -46,7 +48,7 @@ export function usePackages({ page = 0, search = "", status = "all" } = {}) {
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (status !== "all") query = query.eq("status", status);
-      if (search.trim()) query = query.or(`name.ilike.%${search.trim()}%`);
+      if (search.trim()) query = query.or(ilikeAny(["name"], search));
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -64,7 +66,7 @@ export function usePackages({ page = 0, search = "", status = "all" } = {}) {
 export async function deductPackageCredit({ packageId, reason }: { packageId: string; reason?: string }) {
   const { error } = await supabase.rpc("deduct_package_credit", {
     p_package_id: packageId,
-    p_reason: reason ?? null,
+    p_reason: reason,
   });
   if (error) throw error;
 }
@@ -86,7 +88,7 @@ export function useCreatePackage() {
   const { organization } = useOrganization();
 
   return useMutation({
-    mutationFn: async (input: Partial<DbPackage>) => {
+    mutationFn: async (input: Omit<TablesInsert<"packages">, "organization_id" | "remaining_credits">) => {
       if (!organization) throw new Error("Sin organización activa");
       const { data, error } = await supabase
         .from("packages")

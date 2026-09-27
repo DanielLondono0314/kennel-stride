@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OrgGuard } from "@/components/auth/OrgGuard";
 import { WorkerRoute, AdminOnlyRoute } from "@/components/auth/WorkerRoute";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
+import { FeatureRoute } from "@/components/auth/FeatureRoute";
 import { RoleHome } from "@/components/auth/RoleHome";
 import { WorkerLayout } from "@/components/worker/WorkerLayout";
 import { AppLayout } from "@/components/navigation/AppLayout";
@@ -41,6 +42,7 @@ const NoticesPage          = lazy(() => import("./pages/NoticesPage"));
 const FacilityPage         = lazy(() => import("./pages/FacilityPage"));
 const ReportsPage          = lazy(() => import("./pages/ReportsPage"));
 const CampaignsPage        = lazy(() => import("./pages/CampaignsPage"));
+const RoutesPage           = lazy(() => import("./pages/RoutesPage"));
 const ClinicPage           = lazy(() => import("./pages/ClinicPage"));
 const CustomerProfilePage  = lazy(() => import("./pages/CustomerProfilePage"));
 const StaffPage            = lazy(() => import("./pages/StaffPage"));
@@ -57,6 +59,7 @@ const PlatformAdminInfraPage         = lazy(() => import("./pages/platform-admin
 const PlatformAdminAuditLogPage      = lazy(() => import("./pages/platform-admin/PlatformAdminAuditLogPage"));
 
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
+const MyRoutePage          = lazy(() => import("./pages/worker/MyRoutePage"));
 const MySchedulePage       = lazy(() => import("./pages/worker/MySchedulePage"));
 const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailPage"));
 const WorkerNoticesPage    = lazy(() => import("./pages/worker/WorkerNoticesPage"));
@@ -100,6 +103,7 @@ const App = () => {
                       <Route element={<WorkerLayout />}>
                         <Route index element={<MyDayPage />} />
                         <Route path="schedule" element={<MySchedulePage />} />
+                        <Route path="route" element={<MyRoutePage />} />
                         <Route path="reservation/:id" element={<WorkerTaskDetailPage />} />
                         <Route path="task/:id" element={<WorkerTaskDetailPage />} />
                         <Route path="notices" element={<WorkerNoticesPage />} />
@@ -116,17 +120,30 @@ const App = () => {
                       <Route path="dogs"             element={<DogsPage />} />
                       <Route path="dogs/:id"         element={<DogProfilePage />} />
                       <Route path="dog-panel"        element={<DogDashboardPage />} />
-                      <Route path="requests"         element={<RequestsPage />} />
+                      <Route element={<FeatureRoute feature="requests" />}>
+                        <Route path="requests" element={<RequestsPage />} />
+                      </Route>
                       <Route path="calendar"         element={<CalendarPage />} />
                       <Route path="tasks"            element={<TasksPage />} />
-                      <Route path="notices"          element={<NoticesPage />} />
-                      <Route path="facility"         element={<FacilityPage />} />
-                      <Route path="report-cards"     element={<ReportCardsPage />} />
+                      <Route element={<FeatureRoute feature="notices" />}>
+                        <Route path="notices" element={<NoticesPage />} />
+                      </Route>
+                      <Route element={<FeatureRoute feature="facility" />}>
+                        <Route path="facility" element={<FacilityPage />} />
+                      </Route>
+                      <Route element={<FeatureRoute feature="report_cards" />}>
+                        <Route path="report-cards" element={<ReportCardsPage />} />
+                      </Route>
                       <Route path="packages"         element={<PackagesPage />} />
                       <Route path="invoices"         element={<InvoicesPage />} />
                       <Route path="reports"          element={<ReportsPage />} />
-                      <Route path="campaigns"        element={<CampaignsPage />} />
-                      <Route path="clinic"           element={<ClinicPage />} />
+                      <Route element={<FeatureRoute feature="campaigns" />}>
+                        <Route path="campaigns" element={<CampaignsPage />} />
+                      </Route>
+                      <Route path="routes"           element={<RoutesPage />} />
+                      <Route element={<FeatureRoute feature="clinic" />}>
+                        <Route path="clinic" element={<ClinicPage />} />
+                      </Route>
                       <Route path="staff"            element={<StaffPage />} />
                       <Route path="settings"         element={<SettingsPage />} />
                     </Route>

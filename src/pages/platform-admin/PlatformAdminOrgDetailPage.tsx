@@ -7,6 +7,7 @@ import {
   usePlatformAdminOrgDetail,
   useAdjustPackageCredits,
   useSetSubscriptionStatus,
+  useSetPlanTier,
   PlatformOrgDetail,
 } from "@/hooks/queries/usePlatformAdminData";
 import { usePlatformAdmin } from "@/contexts/PlatformAdminContext";
@@ -27,6 +28,7 @@ import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { getFunctionErrorMessage } from "@/lib/functionError";
+import { PLANS, PLAN_ORDER, isPlanTier } from "@/lib/plans";
 
 function subscriptionVariant(status: string): "default" | "secondary" | "destructive" {
   if (status === "active") return "default";
@@ -155,6 +157,69 @@ function SubscriptionStatusDialog({ orgId, currentStatus }: { orgId: string; cur
   );
 }
 
+function PlanTierDialog({ orgId, currentTier }: { orgId: string; currentTier: string }) {
+  const [open, setOpen] = useState(false);
+  const [tier, setTier] = useState(currentTier);
+  const [reason, setReason] = useState("");
+  const mutation = useSetPlanTier(orgId);
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) {
+      toast.error("El motivo es obligatorio");
+      return;
+    }
+    try {
+      await mutation.mutateAsync({ tier, reason: reason.trim() });
+      toast.success("Plan actualizado");
+      setOpen(false);
+      setReason("");
+    } catch (err) {
+      toast.error(await getFunctionErrorMessage(err, "No se pudo actualizar el plan"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setTier(currentTier); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Cambiar plan</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cambiar plan de la organización</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Cambia los módulos y límites disponibles al instante. Útil para soporte, cortesías y pruebas de cada
+            plan. En clientes que pagan, el webhook de LemonSqueezy puede volver a sobrescribirlo en su próximo evento.
+            Bajar de plan no borra datos: solo oculta módulos y bloquea altas por encima del límite.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Plan</Label>
+            <Select value={tier} onValueChange={setTier}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PLAN_ORDER.map((t) => (
+                  <SelectItem key={t} value={t}>{PLANS[t].name} — ${PLANS[t].monthlyUsd}/mes</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="tier-reason">Motivo</Label>
+            <Textarea id="tier-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej. prueba de QA del plan Esencial" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={mutation.isPending}>
+            {mutation.isPending ? "Guardando..." : "Confirmar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function PlatformAdminOrgDetailPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const { data, isLoading, isError, refetch } = usePlatformAdminOrgDetail(orgId);
@@ -186,6 +251,8 @@ export default function PlatformAdminOrgDetailPage() {
           <p className="text-sm text-muted-foreground">/{org.slug} · alta {format(new Date(org.created_at), "d MMM yyyy", { locale: es })}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="secondary">{isPlanTier(org.plan_tier) ? PLANS[org.plan_tier].name : org.plan_tier}</Badge>
+          {canWrite && <PlanTierDialog orgId={org.id} currentTier={org.plan_tier} />}
           <Badge variant={subscriptionVariant(org.subscription_status)}>{org.subscription_status}</Badge>
           {canWrite && <SubscriptionStatusDialog orgId={org.id} currentStatus={org.subscription_status} />}
         </div>

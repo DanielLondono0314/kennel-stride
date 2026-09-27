@@ -86,6 +86,33 @@ async function runUpdate(
   }
 }
 
+/**
+ * Traduce el variant de LemonSqueezy al plan_tier vía public.plan_catalog.
+ * Devuelve {} si el variant no está mapeado: así el update NO toca plan_tier
+ * (ni sube ni baja) y queda un error visible en logs para registrar el variant.
+ */
+async function planTierUpdate(
+  supabase: SupabaseClient,
+  label: string,
+  variantId: unknown,
+): Promise<{ plan_tier?: string }> {
+  const id = variantId == null ? "" : String(variantId);
+  if (!id) return {};
+  const { data, error } = await supabase
+    .from("plan_catalog")
+    .select("tier")
+    .eq("ls_variant_id", id)
+    .maybeSingle();
+  if (error || !data) {
+    console.error(
+      `[${label}] variant_id=${id} sin mapeo en plan_catalog.ls_variant_id — plan_tier NO actualizado`,
+      error ?? "",
+    );
+    return {};
+  }
+  return { plan_tier: data.tier as string };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -164,6 +191,7 @@ serve(async (req) => {
         // [A-2] Removed dead code: unused query that fetched any admin member without
         // an org filter. The correct lookup is via custom_data.org_id set at checkout.
         const orgId: string = payload.meta?.custom_data?.org_id ?? "";
+        const tierUpdate = await planTierUpdate(supabase, "subscription_created", attributes.variant_id);
 
         if (orgId) {
           await runUpdate(
@@ -174,6 +202,7 @@ serve(async (req) => {
                 ls_customer_id: lsCustomerId,
                 ls_subscription_id: lsSubscriptionId,
                 subscription_status: status,
+                ...tierUpdate,
               })
               .eq("id", orgId)
               .select("id"),
@@ -200,11 +229,14 @@ serve(async (req) => {
         if (lsStatus === "cancelled" || lsStatus === "expired") appStatus = "cancelled";
         else if (lsStatus === "paused") appStatus = "cancelled";
 
+        // Upgrade/downgrade de plan: el variant cambia en subscription_updated.
+        const tierUpdate = await planTierUpdate(supabase, "subscription_updated", attributes.variant_id);
+
         await runUpdate(
           "subscription_updated",
           supabase
             .from("organizations")
-            .update({ subscription_status: appStatus })
+            .update({ subscription_status: appStatus, ...tierUpdate })
             .eq("ls_subscription_id", lsSubscriptionId)
             .select("id"),
         );

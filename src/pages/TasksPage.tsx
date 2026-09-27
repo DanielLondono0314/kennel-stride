@@ -38,7 +38,7 @@ function staffName(s: any): string | null {
 
 export default function TasksPage() {
   const { data, isLoading, isError, refetch } = useTasks();
-  const canManage = usePermission("manage_tasks");
+  const canManage = usePermission("schedule");
   const [modalOpen, setModalOpen] = useState(false);
 
   const tasks = useMemo(() => data ?? [], [data]);

@@ -39,6 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Los borradores de formularios guardan datos personales de clientes y
+    // perros; en un equipo compartido (recepción) no deben sobrevivir al logout.
+    try {
+      Object.keys(localStorage)
+        .filter((k) => /^(customer|dog|reportCard|task|reservation)Draft:/.test(k))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // localStorage no disponible (modo privado): nada que limpiar.
+    }
     await supabase.auth.signOut();
     setSession(null);
     // Hard redirect to clear any in-memory protected state.

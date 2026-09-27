@@ -40,7 +40,7 @@ export type { DbCustomer };
 
 export default function CustomersPage() {
   const { organization } = useOrganization();
-  const canDelete = usePermission("delete_customer");
+  const canDelete = usePermission("delete_records");
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);

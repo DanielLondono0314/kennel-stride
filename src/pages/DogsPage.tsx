@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
 export default function DogsPage() {
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
-  const canDelete = usePermission("delete_dog");
+  const canDelete = usePermission("delete_records");
   const orgNavigate = useOrgNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);

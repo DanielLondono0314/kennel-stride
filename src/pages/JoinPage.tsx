@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { friendlyPlanLimitMessage } from "@/lib/query-client";
 import { Button } from "@/components/ui/button";
 import { Dog, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -16,13 +17,6 @@ export default function JoinPage() {
   const [orgName, setOrgName] = useState("");
   const [role, setRole] = useState("");
 
-  const ROLE_LABELS: Record<string, string> = {
-    admin: "Administrador",
-    manager: "Gerente",
-    front_desk: "Recepción",
-    worker: "Trabajador",
-  };
-
   useEffect(() => {
     if (!token) { setStatus("invalid"); return; }
 
@@ -34,9 +28,9 @@ export default function JoinPage() {
           setStatus("invalid");
           return;
         }
-        const invite = data as { org_name: string; role: string };
+        const invite = data as { org_name: string; role: string; role_name?: string | null };
         setOrgName(invite.org_name ?? "tu equipo");
-        setRole(invite.role);
+        setRole(invite.role_name ?? invite.role);
 
         // If already logged in, accept automatically
         if (user) {
@@ -55,7 +49,7 @@ export default function JoinPage() {
     setStatus("accepting");
     const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
     if (error) {
-      toast.error("Error al aceptar invitación", { description: error.message });
+      toast.error("Error al aceptar invitación", { description: friendlyPlanLimitMessage(error.message) });
       setStatus("invalid");
     } else {
       toast.success(`Bienvenido a ${orgName}!`);
@@ -116,7 +110,7 @@ export default function JoinPage() {
               <p className="font-semibold">Invitación válida</p>
               <p className="text-sm text-muted-foreground">
                 Te invitaron a unirte a <span className="font-medium text-foreground">{orgName}</span> como{" "}
-                <span className="font-medium text-foreground">{ROLE_LABELS[role] ?? role}</span>
+                <span className="font-medium text-foreground">{role}</span>
               </p>
             </div>
           </div>

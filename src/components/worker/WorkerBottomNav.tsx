@@ -1,17 +1,27 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Clock, Bell, User } from "lucide-react";
+import { CalendarDays, Clock, Bell, User, Truck } from "lucide-react";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { useMyStaffMember } from "@/hooks/useMyStaffMember";
+import { useMyActiveRoute } from "@/hooks/queries/useMyRoute";
 
 export function WorkerBottomNav() {
   const base = useOrgBasePath();
+  const { data: staff } = useMyStaffMember();
+  // La tab de ruta solo aparece para choferes con una ruta activa hoy — evita
+  // un tab muerto para el resto del staff o para un chofer sin ruta asignada.
+  const { data: activeRoute } = useMyActiveRoute();
+  const showRouteTab = staff?.specialty === "driver" && !!activeRoute;
+
   const items = [
     { to: `${base}/worker`, label: "Mi día", icon: CalendarDays, end: true },
     { to: `${base}/worker/schedule`, label: "Mi Horario", icon: Clock, end: false },
+    ...(showRouteTab ? [{ to: `${base}/worker/route`, label: "Mi Ruta", icon: Truck, end: false }] : []),
     { to: `${base}/worker/notices`, label: "Avisos", icon: Bell, end: false },
     { to: `${base}/worker/profile`, label: "Perfil", icon: User, end: false },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t bg-background">
+    <nav className={`fixed inset-x-0 bottom-0 z-20 grid border-t bg-background`}
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {items.map(({ to, label, icon: Icon, end }) => (
         <NavLink key={to} to={to} end={end}
           className={({ isActive }) =>

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
 
@@ -143,13 +143,43 @@ serve(async (req: Request) => {
     // 3. CRÍTICO: verificar que el caller es miembro de la org de la campaña
     const { data: membership } = await adminClient
       .from("organization_members")
-      .select("role")
+      .select("role, org_roles(access_type, permissions)")
       .eq("organization_id", campaign.organization_id)
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (!membership) {
       return jsonResponse({ error: "No autorizado para esta organización" }, 403);
+    }
+
+    // Mismo criterio que usePermission("send_campaign") (roles personalizados
+    // por org): el rol debe ser de tipo admin o tener el permiso marcado.
+    const orgRole = (membership as { org_roles: { access_type: string; permissions: string[] } | null }).org_roles;
+    if (orgRole?.access_type !== "admin" && !orgRole?.permissions.includes("send_campaign")) {
+      return jsonResponse({ error: "Tu rol no tiene permiso para enviar campañas" }, 403);
+    }
+
+    const { data: org } = await adminClient
+      .from("organizations")
+      .select("subscription_status, trial_ends_at")
+      .eq("id", campaign.organization_id)
+      .single();
+    const subscriptionActive = !!org && (
+      org.subscription_status === "active" ||
+      (org.subscription_status === "trialing" && !!org.trial_ends_at && new Date(org.trial_ends_at) > new Date())
+    );
+    if (!subscriptionActive) {
+      return jsonResponse({ error: "La suscripción de la organización no está activa" }, 402);
+    }
+
+    // 3b. Plan: las campañas son un módulo Premium. RLS ya bloquea crearlas en
+    // otros planes; esto cubre campañas creadas antes de un downgrade.
+    const { data: hasCampaigns } = await adminClient.rpc("org_has_feature", {
+      p_org_id: campaign.organization_id,
+      p_feature: "campaigns",
+    });
+    if (hasCampaigns !== true) {
+      return jsonResponse({ error: "Las campañas no están incluidas en tu plan actual" }, 403);
     }
 
     // 4. [E1] Idempotencia: no reenviar una campaña ya enviada
@@ -192,7 +222,9 @@ serve(async (req: Request) => {
       const { data } = await adminClient
         .from("customers")
         .select("id, first_name, last_name, email, dogs(name)")
-        .eq("organization_id", orgId);
+        .eq("organization_id", orgId)
+        .eq("is_active", true)
+        .eq("marketing_opt_out", false);
       recipients = (data ?? []) as CustomerRow[];
     } else if (campaign.segment_type === "new") {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -200,6 +232,8 @@ serve(async (req: Request) => {
         .from("customers")
         .select("id, first_name, last_name, email, dogs(name)")
         .eq("organization_id", orgId)
+        .eq("is_active", true)
+        .eq("marketing_opt_out", false)
         .gte("created_at", thirtyDaysAgo);
       recipients = (data ?? []) as CustomerRow[];
     } else if (campaign.segment_type === "inactive") {
@@ -209,6 +243,9 @@ serve(async (req: Request) => {
         const { data } = await adminClient
           .from("customers")
           .select("id, first_name, last_name, email, dogs(name)")
+          .eq("organization_id", orgId)
+          .eq("is_active", true)
+          .eq("marketing_opt_out", false)
           .in("id", inactiveIds as string[]);
         recipients = (data ?? []) as CustomerRow[];
       }
@@ -235,6 +272,9 @@ serve(async (req: Request) => {
           const { data } = await adminClient
             .from("customers")
             .select("id, first_name, last_name, email, dogs(name)")
+            .eq("organization_id", orgId)
+            .eq("is_active", true)
+            .eq("marketing_opt_out", false)
             .in("id", vipIds);
           recipients = (data ?? []) as CustomerRow[];
         }
@@ -276,37 +316,42 @@ serve(async (req: Request) => {
     let failed = 0;
     let rateLimited = 0;
 
-    if (campaign.channel === "email" && RESEND_API_KEY) {
-      // [E2] Pool de workers de concurrencia acotada sobre un cursor compartido.
-      const list = recipients;
-      let cursor = 0;
-      const worker = async () => {
-        while (true) {
-          const index = cursor++;
-          if (index >= list.length) return;
-          const outcome = await sendOne(RESEND_API_KEY, fromAddress, list[index], campaign, unsubscribeHeader);
-          if (outcome.delivered) delivered++;
-          else {
-            failed++;
-            if (outcome.rateLimited) rateLimited++;
+    try {
+      if (campaign.channel === "email" && RESEND_API_KEY) {
+        // [E2] Pool de workers de concurrencia acotada sobre un cursor compartido.
+        const list = recipients;
+        let cursor = 0;
+        const worker = async () => {
+          while (true) {
+            const index = cursor++;
+            if (index >= list.length) return;
+            const outcome = await sendOne(RESEND_API_KEY, fromAddress, list[index], campaign, unsubscribeHeader);
+            if (outcome.delivered) delivered++;
+            else {
+              failed++;
+              if (outcome.rateLimited) rateLimited++;
+            }
           }
-        }
-      };
-      const poolSize = Math.min(SEND_CONCURRENCY, list.length);
-      await Promise.all(Array.from({ length: poolSize }, () => worker()));
+        };
+        const poolSize = Math.min(SEND_CONCURRENCY, list.length);
+        await Promise.all(Array.from({ length: poolSize }, () => worker()));
+      }
+    } finally {
+      // Siempre se cierra como 'sent' con lo que alcanzó a salir: si el envío se
+      // interrumpe a mitad, dejarla en 'sending' la bloqueaba para siempre, y
+      // devolverla a borrador permitiría reenviar a quien ya la recibió.
+      await adminClient.from("campaigns").update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        stats_sent: delivered + failed,
+        stats_delivered: delivered,
+        stats_opened: 0,
+        stats_clicked: 0,
+        updated_at: new Date().toISOString(),
+      }).eq("id", campaignId);
     }
 
     const statsSent = delivered + failed;
-
-    await adminClient.from("campaigns").update({
-      status: "sent",
-      sent_at: new Date().toISOString(),
-      stats_sent: statsSent,
-      stats_delivered: delivered,
-      stats_opened: 0,
-      stats_clicked: 0,
-      updated_at: new Date().toISOString(),
-    }).eq("id", campaignId);
 
     if (rateLimited > 0) {
       console.warn(`Campaign ${campaignId}: ${rateLimited} destinatarios fallaron por rate limit de Resend`);

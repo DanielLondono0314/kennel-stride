@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 function campaignKeys(orgId: string | undefined) {
@@ -32,7 +33,7 @@ export function useCreateCampaign() {
   const { organization } = useOrganization();
 
   return useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
+    mutationFn: async (input: Omit<TablesInsert<"campaigns">, "organization_id" | "status">) => {
       const { data, error } = await supabase
         .from("campaigns")
         .insert({ ...input, organization_id: organization!.id, status: "draft" })

@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { User, Loader2, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, Loader2, Save, MapPinCheck, MapPinOff } from "lucide-react";
 import { toast } from "sonner";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { customerSchema } from "@/lib/schemas";
@@ -37,6 +40,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const [marketingOptOut, setMarketingOptOut] = useState(false);
+  const [notificationChannelOverride, setNotificationChannelOverride] = useState<"" | "sms" | "whatsapp">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Errores inline por campo con el mensaje real de zod (PR-13).
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,10 +67,16 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setEmergencyContactName(customer.emergency_contact_name || "");
       setEmergencyContactPhone(customer.emergency_contact_phone || "");
       setNotes(customer.notes || "");
+      setWhatsappOptIn(!!customer.whatsapp_opt_in);
+      setMarketingOptOut(!!customer.marketing_opt_out);
+      setNotificationChannelOverride(customer.notification_channel_override ?? "");
     } else {
       setFirstName(""); setLastName(""); setEmail(""); setPhone("");
       setAddress(""); setCity(""); setState(""); setZipCode("");
       setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
+      setWhatsappOptIn(false);
+      setMarketingOptOut(false);
+      setNotificationChannelOverride("");
     }
     setErrors({});
   }, [customer, open]);
@@ -129,6 +141,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       emergency_contact_name: emergencyContactName.trim() || null,
       emergency_contact_phone: emergencyContactPhone.trim() || null,
       notes: data.notes || null,
+      whatsapp_opt_in: whatsappOptIn,
+      marketing_opt_out: marketingOptOut,
+      notification_channel_override: notificationChannelOverride || null,
     });
     clearDraft();
     setIsSubmitting(false);
@@ -190,7 +205,20 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
           </div>
 
           <div className="space-y-2">
-            <Label>Dirección</Label>
+            <div className="flex items-center justify-between">
+              <Label>Dirección</Label>
+              {isEditing && (
+                customer.address_lat != null ? (
+                  <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                    <MapPinCheck className="h-3 w-3" />Dirección verificada
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="gap-1 text-xs font-normal text-muted-foreground">
+                    <MapPinOff className="h-3 w-3" />No verificada — no disponible para ruta
+                  </Badge>
+                )
+              )}
+            </div>
             <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa" />
           </div>
 
@@ -217,6 +245,47 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             <div className="space-y-2">
               <Label>Teléfono de emergencia</Label>
               <Input value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} placeholder="+1 555-0000" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg border p-3">
+            <Checkbox
+              id="cust-marketing-opt-out"
+              checked={marketingOptOut}
+              onCheckedChange={(v) => setMarketingOptOut(!!v)}
+            />
+            <Label htmlFor="cust-marketing-opt-out" className="font-normal cursor-pointer">
+              El cliente pidió no recibir campañas de marketing
+            </Label>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <Label className="text-sm">Notificaciones de ruta</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="cust-whatsapp-opt-in"
+                checked={whatsappOptIn}
+                onCheckedChange={(v) => setWhatsappOptIn(!!v)}
+              />
+              <Label htmlFor="cust-whatsapp-opt-in" className="font-normal cursor-pointer">
+                El cliente autorizó recibir mensajes de WhatsApp
+              </Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Canal preferido (opcional)</Label>
+              <Select
+                value={notificationChannelOverride || "auto"}
+                onValueChange={(v) => setNotificationChannelOverride(v === "auto" ? "" : (v as "sms" | "whatsapp"))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Automático (según la organización)</SelectItem>
+                  <SelectItem value="sms">Siempre SMS</SelectItem>
+                  <SelectItem value="whatsapp">Siempre WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

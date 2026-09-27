@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Reservation, ReservationStatus, ServiceType, UserRole, Location } from "@/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { fetchAll } from "@/lib/supabaseQuery";
 
 export interface DbReservationRow {
   id: string;
@@ -165,38 +166,54 @@ export function useReservations(options: UseReservationsOptions = {}) {
   const fetch = useCallback(async () => {
     if (!organization) return;
     if (!hasLoadedRef.current) setLoading(true);
-    let query = supabase
-      .from("reservations")
-      .select(RESERVATION_SELECT)
-      .eq("organization_id", organization.id)
-      .order("start_date", { ascending: true });
 
-    if (options.date) {
-      // Single-day view
-      const d = options.date;
-      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
-      const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
-      query = query.gte("start_date", dayStart).lt("start_date", dayEnd);
-    } else if (options.fromDate !== undefined || options.toDate !== undefined) {
-      // Caller explicitly set range; null means "no bound on that side"
-      if (options.fromDate) query = query.gte("start_date", options.fromDate.toISOString());
-      if (options.toDate)   query = query.lte("start_date", options.toDate.toISOString());
-    } else {
-      // Default ±30-day window — neither fromDate nor toDate was specified
-      const now = new Date();
-      const from = new Date(now); from.setDate(from.getDate() - DEFAULT_WINDOW_DAYS);
-      const to   = new Date(now); to.setDate(to.getDate() + DEFAULT_WINDOW_DAYS);
-      query = query.gte("start_date", from.toISOString()).lte("start_date", to.toISOString());
+    // Filtros por SOLAPAMIENTO (start_date <= fin del rango AND end_date >=
+    // inicio): filtrar solo por start_date hacía desaparecer las estadías de
+    // varios días (internados) después de su primer día.
+    const buildQuery = () => {
+      let query = supabase
+        .from("reservations")
+        .select(RESERVATION_SELECT)
+        .eq("organization_id", organization.id)
+        .order("start_date", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (options.date) {
+        // Single-day view
+        const d = options.date;
+        const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+        const dayEnd   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
+        query = query.lt("start_date", dayEnd).gte("end_date", dayStart);
+      } else if (options.fromDate !== undefined || options.toDate !== undefined) {
+        // Caller explicitly set range; null means "no bound on that side"
+        if (options.fromDate) query = query.gte("end_date", options.fromDate.toISOString());
+        if (options.toDate)   query = query.lte("start_date", options.toDate.toISOString());
+      } else {
+        // Default ±30-day window — neither fromDate nor toDate was specified
+        const now = new Date();
+        const from = new Date(now); from.setDate(from.getDate() - DEFAULT_WINDOW_DAYS);
+        const to   = new Date(now); to.setDate(to.getDate() + DEFAULT_WINDOW_DAYS);
+        query = query.gte("end_date", from.toISOString()).lte("start_date", to.toISOString());
+      }
+
+      if (options.status) {
+        const statuses = Array.isArray(options.status) ? options.status : [options.status];
+        query = query.in("status", statuses);
+      }
+      return query;
+    };
+
+    // Paginado: PostgREST corta en 1000 filas y, ordenado ascendente, lo que se
+    // perdía eran justamente las reservas de hoy y futuras.
+    try {
+      const data = await fetchAll<DbReservationRow>((from, to) =>
+        buildQuery().range(from, to) as unknown as PromiseLike<{ data: DbReservationRow[] | null; error: { message: string } | null }>
+      );
+      setRows(data);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Error al cargar reservas");
     }
-
-    if (options.status) {
-      const statuses = Array.isArray(options.status) ? options.status : [options.status];
-      query = query.in("status", statuses);
-    }
-
-    const { data, error } = await query;
-    if (error) setError(error.message);
-    else setRows((data ?? []) as DbReservationRow[]);
     hasLoadedRef.current = true;
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,14 +265,17 @@ export async function fetchReservationsRange(
   end: Date,
   organizationId: string
 ): Promise<DbReservationRow[]> {
-  const { data, error } = await supabase
-    .from("reservations")
-    .select(RESERVATION_SELECT)
-    .eq("organization_id", organizationId)
-    .gte("start_date", start.toISOString())
-    .lte("end_date", end.toISOString())
-    .order("start_date", { ascending: true });
-
-  if (error) return [];
-  return (data ?? []) as DbReservationRow[];
+  // Solapamiento con el rango: incluye estadías que empiezan antes o terminan
+  // después de los bordes visibles.
+  return fetchAll<DbReservationRow>((from, to) =>
+    supabase
+      .from("reservations")
+      .select(RESERVATION_SELECT)
+      .eq("organization_id", organizationId)
+      .lte("start_date", end.toISOString())
+      .gte("end_date", start.toISOString())
+      .order("start_date", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to) as unknown as PromiseLike<{ data: DbReservationRow[] | null; error: { message: string } | null }>
+  );
 }

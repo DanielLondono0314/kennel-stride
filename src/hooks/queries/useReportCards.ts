@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 const PAGE_SIZE = 50;
@@ -39,7 +40,7 @@ export function useCreateReportCard() {
   const { organization } = useOrganization();
 
   return useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
+    mutationFn: async (input: Omit<TablesInsert<"report_cards">, "organization_id">) => {
       const { data, error } = await supabase
         .from("report_cards")
         .insert({ ...input, organization_id: organization!.id })

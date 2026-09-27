@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
 // Fase 4: centraliza el estado de deploys de Vercel en el panel de
 // plataforma en vez de reconstruir observabilidad propia. VERCEL_API_TOKEN,

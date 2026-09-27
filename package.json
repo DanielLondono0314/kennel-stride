@@ -8,13 +8,14 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
     "test:ui": "vitest --ui --config vitest.config.ts",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
     "test:debug": "vitest --inspect-brk --inspect --single-thread --config vitest.config.ts",
-    "qa:full": "npm run lint && npm run test && npm run build"
+    "qa:full": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

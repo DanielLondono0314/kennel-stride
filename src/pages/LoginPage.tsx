@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyPlanLimitMessage } from "@/lib/query-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ async function getFirstOrgSlug(_userId: string): Promise<string | null> {
 async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeof useNavigate>) {
   const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
   if (error) {
-    toast.error("Error al aceptar la invitación: " + error.message);
+    toast.error("Error al aceptar la invitación: " + friendlyPlanLimitMessage(error.message));
     return null;
   }
   return (data as { slug: string; role: string }) ?? null;

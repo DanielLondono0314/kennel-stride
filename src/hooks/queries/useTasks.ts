@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 function taskKeys(orgId: string | undefined) {
@@ -32,7 +33,7 @@ export function useCreateTask() {
   const queryClient = useQueryClient();
   const { organization } = useOrganization();
   return useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
+    mutationFn: async (input: Omit<TablesInsert<"tasks">, "organization_id">) => {
       const { data, error } = await supabase
         .from("tasks")
         .insert({ ...input, organization_id: organization!.id })

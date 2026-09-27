@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Clock, MapPin, Save, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Building2, Clock, MapPin, Save, Loader2, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface OrgFields {
@@ -19,6 +20,8 @@ interface OrgFields {
   closing_time: string;
   timezone: string;
   service_types: Array<{ value: string; label: string }>;
+  route_notifications_enabled: boolean;
+  route_notification_channel: "sms" | "whatsapp";
 }
 
 function toSlug(label: string): string {
@@ -39,7 +42,8 @@ const timezones = [
 ];
 
 export function BusinessProfileTab() {
-  const { organization, isAdmin, refetch } = useOrganization();
+  const { organization, isAdmin, hasFeature, refetch } = useOrganization();
+  const routeNotificationsIncluded = hasFeature("route_notifications");
   const [fields, setFields] = useState<OrgFields | null>(null);
   const [saving, setSaving] = useState(false);
   const [newServiceLabel, setNewServiceLabel] = useState("");
@@ -64,6 +68,8 @@ export function BusinessProfileTab() {
             { value: "grooming", label: "Grooming" },
             { value: "evaluation", label: "Evaluación" },
           ],
+      route_notifications_enabled: organization.route_notifications_enabled ?? false,
+      route_notification_channel: organization.route_notification_channel ?? "sms",
     });
   }, [organization]);
 
@@ -82,6 +88,8 @@ export function BusinessProfileTab() {
         closing_time: fields.closing_time,
         timezone:     fields.timezone,
         service_types: fields.service_types,
+        route_notifications_enabled: fields.route_notifications_enabled,
+        route_notification_channel:  fields.route_notification_channel,
         updated_at:   new Date().toISOString(),
       })
       .eq("id", organization.id);
@@ -184,6 +192,53 @@ export function BusinessProfileTab() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Servicio de ruta
+          </CardTitle>
+          <CardDescription>
+            Notifica por SMS o WhatsApp cuando el chofer sale hacia la casa del cliente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="route-notifications-enabled">
+              Notificaciones de ruta activas
+              {!routeNotificationsIncluded && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">Disponible desde el plan Pro</span>
+              )}
+            </Label>
+            <Switch
+              id="route-notifications-enabled"
+              checked={fields.route_notifications_enabled}
+              onCheckedChange={(v) => setFields((prev) => prev ? { ...prev, route_notifications_enabled: v } : null)}
+              disabled={!isAdmin || !routeNotificationsIncluded}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="route-channel">Canal por defecto</Label>
+            <Select
+              value={fields.route_notification_channel}
+              onValueChange={(v) => setFields((prev) => prev ? { ...prev, route_notification_channel: v as "sms" | "whatsapp" } : null)}
+              disabled={!isAdmin || !routeNotificationsIncluded || !fields.route_notifications_enabled}
+            >
+              <SelectTrigger id="route-channel">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              WhatsApp requiere plantillas aprobadas; los clientes sin opt-in de WhatsApp reciben SMS automáticamente.
+            </p>
           </div>
         </CardContent>
       </Card>

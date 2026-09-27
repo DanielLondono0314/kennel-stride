@@ -1,42 +1,19 @@
-import { useOrganization, OrgRole } from "@/contexts/OrganizationContext";
+import { useOrganization } from "@/contexts/OrganizationContext";
+import { type OrgPermission, roleHasPermission } from "@/lib/permissions";
 
-export type Permission =
-  | "delete_customer"
-  | "delete_dog"
-  | "create_invoice"
-  | "cancel_invoice"
-  | "mark_invoice_paid"
-  | "manage_staff"
-  | "manage_settings"
-  | "view_reports"
-  | "send_campaign"
-  | "manage_facility"
-  | "manage_tasks"
-  | "record_weight"
-  | "delete_weight";
-
-type PermissionMatrix = Record<Permission, OrgRole[]>;
-
-const PERMISSIONS: PermissionMatrix = {
-  delete_customer:   ["admin", "manager"],
-  delete_dog:        ["admin", "manager"],
-  create_invoice:    ["admin", "manager", "front_desk"],
-  cancel_invoice:    ["admin", "manager"],
-  mark_invoice_paid: ["admin", "manager", "front_desk"],
-  manage_staff:      ["admin"],
-  manage_settings:   ["admin"],
-  view_reports:      ["admin", "manager"],
-  send_campaign:     ["admin", "manager"],
-  manage_facility:   ["admin", "manager"],
-  manage_tasks:      ["admin", "manager", "front_desk"],
-  // Espejo de la RLS de dog_weight_logs: registrar = todo el personal;
-  // borrar = get_clinical_writer_org_ids() (el worker vet borra desde su app).
-  record_weight:     ["admin", "manager", "front_desk", "worker"],
-  delete_weight:     ["admin", "manager"],
-};
+/**
+ * Permisos del rol del usuario en la org actual (roles personalizados por org).
+ * - Una key del catálogo → la tiene el rol (o el rol es de tipo admin).
+ * - "manage_staff" / "manage_settings" → exclusivos del tipo de acceso admin.
+ * Espejo de la RLS (get_org_ids_with_permission / get_admin_org_ids).
+ */
+export type Permission = OrgPermission | "manage_staff" | "manage_settings";
 
 export function usePermission(action: Permission): boolean {
-  const { currentUserRole } = useOrganization();
-  if (!currentUserRole) return false;
-  return PERMISSIONS[action].includes(currentUserRole);
+  const { currentRole } = useOrganization();
+  if (!currentRole) return false;
+  if (action === "manage_staff" || action === "manage_settings") {
+    return currentRole.access_type === "admin";
+  }
+  return roleHasPermission(currentRole, action);
 }

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 const PAGE_SIZE = 50;
@@ -22,6 +23,12 @@ export interface DbCustomer {
   created_at: string;
   updated_at: string;
   dog_count?: number;
+  address_lat?: number | null;
+  address_lng?: number | null;
+  address_geocoded_at?: string | null;
+  notification_channel_override?: "sms" | "whatsapp" | null;
+  whatsapp_opt_in?: boolean;
+  marketing_opt_out?: boolean;
 }
 
 export type CustomerStatusFilter = "active" | "inactive" | "all";
@@ -56,9 +63,7 @@ export function useCustomers({ page = 0, search = "", status = "active" as Custo
       if (status !== "all") query = query.eq("is_active", status === "active");
 
       if (search.trim()) {
-        query = query.or(
-          `first_name.ilike.%${search.trim()}%,last_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%,phone.ilike.%${search.trim()}%`
-        );
+        query = query.or(ilikeAny(["first_name", "last_name", "email", "phone"], search));
       }
 
       const { data, error, count } = await query;
@@ -75,6 +80,13 @@ export function useCustomers({ page = 0, search = "", status = "active" as Custo
   });
 }
 
+/** Dispara la geocodificación (Mapbox, vía Edge Function) sin bloquear el
+ * guardado del cliente — errores se ignoran silenciosamente, el cliente
+ * simplemente queda sin lat/lng hasta que se corrija la dirección. */
+function triggerGeocode(customerId: string) {
+  supabase.functions.invoke("geocode-customer-address", { body: { customerId } }).catch(() => {});
+}
+
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
   const { organization } = useOrganization();
@@ -89,8 +101,9 @@ export function useCreateCustomer() {
       if (error) throw error;
       return data as DbCustomer;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: customerKeys(organization?.id).all });
+      if (created.address) triggerGeocode(created.id);
     },
   });
 }
@@ -111,9 +124,14 @@ export function useUpdateCustomer() {
       if (error) throw error;
       return data as DbCustomer;
     },
-    onSuccess: (updated) => {
+    onSuccess: (updated, variables) => {
       queryClient.invalidateQueries({ queryKey: customerKeys(organization?.id).all });
       queryClient.setQueryData(customerKeys(organization?.id).detail(updated.id), updated);
+      // Solo regeocodificar si el guardado tocó la dirección (evita llamadas
+      // innecesarias a Mapbox en cada edición de teléfono/notas/etc).
+      if ("address" in variables || "city" in variables || "state" in variables || "zip_code" in variables) {
+        triggerGeocode(updated.id);
+      }
     },
   });
 }

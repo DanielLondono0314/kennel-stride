@@ -125,58 +125,56 @@ const TESTIMONIALS = [
 
 const PLANS = [
   {
-    name: 'Starter',
-    mo: 79,
-    yr: 63,
-    desc: 'Para centros de una sola sede que quieren organizarse.',
+    name: 'Esencial',
+    mo: 19,
+    yr: 15,
+    desc: 'Para adiestradores, paseadores y profesionales independientes.',
     cta: 'Empezar gratis',
     highlight: false,
     features: [
-      'Hasta 40 unidades de alojamiento',
-      'Reservas y calendario',
-      'Fichas de clientes y perros',
-      'Facturación básica',
-      'Notificaciones por email',
-      '2 cuentas de personal',
+      'Hasta 200 perros con sus clientes',
+      'Agenda y calendario',
+      'Rutas de recogida y entrega',
+      'Paquetes y bonos de sesiones',
+      'Facturación',
+      'Reportes de tu negocio',
+      '2 usuarios',
       'Soporte por email',
     ],
   },
   {
-    name: 'Growth',
-    mo: 179,
-    yr: 143,
-    desc: 'Para centros en crecimiento que necesitan la plataforma completa.',
+    name: 'Pro',
+    mo: 49,
+    yr: 39,
+    desc: 'Para guarderías y daycares que trabajan con un equipo.',
     cta: 'Empezar gratis',
     highlight: true,
     badge: 'Más popular',
     features: [
-      'Alojamientos ilimitados',
-      'Todo lo del plan Starter',
-      'Historial médico y clínica',
-      'Gestión de instalaciones',
-      'Horarios y roles del personal',
-      'Comunicaciones SMS + email',
-      'Reportes y analítica',
-      'Personal ilimitado',
+      'Todo lo del plan Esencial',
+      'Hasta 1.000 perros y 10 usuarios',
+      'Solicitudes de reserva de tus clientes',
+      'Report Cards para los dueños',
+      'Avisos y alertas operativas',
+      'Notificaciones de ruta por SMS / WhatsApp',
       'Soporte prioritario',
     ],
   },
   {
-    name: 'Enterprise',
-    mo: null,
-    yr: null,
-    desc: 'Para grupos con múltiples sedes y redes de franquicias.',
-    cta: 'Contactar ventas',
+    name: 'Premium',
+    mo: 99,
+    yr: 79,
+    desc: 'Para hoteles, resorts y centros caninos completos.',
+    cta: 'Empezar gratis',
     highlight: false,
     features: [
-      'Gestión multisede',
-      'Todo lo del plan Growth',
-      'Integraciones personalizadas',
-      'Opciones white-label',
-      'Incorporación dedicada',
-      'Garantía de SLA',
-      'Reportes a medida',
-      'Account manager propio',
+      'Todo lo del plan Pro',
+      'Perros y usuarios ilimitados',
+      'Instalaciones, perreras y ocupación',
+      'Historial médico y clínica veterinaria',
+      'Campañas de email marketing',
+      'Onboarding acompañado',
+      'Soporte prioritario por WhatsApp',
     ],
   },
 ];
@@ -192,7 +190,7 @@ const FAQS = [
   },
   {
     q: '¿Admite múltiples sedes?',
-    a: 'El plan Enterprise permite sedes ilimitadas bajo una misma cuenta, con calendarios, permisos de personal y reportes independientes por sede, además de una vista consolidada de todas las instalaciones.',
+    a: 'Para operaciones con varias sedes o franquicias armamos un plan a medida, con calendarios, permisos de personal y reportes independientes por sede. Escríbenos y lo cotizamos.',
   },
   {
     q: '¿Hay contrato o permanencia mínima?',
@@ -200,7 +198,7 @@ const FAQS = [
   },
   {
     q: '¿Cómo funciona la prueba gratuita?',
-    a: '14 días, acceso completo, sin tarjeta de crédito. Obtienes todo lo del plan Growth para evaluar la plataforma correctamente antes de elegir un plan.',
+    a: '14 días, acceso completo, sin tarjeta de crédito. Pruebas todas las funciones del plan Premium y, al terminar, eliges el plan que se ajusta a tu negocio.',
   },
 ];
 
@@ -1293,7 +1291,7 @@ function CTABanner() {
             className="mb-10"
             style={{ fontSize: 17, color: '#94A3B8', lineHeight: 1.67 }}
           >
-            Empieza tu prueba gratuita de 14 días. Acceso completo al plan Growth.
+            Empieza tu prueba gratuita de 14 días. Acceso completo a todas las funciones.
             Sin tarjeta de crédito. Cancela cuando quieras.
           </p>
         </Reveal>

@@ -19,6 +19,7 @@ import { Filter } from "lucide-react";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval,
 } from "date-fns";
+import { toast } from "sonner";
 import { fetchReservationsRange, mapDbToReservation } from "@/hooks/useReservations";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/worker";
@@ -65,10 +66,10 @@ export default function CalendarPage() {
 
     if (!orgId) return;
     setLoading(true);
-    fetchReservationsRange(bufferedStart, bufferedEnd, orgId).then((rows) => {
-      setAllReservations(rows.map(mapDbToReservation));
-      setLoading(false);
-    });
+    fetchReservationsRange(bufferedStart, bufferedEnd, orgId)
+      .then((rows) => setAllReservations(rows.map(mapDbToReservation)))
+      .catch(() => toast.error("No se pudieron cargar las reservas del calendario"))
+      .finally(() => setLoading(false));
   }, [view, currentDate, orgId]);
 
   useEffect(() => {

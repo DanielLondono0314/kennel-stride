@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import {
@@ -55,26 +56,25 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     if (!orgId) return;
 
     setLoading(true);
-    const pattern = `%${q.trim()}%`;
 
     const [custRes, dogsRes, resRes] = await Promise.all([
       supabase
         .from("customers")
         .select("id, first_name, last_name, email, phone")
         .eq("organization_id", orgId)
-        .or(`first_name.ilike.${pattern},last_name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`)
+        .or(ilikeAny(["first_name", "last_name", "email", "phone"], q))
         .limit(5),
       supabase
         .from("dogs")
         .select("id, name, breed, customers(first_name, last_name)")
         .eq("organization_id", orgId)
-        .or(`name.ilike.${pattern},breed.ilike.${pattern}`)
+        .or(ilikeAny(["name", "breed"], q))
         .limit(5),
       supabase
         .from("reservations")
         .select("id, service_name, status, start_date, dogs(name), customers(first_name, last_name)")
         .eq("organization_id", orgId)
-        .or(`service_name.ilike.${pattern}`)
+        .or(ilikeAny(["service_name"], q))
         .order("start_date", { ascending: false })
         .limit(5),
     ]);
