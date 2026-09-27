@@ -1,3 +1,8 @@
 project_id = "jqnpqmkwcaxqrevfqmue"
 [analytics]
 enabled = false
+
+# Firma electrónica de contratos: la página pública /firmar la usa sin sesión.
+# Las acciones de personal (send, pdf por id) validan la sesión en la función.
+[functions.contract-signing]
+verify_jwt = false

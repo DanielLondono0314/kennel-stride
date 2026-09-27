@@ -38,6 +38,9 @@ const ReportCardsPage      = lazy(() => import("./pages/ReportCardsPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
 const PackagesPage         = lazy(() => import("./pages/PackagesPage"));
 const InvoicesPage         = lazy(() => import("./pages/InvoicesPage"));
+const ContractsPage        = lazy(() => import("./pages/ContractsPage"));
+const NewContractPage      = lazy(() => import("./pages/NewContractPage"));
+const SignContractPage     = lazy(() => import("./pages/SignContractPage"));
 const NoticesPage          = lazy(() => import("./pages/NoticesPage"));
 const FacilityPage         = lazy(() => import("./pages/FacilityPage"));
 const ReportsPage          = lazy(() => import("./pages/ReportsPage"));
@@ -84,6 +87,8 @@ const App = () => {
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/join" element={<JoinPage />} />
+                  {/* Firma electrónica de contratos: la abre el cliente, sin cuenta */}
+                  <Route path="/firmar/:token" element={<SignContractPage />} />
                   <Route path="/terminos" element={<TermsPage />} />
                   <Route path="/privacidad" element={<PrivacyPage />} />
 
@@ -136,6 +141,8 @@ const App = () => {
                       </Route>
                       <Route path="packages"         element={<PackagesPage />} />
                       <Route path="invoices"         element={<InvoicesPage />} />
+                      <Route path="contracts"        element={<ContractsPage />} />
+                      <Route path="contracts/new"    element={<NewContractPage />} />
                       <Route path="reports"          element={<ReportsPage />} />
                       <Route element={<FeatureRoute feature="campaigns" />}>
                         <Route path="campaigns" element={<CampaignsPage />} />

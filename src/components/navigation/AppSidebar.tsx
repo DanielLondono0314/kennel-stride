@@ -25,6 +25,7 @@ import {
   UserCog,
   ListTodo,
   HeartPulse,
+  FileSignature,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -44,6 +45,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
   const canSendCampaigns = usePermission("send_campaign");
   const canManageSettings = usePermission("manage_settings");
   const canManageTasks = usePermission("schedule");
+  const canBill = usePermission("billing");
 
   return (
     <aside
@@ -109,6 +111,9 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         )}
         <AppNavLink to={`${base}/packages`}     icon={Package}    label="Paquetes"    collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/invoices`}     icon={CreditCard} label="Facturación" collapsed={collapsed} onClick={onMobileClose} />
+        {(canManageTasks || canBill) && (
+          <AppNavLink to={`${base}/contracts`}  icon={FileSignature} label="Contratos" collapsed={collapsed} onClick={onMobileClose} />
+        )}
 
         {!collapsed && (
           <p className="px-3 mt-6 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">

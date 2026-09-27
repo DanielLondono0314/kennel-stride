@@ -50,6 +50,13 @@ export const customerSchema = z.object({
   last_name: nameSchema,
   email: emailSchema,
   phone: customerPhoneSchema,
+  id_document_type: z.enum(["CC", "CE", "TI", "PA", "PPT", "NIT"]),
+  id_document: z
+    .string()
+    .trim()
+    .min(3, "Documento requerido")
+    .max(30, "Máximo 30 caracteres")
+    .regex(/^[0-9A-Za-z .-]+$/, "Solo números, letras, puntos y guiones"),
   address: z.string().trim().max(200).optional().or(z.literal("")),
   city: z.string().trim().max(80).optional().or(z.literal("")),
   state: z.string().trim().max(80).optional().or(z.literal("")),

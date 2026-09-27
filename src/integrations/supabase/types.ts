@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -164,6 +144,231 @@ export type Database = {
           },
         ]
       }
+      contract_dogs: {
+        Row: {
+          contract_id: string
+          created_at: string
+          dog_id: string
+          organization_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          dog_id: string
+          organization_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          dog_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_dogs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_dogs_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_dogs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          include_signatures: boolean
+          is_active: boolean
+          name: string
+          organization_id: string
+          service_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          include_signatures?: boolean
+          is_active?: boolean
+          name: string
+          organization_id: string
+          service_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          include_signatures?: boolean
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          service_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          body: string
+          body_sha256: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          end_date: string | null
+          field_values: Json
+          id: string
+          include_signatures: boolean
+          organization_id: string
+          package_id: string | null
+          reservation_id: string | null
+          sent_at: string | null
+          sent_to: string[] | null
+          service_type: string | null
+          sign_failed_attempts: number
+          sign_token: string | null
+          sign_token_expires_at: string | null
+          signature_image: string | null
+          signed_at: string | null
+          signed_via: string | null
+          signer_document: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          start_date: string | null
+          status: string
+          template_id: string | null
+          title: string
+          total_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          body_sha256?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          end_date?: string | null
+          field_values?: Json
+          id?: string
+          include_signatures?: boolean
+          organization_id: string
+          package_id?: string | null
+          reservation_id?: string | null
+          sent_at?: string | null
+          sent_to?: string[] | null
+          service_type?: string | null
+          sign_failed_attempts?: number
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_via?: string | null
+          signer_document?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string | null
+          status?: string
+          template_id?: string | null
+          title: string
+          total_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          body_sha256?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          end_date?: string | null
+          field_values?: Json
+          id?: string
+          include_signatures?: boolean
+          organization_id?: string
+          package_id?: string | null
+          reservation_id?: string | null
+          sent_at?: string | null
+          sent_to?: string[] | null
+          service_type?: string | null
+          sign_failed_attempts?: number
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_via?: string | null
+          signer_document?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string | null
+          status?: string
+          template_id?: string | null
+          title?: string
+          total_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -178,9 +383,12 @@ export type Database = {
           emergency_contact_phone: string | null
           first_name: string
           id: string
+          id_document: string | null
+          id_document_type: string
           is_active: boolean
           last_name: string
           ls_customer_id: string | null
+          marketing_opt_out: boolean
           notes: string | null
           notification_channel_override: string | null
           organization_id: string | null
@@ -188,7 +396,6 @@ export type Database = {
           state: string | null
           updated_at: string
           user_id: string | null
-          marketing_opt_out: boolean
           whatsapp_opt_in: boolean
           zip_code: string | null
         }
@@ -205,9 +412,12 @@ export type Database = {
           emergency_contact_phone?: string | null
           first_name: string
           id?: string
+          id_document?: string | null
+          id_document_type?: string
           is_active?: boolean
           last_name: string
           ls_customer_id?: string | null
+          marketing_opt_out?: boolean
           notes?: string | null
           notification_channel_override?: string | null
           organization_id?: string | null
@@ -215,7 +425,6 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string | null
-          marketing_opt_out?: boolean
           whatsapp_opt_in?: boolean
           zip_code?: string | null
         }
@@ -232,9 +441,12 @@ export type Database = {
           emergency_contact_phone?: string | null
           first_name?: string
           id?: string
+          id_document?: string | null
+          id_document_type?: string
           is_active?: boolean
           last_name?: string
           ls_customer_id?: string | null
+          marketing_opt_out?: boolean
           notes?: string | null
           notification_channel_override?: string | null
           organization_id?: string | null
@@ -242,7 +454,6 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string | null
-          marketing_opt_out?: boolean
           whatsapp_opt_in?: boolean
           zip_code?: string | null
         }
@@ -1164,7 +1375,7 @@ export type Database = {
           invited_by?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["app_role"]
-          role_id?: string | null
+          role_id: string
           token?: string
         }
         Update: {
@@ -1176,22 +1387,22 @@ export type Database = {
           invited_by?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          role_id?: string | null
+          role_id?: string
           token?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "organization_invitations_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "org_roles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "organization_invitations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -1210,7 +1421,7 @@ export type Database = {
           id?: string
           organization_id: string
           role?: Database["public"]["Enums"]["app_role"]
-          role_id?: string | null
+          role_id: string
           user_id: string
         }
         Update: {
@@ -1218,17 +1429,10 @@ export type Database = {
           id?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          role_id?: string | null
+          role_id?: string
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "organization_members_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "org_roles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "organization_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -1236,55 +1440,14 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
         ]
-      }
-      plan_catalog: {
-        Row: {
-          display_name: string
-          ls_variant_id: string | null
-          max_dogs: number | null
-          max_members: number | null
-          monthly_price_cop: number
-          monthly_price_usd: number
-          sort_order: number
-          tier: string
-        }
-        Insert: {
-          display_name: string
-          ls_variant_id?: string | null
-          max_dogs?: number | null
-          max_members?: number | null
-          monthly_price_cop: number
-          monthly_price_usd: number
-          sort_order: number
-          tier: string
-        }
-        Update: {
-          display_name?: string
-          ls_variant_id?: string | null
-          max_dogs?: number | null
-          max_members?: number | null
-          monthly_price_cop?: number
-          monthly_price_usd?: number
-          sort_order?: number
-          tier?: string
-        }
-        Relationships: []
-      }
-      plan_features: {
-        Row: {
-          feature: string
-          tier: string
-        }
-        Insert: {
-          feature: string
-          tier: string
-        }
-        Update: {
-          feature?: string
-          tier?: string
-        }
-        Relationships: []
       }
       organizations: {
         Row: {
@@ -1497,6 +1660,54 @@ export type Database = {
           },
         ]
       }
+      plan_catalog: {
+        Row: {
+          display_name: string
+          ls_variant_id: string | null
+          max_dogs: number | null
+          max_members: number | null
+          monthly_price_cop: number
+          monthly_price_usd: number
+          sort_order: number
+          tier: string
+        }
+        Insert: {
+          display_name: string
+          ls_variant_id?: string | null
+          max_dogs?: number | null
+          max_members?: number | null
+          monthly_price_cop: number
+          monthly_price_usd: number
+          sort_order: number
+          tier: string
+        }
+        Update: {
+          display_name?: string
+          ls_variant_id?: string | null
+          max_dogs?: number | null
+          max_members?: number | null
+          monthly_price_cop?: number
+          monthly_price_usd?: number
+          sort_order?: number
+          tier?: string
+        }
+        Relationships: []
+      }
+      plan_features: {
+        Row: {
+          feature: string
+          tier: string
+        }
+        Insert: {
+          feature: string
+          tier: string
+        }
+        Update: {
+          feature?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       platform_admin_audit_log: {
         Row: {
           action: string
@@ -1701,104 +1912,6 @@ export type Database = {
           },
         ]
       }
-      route_stops: {
-        Row: {
-          address_snapshot: string
-          completed_at: string | null
-          created_at: string
-          customer_id: string
-          departed_at: string | null
-          dog_id: string
-          eta_calculated_at: string | null
-          eta_minutes: number | null
-          id: string
-          lat: number | null
-          lng: number | null
-          notification_channel: string | null
-          notification_error: string | null
-          notification_sent_at: string | null
-          reservation_id: string
-          sequence: number
-          skipped_reason: string | null
-          status: string
-          task_id: string
-          updated_at: string
-        }
-        Insert: {
-          address_snapshot: string
-          completed_at?: string | null
-          created_at?: string
-          customer_id: string
-          departed_at?: string | null
-          dog_id: string
-          eta_calculated_at?: string | null
-          eta_minutes?: number | null
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          notification_channel?: string | null
-          notification_error?: string | null
-          notification_sent_at?: string | null
-          reservation_id: string
-          sequence: number
-          skipped_reason?: string | null
-          status?: string
-          task_id: string
-          updated_at?: string
-        }
-        Update: {
-          address_snapshot?: string
-          completed_at?: string | null
-          created_at?: string
-          customer_id?: string
-          departed_at?: string | null
-          dog_id?: string
-          eta_calculated_at?: string | null
-          eta_minutes?: number | null
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          notification_channel?: string | null
-          notification_error?: string | null
-          notification_sent_at?: string | null
-          reservation_id?: string
-          sequence?: number
-          skipped_reason?: string | null
-          status?: string
-          task_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "route_stops_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_stops_dog_id_fkey"
-            columns: ["dog_id"]
-            isOneToOne: false
-            referencedRelation: "dogs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_stops_reservation_id_fkey"
-            columns: ["reservation_id"]
-            isOneToOne: false
-            referencedRelation: "reservations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_stops_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       reservations: {
         Row: {
           check_in_time: string | null
@@ -1904,6 +2017,104 @@ export type Database = {
           },
         ]
       }
+      route_stops: {
+        Row: {
+          address_snapshot: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          departed_at: string | null
+          dog_id: string
+          eta_calculated_at: string | null
+          eta_minutes: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          notification_channel: string | null
+          notification_error: string | null
+          notification_sent_at: string | null
+          reservation_id: string
+          sequence: number
+          skipped_reason: string | null
+          status: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          address_snapshot: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          departed_at?: string | null
+          dog_id: string
+          eta_calculated_at?: string | null
+          eta_minutes?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notification_channel?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          reservation_id: string
+          sequence: number
+          skipped_reason?: string | null
+          status?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          address_snapshot?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          departed_at?: string | null
+          dog_id?: string
+          eta_calculated_at?: string | null
+          eta_minutes?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notification_channel?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          reservation_id?: string
+          sequence?: number
+          skipped_reason?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_stops_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_members: {
         Row: {
           created_at: string
@@ -1952,13 +2163,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "staff_members_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "org_roles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "staff_members_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1970,6 +2174,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -2073,6 +2284,62 @@ export type Database = {
           },
         ]
       }
+      vaccination_schedule: {
+        Row: {
+          batch_number: string | null
+          created_at: string
+          date_administered: string
+          dog_id: string
+          dog_name: string
+          id: string
+          next_dose_date: string | null
+          notes: string | null
+          organization_id: string | null
+          status: string
+          vaccine_name: string
+          vaccine_type: string
+          veterinarian: string | null
+        }
+        Insert: {
+          batch_number?: string | null
+          created_at?: string
+          date_administered?: string
+          dog_id: string
+          dog_name: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          status?: string
+          vaccine_name: string
+          vaccine_type?: string
+          veterinarian?: string | null
+        }
+        Update: {
+          batch_number?: string | null
+          created_at?: string
+          date_administered?: string
+          dog_id?: string
+          dog_name?: string
+          id?: string
+          next_dose_date?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          status?: string
+          vaccine_name?: string
+          vaccine_type?: string
+          veterinarian?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccination_schedule_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       welfare_check_entries: {
         Row: {
           created_at: string
@@ -2156,62 +2423,6 @@ export type Database = {
           },
         ]
       }
-      vaccination_schedule: {
-        Row: {
-          batch_number: string | null
-          created_at: string
-          date_administered: string
-          dog_id: string
-          dog_name: string
-          id: string
-          next_dose_date: string | null
-          notes: string | null
-          organization_id: string | null
-          status: string
-          vaccine_name: string
-          vaccine_type: string
-          veterinarian: string | null
-        }
-        Insert: {
-          batch_number?: string | null
-          created_at?: string
-          date_administered?: string
-          dog_id: string
-          dog_name: string
-          id?: string
-          next_dose_date?: string | null
-          notes?: string | null
-          organization_id?: string | null
-          status?: string
-          vaccine_name: string
-          vaccine_type?: string
-          veterinarian?: string | null
-        }
-        Update: {
-          batch_number?: string | null
-          created_at?: string
-          date_administered?: string
-          dog_id?: string
-          dog_name?: string
-          id?: string
-          next_dose_date?: string | null
-          notes?: string | null
-          organization_id?: string | null
-          status?: string
-          vaccine_name?: string
-          vaccine_type?: string
-          veterinarian?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vaccination_schedule_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -2243,6 +2454,10 @@ export type Database = {
         Args: { p_skip_reason?: string; p_stop_id: string }
         Returns: undefined
       }
+      create_contract: {
+        Args: { p_contract: Json; p_dog_ids: string[] }
+        Returns: string
+      }
       create_daily_route: {
         Args: {
           p_assignee_staff_id: string
@@ -2270,26 +2485,15 @@ export type Database = {
         }
         Returns: string
       }
-      update_reservation: {
-        Args: {
-          p_end: string
-          p_notes?: string
-          p_reservation_id: string
-          p_service_name: string
-          p_service_type: string
-          p_start: string
-          p_status?: string
-          p_total_price: number
-        }
-        Returns: undefined
-      }
       deduct_package_credit: {
         Args: { p_package_id: string; p_reason?: string }
         Returns: number
       }
+      generate_welfare_checks_all_orgs: { Args: never; Returns: undefined }
       get_active_org_ids: { Args: never; Returns: string[] }
       get_admin_org_ids: { Args: never; Returns: string[] }
       get_clinical_writer_org_ids: { Args: never; Returns: string[] }
+      get_contract_org_ids: { Args: never; Returns: string[] }
       get_finance_writer_org_ids: { Args: never; Returns: string[] }
       get_inactive_customer_ids: {
         Args: { p_days?: number; p_organization_id: string }
@@ -2299,32 +2503,44 @@ export type Database = {
       get_my_first_org_slug: { Args: never; Returns: string }
       get_my_staff_ids: { Args: never; Returns: string[] }
       get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
-      get_platform_admin_role: { Args: never; Returns: string }
-      get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
       get_org_ids_with_permission: {
         Args: { p_perm: string }
         Returns: string[]
       }
+      get_platform_admin_role: { Args: never; Returns: string }
+      get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
       get_scheduler_org_ids: { Args: never; Returns: string[] }
+      get_user_org_ids: { Args: never; Returns: string[] }
       has_org_permission: {
         Args: { p_org: string; p_perm: string }
         Returns: boolean
       }
-      get_user_org_ids: { Args: never; Returns: string[] }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       mark_route_stop_departed: {
         Args: { p_stop_id: string }
         Returns: undefined
       }
-      is_platform_admin: { Args: never; Returns: boolean }
+      normalize_id_document: { Args: { p: string }; Returns: string }
+      org_has_feature: {
+        Args: { p_feature: string; p_org_id: string }
+        Returns: boolean
+      }
+      org_permission_catalog: { Args: never; Returns: string[] }
+      org_role_enum: {
+        Args: {
+          p_access_type: string
+          p_system_key: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       platform_admin_adjust_package_credits: {
         Args: { p_delta: number; p_package_id: string; p_reason: string }
         Returns: Json
       }
-      platform_admin_credit_consumption: { Args: { p_days?: number }; Returns: Json }
-      org_has_feature: {
-        Args: { p_feature: string; p_org_id: string }
-        Returns: boolean
+      platform_admin_credit_consumption: {
+        Args: { p_days?: number }
+        Returns: Json
       }
       platform_admin_list_organizations: { Args: never; Returns: Json }
       platform_admin_org_detail: { Args: { p_org_id: string }; Returns: Json }
@@ -2342,7 +2558,37 @@ export type Database = {
         Returns: undefined
       }
       remove_demo_data: { Args: { p_org_id: string }; Returns: undefined }
+      seed_default_welfare_check_items: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       seed_demo_data: { Args: { p_org_id: string }; Returns: Json }
+      seed_org_system_roles: { Args: { p_org: string }; Returns: undefined }
+      storage_dog_folder_in_my_orgs: {
+        Args: { p_active: boolean; p_name: string }
+        Returns: boolean
+      }
+      storage_dog_folder_insertable: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
+      storage_org_folder_in_my_orgs: {
+        Args: { p_active: boolean; p_name: string }
+        Returns: boolean
+      }
+      update_reservation: {
+        Args: {
+          p_end: string
+          p_notes?: string
+          p_reservation_id: string
+          p_service_name: string
+          p_service_type: string
+          p_start: string
+          p_status?: string
+          p_total_price: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "front_desk" | "worker" | "manager"
@@ -2361,12 +2607,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2390,11 +2636,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2415,11 +2661,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2440,11 +2686,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2457,11 +2703,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2471,13 +2717,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "front_desk", "worker", "manager"],
     },
   },
 } as const
-

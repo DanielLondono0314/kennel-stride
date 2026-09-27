@@ -21,6 +21,7 @@ import {
   CheckCircle2, Clock, Loader2, Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatIdDocument, isDuplicateIdDocumentError } from "@/lib/idDocument";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { formatCurrency } from "@/lib/currency";
@@ -147,6 +148,8 @@ export default function CustomerProfilePage() {
       last_name: data.last_name!,
       email: data.email!,
       phone: data.phone!,
+      id_document_type: data.id_document_type ?? "CC",
+      id_document: data.id_document || null,
       address: data.address || null,
       city: data.city || null,
       state: data.state || null,
@@ -158,7 +161,8 @@ export default function CustomerProfilePage() {
     };
     const { error } = await supabase.from("customers").update(payload).eq("id", id!);
     if (error) {
-      toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
+      if (isDuplicateIdDocumentError(error)) toast.error("Ya existe un cliente con ese número de documento");
+      else toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
     } else {
       toast.success("Cliente actualizado");
       setEditModalOpen(false);
@@ -493,6 +497,17 @@ export default function CustomerProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Documento</span>
+                  {customer.id_document ? (
+                    <span>{formatIdDocument(customer.id_document_type, customer.id_document)}</span>
+                  ) : (
+                    <button type="button" onClick={() => setEditModalOpen(true)} className="text-warning underline underline-offset-2">
+                      Falta — agregar
+                    </button>
+                  )}
+                </div>
+                <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Email</span>
                   <span>{customer.email}</span>
