@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LegalLinks } from "@/components/legal/LegalLinks";
+import { LEGAL } from "@/lib/legal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Save, Loader2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -199,6 +201,20 @@ export function UserProfileTab() {
               Cambiar contraseña
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Tus datos y documentos legales</CardTitle>
+          <CardDescription>
+            Para conocer, actualizar, rectificar o suprimir tus datos personales, o revocar tu autorización
+            (Ley 1581 de 2012), escribe a{" "}
+            {LEGAL.dataEmail.startsWith("PENDIENTE") ? "nuestro canal de soporte" : <a href={`mailto:${LEGAL.dataEmail}`} className="text-primary underline">{LEGAL.dataEmail}</a>}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LegalLinks includeCustomerModel className="justify-start" />
         </CardContent>
       </Card>
     </div>

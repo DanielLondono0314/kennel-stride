@@ -173,6 +173,8 @@ export type Database = {
           balance: number
           city: string | null
           created_at: string
+          data_consent_at: string | null
+          data_consent_by: string | null
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
@@ -200,6 +202,8 @@ export type Database = {
           balance?: number
           city?: string | null
           created_at?: string
+          data_consent_at?: string | null
+          data_consent_by?: string | null
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -227,6 +231,8 @@ export type Database = {
           balance?: number
           city?: string | null
           created_at?: string
+          data_consent_at?: string | null
+          data_consent_by?: string | null
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
@@ -905,6 +911,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          document: string
+          id: string
+          ip: string | null
+          organization_id: string | null
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          document: string
+          id?: string
+          ip?: string | null
+          organization_id?: string | null
+          user_agent?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          document?: string
+          id?: string
+          ip?: string | null
+          organization_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
       }
       medical_conditions: {
         Row: {
@@ -2217,7 +2256,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_invitation: { Args: { p_token: string }; Returns: Json }
+      accept_invitation: {
+        Args: {
+          p_privacy_version?: string
+          p_terms_version?: string
+          p_token: string
+        }
+        Returns: Json
+      }
       check_expiring_packages: { Args: never; Returns: undefined }
       check_expiring_packages_all_orgs: { Args: never; Returns: undefined }
       check_in_reservation: {
@@ -2253,7 +2299,13 @@ export type Database = {
         Returns: string
       }
       create_organization: {
-        Args: { p_name: string; p_slug: string }
+        Args: {
+          p_dpa_version?: string
+          p_name: string
+          p_privacy_version?: string
+          p_slug: string
+          p_terms_version?: string
+        }
         Returns: Json
       }
       create_reservation: {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { LEGAL_DOCS, operatorName } from '@/lib/legal';
 import {
   Calendar, Users, Stethoscope, CreditCard, Building2,
   BarChart3, Check, ArrowRight, Menu, X, Star,
@@ -93,41 +94,10 @@ const STEPS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: 'Sara Kowalski',
-    role: 'Propietaria, Lakeside Paw Lodge',
-    location: 'Madrid, España',
-    quote: 'Pasamos de gestionar 3 hojas de cálculo y un registro en papel a controlarlo todo desde una pantalla. Las reservas subieron un 40% desde que dejamos de hacer doble reserva en los boxes.',
-    initials: 'SK',
-    aBg: '#e2e8f0',
-    aText: '#1b2b4d',
-  },
-  {
-    name: 'Marcos Delgado',
-    role: 'Adiestrador Jefe, Canine Academy Pro',
-    location: 'Barcelona, España',
-    quote: 'Solo el planificador de clases ya vale la pena. Los dueños reservan online, veo el listado completo con el historial de cada perro y la facturación corre sola al terminar.',
-    initials: 'MD',
-    aBg: '#fde9c8',
-    aText: '#b45309',
-  },
-  {
-    name: 'Jennifer Tran',
-    role: 'Directora de Operaciones, Happy Tails Resort',
-    location: 'Valencia, España',
-    quote: 'Antes incorporar al personal tardaba dos semanas. Con KennelOps son dos días — los roles están claros, todo está documentado y nadie me llama en mi día libre.',
-    initials: 'JT',
-    aBg: '#D1FAE5',
-    aText: '#065F46',
-  },
-];
-
 const PLANS = [
   {
     name: 'Esencial',
     mo: 19,
-    yr: 15,
     desc: 'Para adiestradores, paseadores y profesionales independientes.',
     cta: 'Empezar gratis',
     highlight: false,
@@ -145,7 +115,6 @@ const PLANS = [
   {
     name: 'Pro',
     mo: 49,
-    yr: 39,
     desc: 'Para guarderías y daycares que trabajan con un equipo.',
     cta: 'Empezar gratis',
     highlight: true,
@@ -163,7 +132,6 @@ const PLANS = [
   {
     name: 'Premium',
     mo: 99,
-    yr: 79,
     desc: 'Para hoteles, resorts y centros caninos completos.',
     cta: 'Empezar gratis',
     highlight: false,
@@ -182,11 +150,11 @@ const PLANS = [
 const FAQS = [
   {
     q: '¿Cuánto tiempo tarda la incorporación?',
-    a: 'La mayoría de los centros están completamente operativos en 48 horas. Migramos tus datos de clientes existentes, configuramos el plano de tus instalaciones y hacemos un recorrido en vivo con tu equipo — nuestro equipo de incorporación está disponible todos los días, incluidos los fines de semana.',
+    a: 'Puedes empezar el mismo día: creas tu centro, importas tus clientes y perros desde Excel o CSV con nuestras plantillas e invitas a tu equipo. Si necesitas ayuda, te acompañamos por email.',
   },
   {
     q: '¿Mis clientes pueden reservar online?',
-    a: 'Sí. Cada cuenta incluye un portal de reservas personalizable que puedes incrustar en tu web o compartir como enlace directo. Los clientes reservan, consultan disponibilidad y reciben confirmaciones automáticas sin necesidad de llamar.',
+    a: 'Hoy las reservas las registra tu equipo desde la plataforma, y tus clientes reciben reportes y avisos del servicio. Un portal de reservas para dueños está en nuestra hoja de ruta.',
   },
   {
     q: '¿Admite múltiples sedes?',
@@ -194,7 +162,7 @@ const FAQS = [
   },
   {
     q: '¿Hay contrato o permanencia mínima?',
-    a: 'Sin contratos. Los planes mensuales se cancelan en cualquier momento. Los planes anuales se facturan por adelantado con un 20% de descuento y permiten reembolso prorrateado dentro de los primeros 30 días.',
+    a: 'Sin contratos ni permanencia. Los planes son mensuales, se renuevan automáticamente y los cancelas cuando quieras; la cancelación aplica al final del mes pagado. Consulta los Términos y Condiciones para el derecho de retracto.',
   },
   {
     q: '¿Cómo funciona la prueba gratuita?',
@@ -202,15 +170,10 @@ const FAQS = [
   },
 ];
 
-const TRUST_NAMES = [
-  'ColinaCanineCenter', 'DanielYTuPerro', 'Entrecaninitos :v',
-  'Kaelis', 'Pedro', 'ValanzDugz',
-];
 
 const NAV_LINKS = [
   { label: 'Funciones',   id: 'features' },
   { label: 'Precios',     id: 'pricing' },
-  { label: 'Testimonios', id: 'testimonials' },
   { label: 'FAQ',         id: 'faq' },
 ];
 
@@ -717,22 +680,7 @@ function Hero() {
               </div>
             </Reveal>
 
-            <Reveal delay={180}>
-              <div className="flex flex-wrap gap-8">
-                {[
-                  { v: '2.847+', l: 'centros y escuelas' },
-                  { v: '4,9 ★',  l: 'valoración media' },
-                  { v: '99,9%',  l: 'uptime garantizado' },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: c.text, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                      {s.v}
-                    </p>
-                    <p style={{ fontSize: 13, color: c.muted, marginTop: 3 }}>{s.l}</p>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
+            
           </div>
 
           {/* Right: dashboard mockup */}
@@ -742,39 +690,6 @@ function Hero() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* ─── Trust Bar ─────────────────────────────────────────────────────────────── */
-
-function TrustBar() {
-  return (
-    <div style={{ backgroundColor: c.navy, padding: '16px 24px' }}>
-      <div
-        className="mx-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-8"
-        style={{ maxWidth: 1200 }}
-      >
-        <p
-          className="flex-shrink-0"
-          style={{
-            fontSize: 11, fontWeight: 700, color: '#4B6280',
-            textTransform: 'uppercase', letterSpacing: '0.09em',
-          }}
-        >
-          Con la confianza de
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
-          {TRUST_NAMES.map((name) => (
-            <span
-              key={name}
-              style={{ fontSize: 13, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}
-            >
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -922,79 +837,9 @@ function HowItWorks() {
   );
 }
 
-/* ─── Testimonials ──────────────────────────────────────────────────────────── */
-
-function Testimonials() {
-  return (
-    <section id="testimonials" style={{ backgroundColor: c.white, padding: '96px 24px' }}>
-      <div className="mx-auto" style={{ maxWidth: 1200 }}>
-        <Reveal className="text-center mb-16">
-          <p
-            style={{
-              fontSize: 12, fontWeight: 700, color: c.blue,
-              textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12,
-            }}
-          >
-            Testimonios
-          </p>
-          <h2
-            style={{
-              fontSize: 'clamp(28px, 4vw, 42px)',
-              fontWeight: 800, color: c.text,
-              letterSpacing: '-0.02em', lineHeight: 1.18,
-            }}
-          >
-            Centros que confían<br />en KennelOps
-          </h2>
-        </Reveal>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t, i) => (
-            <Reveal key={t.name} delay={i * 70}>
-              <div
-                className="rounded-2xl p-7 h-full flex flex-col"
-                style={{ border: `1.5px solid ${c.border}`, backgroundColor: c.white }}
-              >
-                {/* Stars */}
-                <div className="flex gap-1 mb-5">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} size={14} fill="#F59E0B" color="#F59E0B" />
-                  ))}
-                </div>
-                <p
-                  className="flex-1 mb-6"
-                  style={{ fontSize: 15, color: c.textMid, lineHeight: 1.72, fontStyle: 'italic' }}
-                >
-                  "{t.quote}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: 40, height: 40, borderRadius: '50%',
-                      backgroundColor: t.aBg,
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 700, color: t.aText }}>{t.initials}</span>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{t.name}</p>
-                    <p style={{ fontSize: 12, color: c.muted }}>{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ─── Pricing ───────────────────────────────────────────────────────────────── */
 
 function Pricing() {
-  const [annual, setAnnual] = useState(false);
 
   return (
     <section id="pricing" style={{ backgroundColor: c.bg, padding: '96px 24px' }}>
@@ -1021,33 +866,6 @@ function Pricing() {
             Sin coste de alta. Sin cargos por reserva. Un precio mensual predecible.
           </p>
 
-          {/* Billing toggle */}
-          <div
-            className="inline-flex items-center p-1 rounded-xl"
-            style={{ backgroundColor: c.border, gap: 2 }}
-          >
-            {[
-              { label: 'Mensual', key: false },
-              { label: 'Anual', key: true },
-            ].map(({ label, key }) => (
-              <button
-                key={label}
-                onClick={() => setAnnual(key)}
-                className="px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer border-none"
-                style={{
-                  backgroundColor: annual === key ? c.white : 'transparent',
-                  color: annual === key ? c.text : c.muted,
-                  boxShadow: annual === key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                  transition: 'background-color 0.2s, color 0.2s, box-shadow 0.2s',
-                }}
-              >
-                {label}{' '}
-                {key && (
-                  <span style={{ color: c.green, fontWeight: 700 }}>–20%</span>
-                )}
-              </button>
-            ))}
-          </div>
         </Reveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
@@ -1106,7 +924,7 @@ function Pricing() {
                           lineHeight: 1, letterSpacing: '-0.03em',
                         }}
                       >
-                        ${annual ? p.yr : p.mo}
+                        ${p.mo}
                       </span>
                       <span
                         style={{
@@ -1115,7 +933,7 @@ function Pricing() {
                           paddingBottom: 5,
                         }}
                       >
-                        /mes
+                        USD/mes
                       </span>
                     </div>
                   ) : (
@@ -1127,11 +945,6 @@ function Pricing() {
                       }}
                     >
                       A medida
-                    </p>
-                  )}
-                  {annual && p.mo !== null && (
-                    <p style={{ fontSize: 12, color: p.highlight ? '#64748B' : c.muted, marginTop: 4 }}>
-                      Facturado ${(p.yr! * 12).toLocaleString()}/año
                     </p>
                   )}
                 </div>
@@ -1422,12 +1235,13 @@ function Footer() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
           <p style={{ fontSize: 13, color: '#475569' }}>
-            © 2025 KennelOps, Inc. Todos los derechos reservados.
+            © {new Date().getFullYear()} {operatorName()}. Todos los derechos reservados.
           </p>
           <div className="flex gap-6">
             {[
-              { label: 'Privacidad', href: '/privacidad' },
-              { label: 'Términos', href: '/terminos' },
+              { label: 'Tratamiento de datos', href: LEGAL_DOCS.privacy.path },
+              { label: 'Términos', href: LEGAL_DOCS.terms.path },
+              { label: 'Cookies', href: LEGAL_DOCS.cookies.path },
             ].map((l) => (
               <a
                 key={l.href}
@@ -1482,10 +1296,8 @@ export default function LandingPage() {
 
       <main>
         <Hero />
-        <TrustBar />
         <Features />
         <HowItWorks />
-        <Testimonials />
         <Pricing />
         <FAQ />
         <CTABanner />

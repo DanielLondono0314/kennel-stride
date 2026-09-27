@@ -29,6 +29,8 @@ export interface DbCustomer {
   notification_channel_override?: "sms" | "whatsapp" | null;
   whatsapp_opt_in?: boolean;
   marketing_opt_out?: boolean;
+  /** Ley 1581: cuándo se registró la autorización del cliente (null = sin registro). */
+  data_consent_at?: string | null;
 }
 
 export type CustomerStatusFilter = "active" | "inactive" | "all";

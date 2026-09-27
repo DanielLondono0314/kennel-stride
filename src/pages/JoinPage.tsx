@@ -6,6 +6,19 @@ import { friendlyPlanLimitMessage } from "@/lib/query-client";
 import { Button } from "@/components/ui/button";
 import { Dog, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { ACCOUNT_CONSENT_VERSIONS, LegalConsentCheckbox } from "@/components/legal/LegalConsentCheckbox";
+import { LEGAL } from "@/lib/legal";
+
+/** true si el usuario ya aceptó Términos y Política (p. ej. al registrarse). */
+async function hasAcceptedAccountTerms(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("legal_acceptances")
+    .select("document")
+    .eq("user_id", userId)
+    .in("document", ["terms", "privacy"]);
+  const docs = new Set((data ?? []).map((r) => r.document));
+  return docs.has("terms") && docs.has("privacy");
+}
 
 export default function JoinPage() {
   const [searchParams] = useSearchParams();
@@ -16,6 +29,8 @@ export default function JoinPage() {
   const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "accepting">("loading");
   const [orgName, setOrgName] = useState("");
   const [role, setRole] = useState("");
+  const [needsConsent, setNeedsConsent] = useState(false);
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (!token) { setStatus("invalid"); return; }
@@ -32,9 +47,17 @@ export default function JoinPage() {
         setOrgName(invite.org_name ?? "tu equipo");
         setRole(invite.role_name ?? invite.role);
 
-        // If already logged in, accept automatically
+        // Con sesión: si ya aceptó los documentos se une directo; si no, se
+        // le pide la aceptación explícita antes de unirse.
         if (user) {
-          acceptInvitation();
+          hasAcceptedAccountTerms(user.id).then((ok) => {
+            if (ok) {
+              acceptInvitation(false);
+            } else {
+              setNeedsConsent(true);
+              setStatus("valid");
+            }
+          });
         } else {
           setStatus("valid");
         }
@@ -44,10 +67,15 @@ export default function JoinPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user?.id]);
 
-  const acceptInvitation = async () => {
+  const acceptInvitation = async (withConsent: boolean) => {
     if (!token) return;
     setStatus("accepting");
-    const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
+    const { data, error } = await supabase.rpc("accept_invitation", {
+      p_token: token,
+      ...(withConsent
+        ? { p_terms_version: ACCOUNT_CONSENT_VERSIONS.terms, p_privacy_version: ACCOUNT_CONSENT_VERSIONS.privacy }
+        : {}),
+    });
     if (error) {
       toast.error("Error al aceptar invitación", { description: friendlyPlanLimitMessage(error.message) });
       setStatus("invalid");
@@ -98,7 +126,7 @@ export default function JoinPage() {
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
             <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-bold text-xl">KennelOps</span>
+          <span className="font-bold text-xl">{LEGAL.brand}</span>
         </div>
 
         <div className="border rounded-xl p-6 bg-card space-y-4">
@@ -115,19 +143,24 @@ export default function JoinPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <Button variant="outline" asChild>
-              <Link to={`/login?invite=${token}`}>Ya tengo cuenta</Link>
-            </Button>
-            <Button asChild>
-              <Link to={`/register?invite=${token}`}>Crear cuenta</Link>
-            </Button>
-          </div>
+          {needsConsent ? (
+            <div className="space-y-4 pt-2">
+              <LegalConsentCheckbox checked={accepted} onCheckedChange={setAccepted} />
+              <Button className="w-full" disabled={!accepted} onClick={() => acceptInvitation(true)}>
+                Unirme al equipo
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Button variant="outline" asChild>
+                <Link to={`/login?invite=${token}`}>Ya tengo cuenta</Link>
+              </Button>
+              <Button asChild>
+                <Link to={`/register?invite=${token}`}>Crear cuenta</Link>
+              </Button>
+            </div>
+          )}
         </div>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Al unirte aceptas los términos de uso de KennelOps.
-        </p>
       </div>
     </div>
   );
