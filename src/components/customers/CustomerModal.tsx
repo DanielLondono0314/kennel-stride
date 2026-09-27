@@ -16,6 +16,7 @@ import { customerSchema } from "@/lib/schemas";
 import { zodFieldErrors, focusFirstInvalid } from "@/lib/forms";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useDraftForm } from "@/hooks/useDraftForm";
+import { ID_DOCUMENT_TYPES, type IdDocumentType } from "@/lib/idDocument";
 import { DraftBanner } from "@/components/shared/DraftBanner";
 
 interface CustomerModalProps {
@@ -33,6 +34,8 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [idDocumentType, setIdDocumentType] = useState<IdDocumentType>("CC");
+  const [idDocument, setIdDocument] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -60,6 +63,8 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setLastName(customer.last_name);
       setEmail(customer.email);
       setPhone(customer.phone);
+      setIdDocumentType((customer.id_document_type as IdDocumentType) || "CC");
+      setIdDocument(customer.id_document || "");
       setAddress(customer.address || "");
       setCity(customer.city || "");
       setState(customer.state || "");
@@ -72,6 +77,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setNotificationChannelOverride(customer.notification_channel_override ?? "");
     } else {
       setFirstName(""); setLastName(""); setEmail(""); setPhone("");
+      setIdDocumentType("CC"); setIdDocument("");
       setAddress(""); setCity(""); setState(""); setZipCode("");
       setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
       setWhatsappOptIn(false);
@@ -84,7 +90,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
   // Escape, clic afuera), no se pierde lo escrito. Solo para creación.
   const draftKey = organization?.id && !isEditing ? `customerDraft:${organization.id}:new` : null;
-  const draftValue = { firstName, lastName, email, phone, address, city, state, zipCode, emergencyContactName, emergencyContactPhone, notes };
+  const draftValue = { firstName, lastName, email, phone, idDocumentType, idDocument, address, city, state, zipCode, emergencyContactName, emergencyContactPhone, notes };
   const { hasDraft, clearDraft } = useDraftForm({
     key: draftKey,
     active: open,
@@ -92,16 +98,18 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
     apply: (d) => {
       setFirstName(d.firstName ?? ""); setLastName(d.lastName ?? "");
       setEmail(d.email ?? ""); setPhone(d.phone ?? "");
+      setIdDocumentType(d.idDocumentType ?? "CC"); setIdDocument(d.idDocument ?? "");
       setAddress(d.address ?? ""); setCity(d.city ?? ""); setState(d.state ?? ""); setZipCode(d.zipCode ?? "");
       setEmergencyContactName(d.emergencyContactName ?? ""); setEmergencyContactPhone(d.emergencyContactPhone ?? "");
       setNotes(d.notes ?? "");
     },
-    isEmpty: (v) => !v.firstName.trim() && !v.lastName.trim() && !v.email.trim() && !v.phone.trim() && !v.notes.trim(),
+    isEmpty: (v) => !v.firstName.trim() && !v.lastName.trim() && !v.email.trim() && !v.phone.trim() && !v.idDocument.trim() && !v.notes.trim(),
   });
 
   const discardDraft = () => {
     clearDraft();
     setFirstName(""); setLastName(""); setEmail(""); setPhone("");
+    setIdDocumentType("CC"); setIdDocument("");
     setAddress(""); setCity(""); setState(""); setZipCode("");
     setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
   };
@@ -112,6 +120,8 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       last_name: lastName,
       email,
       phone,
+      id_document_type: idDocumentType,
+      id_document: idDocument,
       address,
       city,
       state,
@@ -134,6 +144,8 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       last_name: data.last_name,
       email: data.email,
       phone: data.phone,
+      id_document_type: data.id_document_type,
+      id_document: data.id_document,
       address: data.address || null,
       city: data.city || null,
       state: data.state || null,
@@ -182,6 +194,27 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
                 aria-describedby={errors.last_name ? "cust-last-name-error" : undefined}
                 className={errors.last_name ? "border-destructive focus-visible:ring-destructive" : ""} />
               {errors.last_name && <p id="cust-last-name-error" className="text-xs text-destructive">{errors.last_name}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cust-doc-type">Tipo de documento *</Label>
+              <Select value={idDocumentType} onValueChange={(v) => setIdDocumentType(v as IdDocumentType)}>
+                <SelectTrigger id="cust-doc-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ID_DOCUMENT_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cust-id-document">Número de documento *</Label>
+              <Input id="cust-id-document" value={idDocument} onChange={(e) => { setIdDocument(e.target.value); clearError("id_document"); }}
+                placeholder="1.020.304.050" inputMode="text" autoComplete="off"
+                aria-invalid={errors.id_document ? true : undefined}
+                aria-describedby={errors.id_document ? "cust-id-document-error" : undefined}
+                className={errors.id_document ? "border-destructive focus-visible:ring-destructive" : ""} />
+              {errors.id_document && <p id="cust-id-document-error" className="text-xs text-destructive">{errors.id_document}</p>}
             </div>
           </div>
 

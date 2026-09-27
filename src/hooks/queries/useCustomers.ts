@@ -11,6 +11,8 @@ export interface DbCustomer {
   last_name: string;
   email: string;
   phone: string;
+  id_document: string | null;
+  id_document_type: string;
   address: string | null;
   city: string | null;
   state: string | null;

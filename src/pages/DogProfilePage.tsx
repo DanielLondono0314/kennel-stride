@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
@@ -21,8 +21,9 @@ import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
   Loader2, User, Printer, GraduationCap, UtensilsCrossed,
-  AlertTriangle, Pill,
+  AlertTriangle, Pill, FileSignature,
 } from "lucide-react";
+import { DogContractsTab } from "@/components/contracts/DogContractsTab";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAge as getSharedAge } from "@/lib/age";
@@ -142,6 +143,7 @@ const statusLabels: Record<string, string> = {
 
 export default function DogProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
@@ -407,7 +409,7 @@ export default function DogProfilePage() {
       <Separator />
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="print-all-tabs">
+      <Tabs defaultValue={searchParams.get("tab") ?? "info"} className="print-all-tabs">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="info" className="gap-1.5">
             <Dog className="h-4 w-4" />Info
@@ -435,6 +437,9 @@ export default function DogProfilePage() {
           </TabsTrigger>
           <TabsTrigger value="training" className="gap-1.5">
             <GraduationCap className="h-4 w-4" />Entrenamiento
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="gap-1.5">
+            <FileSignature className="h-4 w-4" />Contratos
           </TabsTrigger>
         </TabsList>
 
@@ -674,6 +679,11 @@ export default function DogProfilePage() {
         </TabsContent>
         <TabsContent value="temperament" className="mt-6" forceMount>
           <TemperamentTab dogId={dog.id} dogName={dog.name} />
+        </TabsContent>
+
+        {/* Contratos anexados (no se imprimen con la ficha: tienen su propio PDF) */}
+        <TabsContent value="contracts" className="mt-6 print:hidden">
+          <DogContractsTab dogId={dog.id} dogName={dog.name} customerId={dog.customer_id} />
         </TabsContent>
 
         {/* Training / Report Cards Tab */}

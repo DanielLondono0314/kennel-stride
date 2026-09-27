@@ -30,7 +30,7 @@ interface Props {
 type Mode = "customers" | "dogs";
 
 const CUSTOMER_HEADERS = [
-  "first_name", "last_name", "email", "phone",
+  "first_name", "last_name", "email", "phone", "id_document_type", "id_document",
   "address", "city", "state", "zip_code",
   "emergency_contact_name", "emergency_contact_phone", "notes",
 ];
@@ -200,6 +200,15 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         emergency_contact_name: r.emergency_contact_name || null,
         emergency_contact_phone: r.emergency_contact_phone || null,
         notes: r.notes || null,
+        // La cédula es opcional en la importación; si viene, se guarda.
+        ...(r.id_document?.trim()
+          ? {
+              id_document: r.id_document.trim(),
+              id_document_type: ["CC", "CE", "TI", "PA", "PPT", "NIT"].includes(r.id_document_type?.trim().toUpperCase())
+                ? r.id_document_type.trim().toUpperCase()
+                : "CC",
+            }
+          : {}),
       };
       // Un dueño con varios perros suele venir repetido (una fila por perro):
       // la primera fila lo crea y las siguientes lo actualizan.
@@ -479,7 +488,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {mode === "customers"
-                    ? "Requeridos: first_name, last_name, email."
+                    ? "Requeridos: first_name, last_name, email. id_document (cédula) es opcional aquí pero se exige para generar contratos; id_document_type: CC, CE, PPT, PA, TI o NIT."
                     : "Requeridos: name, breed. Usa owner_email para vincular al dueño (se crea cliente automático si no existe). preferred_unit_name debe coincidir con el nombre exacto de una perrera ya creada en Instalaciones."}
                 </p>
                 {mode === "dogs" && (

@@ -28,6 +28,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, MoreHorizontal, Phone, Mail, Dog, ExternalLink, Upload, Users, Power, PowerOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { isDuplicateIdDocumentError } from "@/lib/idDocument";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
@@ -105,8 +106,12 @@ export default function CustomersPage() {
       }
       setModalOpen(false);
       setEditingCustomer(null);
-    } catch {
-      toast.error("No se pudo guardar el cliente", { description: "Revisa tu conexión e inténtalo de nuevo." });
+    } catch (err) {
+      if (isDuplicateIdDocumentError(err)) {
+        toast.error("Ya existe un cliente con ese número de documento");
+      } else {
+        toast.error("No se pudo guardar el cliente", { description: "Revisa tu conexión e inténtalo de nuevo." });
+      }
     }
   };
 
