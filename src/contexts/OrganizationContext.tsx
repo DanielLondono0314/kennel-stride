@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
@@ -66,6 +66,10 @@ const OrganizationContext = createContext<OrganizationContextType>({
 export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const { user } = useAuth();
+  // Solo el id: al volver a la pestaña Supabase renueva el token y entrega un
+  // objeto `user` nuevo (mismo usuario). Depender del objeto recargaba la org
+  // en cada renovación.
+  const userId = user?.id ?? null;
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<OrgRole | null>(null);
   const [currentRole, setCurrentRole] = useState<OrgRoleInfo | null>(null);
@@ -75,11 +79,23 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Los platform admins (equipo KennelStride) ven todas las features en cualquier org.
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
+  // Qué (usuario, org) ya se cargó. Las recargas de lo mismo son silenciosas:
+  // `loading` hace que OrgGuard cambie TODA la app por un spinner, lo que
+  // desmonta la página y borra lo que el usuario llevaba (p. ej. el asistente
+  // de contratos volvía al paso 2 tras un alt-tab).
+  const loadedKeyRef = useRef<string | null>(null);
+  // (usuario, org) vigente, para descartar respuestas que llegan tarde.
+  const latestKeyRef = useRef<string | null>(null);
+
   const load = useCallback(async () => {
-    if (!orgSlug || !user) return;
-    setLoading(true);
-    setNotFound(false);
-    setLoadError(false);
+    if (!orgSlug || !userId) return;
+    const key = `${userId}:${orgSlug}`;
+    const background = loadedKeyRef.current === key;
+    if (!background) {
+      setLoading(true);
+      setNotFound(false);
+      setLoadError(false);
+    }
 
     // Load org + current user's role in one round-trip
     const [orgResult, memberResult, platformAdminResult] = await Promise.all([
@@ -88,16 +104,23 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .select("id, slug, name, logo_url, subscription_status, plan_tier, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types, route_notifications_enabled, route_notification_channel")
         .eq("slug", orgSlug)
         .maybeSingle(),
-      user
-        ? supabase
-            .from("organization_members")
-            .select("role, org_roles(id, name, access_type, permissions, is_system, system_key), organizations!inner(slug)")
-            .eq("user_id", user.id)
-            .eq("organizations.slug", orgSlug)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("organization_members")
+        .select("role, org_roles(id, name, access_type, permissions, is_system, system_key), organizations!inner(slug)")
+        .eq("user_id", userId)
+        .eq("organizations.slug", orgSlug)
+        .maybeSingle(),
       supabase.rpc("is_platform_admin"),
     ]);
+    // Si mientras tanto cambió de org o de usuario, esta respuesta ya no aplica.
+    if (key !== latestKeyRef.current) return;
+
+    if (orgResult.error && background) {
+      // Un fallo de red en una recarga silenciosa no debe sacar al usuario de
+      // lo que está haciendo: se conservan los datos que ya había.
+      return;
+    }
+
     setIsPlatformAdmin(platformAdminResult.data === true);
 
     if (orgResult.error) {
@@ -108,8 +131,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       setCurrentUserRole(null);
       setCurrentRole(null);
     } else if (orgResult.data) {
-      setOrganization(orgResult.data as Organization);
+      const next = orgResult.data as Organization;
+      // Mismo contenido → misma referencia, para no re-renderizar la app.
+      setOrganization((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setNotFound(false);
+      loadedKeyRef.current = key;
       const member = memberResult.data as { role?: string; org_roles?: OrgRoleInfo | null } | null;
       setCurrentUserRole((member?.role as OrgRole) ?? null);
       setCurrentRole(member?.org_roles ?? null);
@@ -120,15 +146,16 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       setCurrentRole(null);
     }
     setLoading(false);
-  }, [orgSlug, user]);
+  }, [orgSlug, userId]);
 
   useEffect(() => {
-    if (!user || !orgSlug) {
+    latestKeyRef.current = userId && orgSlug ? `${userId}:${orgSlug}` : null;
+    if (!userId || !orgSlug) {
       setLoading(false);
       return;
     }
     load();
-  }, [user, orgSlug, load]);
+  }, [userId, orgSlug, load]);
 
 
   const isSubscriptionActive = organization

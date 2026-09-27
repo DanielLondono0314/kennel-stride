@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
@@ -23,20 +23,27 @@ const PlatformAdminContext = createContext<PlatformAdminContextType>({
 
 export function PlatformAdminProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  // Solo el id: renovar el token entrega un `user` nuevo del mismo usuario y
+  // recargar aquí desmontaba el panel (PlatformAdminGuard muestra un spinner).
+  const userId = user?.id ?? null;
   const [loading, setLoading] = useState(true);
+  const loadedForRef = useRef<string | null>(null);
   const [platformRole, setPlatformRole] = useState<PlatformAdminRole | null>(null);
 
   const load = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setPlatformRole(null);
       setLoading(false);
+      loadedForRef.current = null;
       return;
     }
-    setLoading(true);
+    // Las recargas del mismo usuario (refetch) son silenciosas.
+    if (loadedForRef.current !== userId) setLoading(true);
     const { data, error } = await supabase.rpc("get_platform_admin_role");
     setPlatformRole(!error && data ? (data as PlatformAdminRole) : null);
+    loadedForRef.current = userId;
     setLoading(false);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     load();
