@@ -40,7 +40,8 @@ describe("deductPackageCredit", () => {
     expect(fromMock).not.toHaveBeenCalled();
   });
 
-  it("envía p_reason = null cuando no se provee reason", async () => {
+  // Sin reason se omite el parámetro y el RPC usa su DEFAULT NULL.
+  it("omite p_reason cuando no se provee reason", async () => {
     rpcMock.mockResolvedValue({ data: 0, error: null });
     const { deductPackageCredit } = await import("@/hooks/queries/usePackages");
 
@@ -48,7 +49,7 @@ describe("deductPackageCredit", () => {
 
     expect(rpcMock).toHaveBeenCalledWith("deduct_package_credit", {
       p_package_id: "pkg-2",
-      p_reason: null,
+      p_reason: undefined,
     });
   });
 

@@ -38,8 +38,9 @@ export function useMyWeekSchedule(weekStart: Date, weekEnd: Date) {
         .select("id, service_name, status, start_date, dog_id, dogs(name, is_aggressive, has_allergies, on_medication)")
         .eq("organization_id", organization!.id)
         .eq("staff_id", staff!.id)
-        .gte("start_date", startIso)
+        // Solapamiento con la semana: incluye estadías que empezaron antes.
         .lte("start_date", endIso)
+        .gte("end_date", startIso)
         .order("start_date", { ascending: true });
       if (error) throw error;
 
@@ -50,7 +51,8 @@ export function useMyWeekSchedule(weekStart: Date, weekEnd: Date) {
         dogName: r.dogs?.name ?? null,
         dogId: r.dog_id,
         time: r.start_date,
-        dayKey: format(new Date(r.start_date), "yyyy-MM-dd"),
+        // Una estadía que empezó antes de la semana se muestra el primer día.
+        dayKey: format(new Date(r.start_date) < weekStart ? weekStart : new Date(r.start_date), "yyyy-MM-dd"),
         status: r.status,
         flags: {
           aggressive: !!r.dogs?.is_aggressive,

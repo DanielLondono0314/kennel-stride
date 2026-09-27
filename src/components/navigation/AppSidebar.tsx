@@ -43,7 +43,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
   const canViewReports = usePermission("view_reports");
   const canSendCampaigns = usePermission("send_campaign");
   const canManageSettings = usePermission("manage_settings");
-  const canManageTasks = usePermission("manage_tasks");
+  const canManageTasks = usePermission("schedule");
 
   return (
     <aside
@@ -82,13 +82,13 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
           </p>
         )}
         <AppNavLink to={`${base}/dashboard`}    icon={LayoutDashboard} label="Dashboard"     collapsed={collapsed} onClick={onMobileClose} />
-        <AppNavLink to={`${base}/requests`}     icon={ClipboardList}   label="Solicitudes"   collapsed={collapsed} badge={requestCount}   onClick={onMobileClose} />
+        <AppNavLink to={`${base}/requests`}     icon={ClipboardList}   label="Solicitudes"   collapsed={collapsed} badge={requestCount}   feature="requests" onClick={onMobileClose} />
         <AppNavLink to={`${base}/calendar`}     icon={CalendarDays}    label="Calendario"    collapsed={collapsed} onClick={onMobileClose} />
         {canManageTasks && (
           <AppNavLink to={`${base}/tasks`}      icon={ListTodo}        label="Tareas"        collapsed={collapsed} onClick={onMobileClose} />
         )}
-        <AppNavLink to={`${base}/facility`}     icon={Map}             label="Instalaciones" collapsed={collapsed} onClick={onMobileClose} />
-        <AppNavLink to={`${base}/notices`}      icon={Bell}            label="Avisos"        collapsed={collapsed} badge={noticeCount}    onClick={onMobileClose} />
+        <AppNavLink to={`${base}/facility`}     icon={Map}             label="Instalaciones" collapsed={collapsed} feature="facility" onClick={onMobileClose} />
+        <AppNavLink to={`${base}/notices`}      icon={Bell}            label="Avisos"        collapsed={collapsed} badge={noticeCount}    feature="notices" onClick={onMobileClose} />
 
         {!collapsed && (
           <p className="px-3 mt-6 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
@@ -99,8 +99,8 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         <AppNavLink to={`${base}/dogs`}         icon={Dog}         label="Perros"        collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/dog-panel`}    icon={HeartPulse}  label="Panel de perros" collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/staff`}        icon={UserCog}     label="Personal"      collapsed={collapsed} onClick={onMobileClose} />
-        <AppNavLink to={`${base}/report-cards`} icon={FileText}    label="Report Cards"  collapsed={collapsed} onClick={onMobileClose} />
-        <AppNavLink to={`${base}/clinic`}       icon={Stethoscope} label="Clínica"       collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to={`${base}/report-cards`} icon={FileText}    label="Report Cards"  collapsed={collapsed} feature="report_cards" onClick={onMobileClose} />
+        <AppNavLink to={`${base}/clinic`}       icon={Stethoscope} label="Clínica"       collapsed={collapsed} feature="clinic" onClick={onMobileClose} />
 
         {!collapsed && (
           <p className="px-3 mt-6 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
@@ -119,7 +119,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
           <AppNavLink to={`${base}/reports`}    icon={BarChart3}  label="Reportes"  collapsed={collapsed} onClick={onMobileClose} />
         )}
         {canSendCampaigns && (
-          <AppNavLink to={`${base}/campaigns`}  icon={Megaphone}  label="Campañas"  collapsed={collapsed} onClick={onMobileClose} />
+          <AppNavLink to={`${base}/campaigns`}  icon={Megaphone}  label="Campañas"  collapsed={collapsed} feature="campaigns" onClick={onMobileClose} />
         )}
       </nav>
 

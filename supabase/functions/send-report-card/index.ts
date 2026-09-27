@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
 
@@ -81,7 +81,7 @@ serve(async (req: Request) => {
 
     const { data: reportCard, error: rcErr } = await adminClient
       .from("report_cards")
-      .select("*, dogs(id, name, customers(id, first_name, email))")
+      .select("*, dogs(id, name, organization_id, customers(id, first_name, email))")
       .eq("id", reportCardId)
       .single();
 
@@ -100,13 +100,30 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "No autorizado para esta organización" }, 403);
     }
 
+    // El perro debe ser de la misma org que el reporte: si no, el email iría al
+    // dueño de un perro de otro centro.
+    const dog = (reportCard as {
+      dogs?: { organization_id?: string; customers?: { email?: string } | null } | null;
+    }).dogs;
+    if (dog?.organization_id !== reportCard.organization_id) {
+      return jsonResponse({ error: "El perro de este reporte no pertenece a la organización" }, 400);
+    }
+
     const { data: org } = await adminClient
       .from("organizations")
-      .select("name")
+      .select("name, subscription_status, trial_ends_at")
       .eq("id", reportCard.organization_id)
       .single();
 
-    const customer = (reportCard as any).dogs?.customers;
+    const subscriptionActive = !!org && (
+      org.subscription_status === "active" ||
+      (org.subscription_status === "trialing" && !!org.trial_ends_at && new Date(org.trial_ends_at) > new Date())
+    );
+    if (!subscriptionActive) {
+      return jsonResponse({ error: "La suscripción de la organización no está activa" }, 402);
+    }
+
+    const customer = dog?.customers;
     const recipientEmail: string | undefined = customer?.email;
     if (!recipientEmail) {
       return jsonResponse({ error: "El dueño de este perro no tiene un email registrado" }, 400);

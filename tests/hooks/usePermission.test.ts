@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import React from "react";
 import { usePermission } from "@/hooks/usePermission";
+import type { OrgRoleInfo } from "@/lib/permissions";
 
 vi.mock("@/contexts/OrganizationContext", () => ({
   useOrganization: vi.fn(),
@@ -9,47 +9,52 @@ vi.mock("@/contexts/OrganizationContext", () => ({
 
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-function withRole(role: string | null) {
+function withRole(role: Partial<OrgRoleInfo> | null) {
+  const currentRole = role
+    ? ({ id: "r-1", name: "Rol", access_type: "panel", permissions: [], is_system: false, system_key: null, ...role } as OrgRoleInfo)
+    : null;
   vi.mocked(useOrganization).mockReturnValue({
     organization: { id: "org-1" } as any,
-    currentUserRole: role as any,
-    isAdmin: role === "admin",
+    currentUserRole: null,
+    currentRole,
+    isAdmin: currentRole?.access_type === "admin",
     loading: false,
     notFound: false,
     loadError: false,
     isSubscriptionActive: true,
+    planTier: "premium",
+    hasFeature: () => true,
     refetch: vi.fn(),
   });
 }
 
 describe("usePermission", () => {
-  it("admin puede todo", () => {
-    withRole("admin");
-    const { result } = renderHook(() => usePermission("delete_customer"));
-    expect(result.current).toBe(true);
+  it("tipo admin puede todo, aunque no tenga casillas", () => {
+    withRole({ access_type: "admin", permissions: [] });
+    expect(renderHook(() => usePermission("delete_records")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("manage_settings")).result.current).toBe(true);
   });
 
-  it("trainer no puede eliminar clientes", () => {
-    withRole("trainer");
-    const { result } = renderHook(() => usePermission("delete_customer"));
-    expect(result.current).toBe(false);
+  it("rol de panel solo tiene sus casillas", () => {
+    withRole({ access_type: "panel", permissions: ["schedule", "billing"] });
+    expect(renderHook(() => usePermission("billing")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("view_reports")).result.current).toBe(false);
   });
 
-  it("front_desk puede crear facturas", () => {
-    withRole("front_desk");
-    const { result } = renderHook(() => usePermission("create_invoice"));
-    expect(result.current).toBe(true);
+  it("personal y configuración son exclusivos del tipo admin", () => {
+    withRole({ access_type: "panel", permissions: ["schedule", "billing", "view_reports", "send_campaign"] });
+    expect(renderHook(() => usePermission("manage_staff")).result.current).toBe(false);
+    expect(renderHook(() => usePermission("manage_settings")).result.current).toBe(false);
   });
 
-  it("trainer no puede ver reportes", () => {
-    withRole("trainer");
-    const { result } = renderHook(() => usePermission("view_reports"));
-    expect(result.current).toBe(false);
+  it("worker con registro de peso", () => {
+    withRole({ access_type: "worker", permissions: ["record_weight"] });
+    expect(renderHook(() => usePermission("record_weight")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("clinical")).result.current).toBe(false);
   });
 
   it("sin rol → ningún permiso", () => {
     withRole(null);
-    const { result } = renderHook(() => usePermission("create_invoice"));
-    expect(result.current).toBe(false);
+    expect(renderHook(() => usePermission("billing")).result.current).toBe(false);
   });
 });

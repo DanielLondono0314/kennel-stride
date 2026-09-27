@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { subDays, subMonths } from "date-fns";
 
@@ -33,25 +34,24 @@ export function useReportsData(range: DateRange) {
       const dateFrom = getDateFrom(range).toISOString();
       const orgId = organization!.id;
 
-      const [invR, custR, pkgR, unitR, rcR, resR] = await Promise.all([
-        supabase.from("invoices").select("id, total, status, created_at, customer_id, payment_method").eq("organization_id", orgId).gte("created_at", dateFrom),
-        supabase.from("customers").select("id, created_at, city").eq("organization_id", orgId).gte("created_at", dateFrom),
-        supabase.from("packages").select("id, status, total_credits, remaining_credits, price, created_at, expires_at").eq("organization_id", orgId),
-        supabase.from("facility_units").select("id, unit_type, status").eq("organization_id", orgId),
-        supabase.from("report_cards").select("id, rating, session_date").eq("organization_id", orgId).gte("session_date", dateFrom),
-        supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", orgId).gte("start_date", dateFrom),
+      // Paginado: con más de 1000 filas en el rango, PostgREST truncaba y los
+      // ingresos/contadores salían por debajo del real sin avisar.
+      const [invoices, newCustomers, packages, units, reportCards, reservations] = await Promise.all([
+        fetchAll((f, t) => supabase.from("invoices").select("id, total, status, created_at, customer_id, payment_method").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("customers").select("id, created_at, city").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("packages").select("id, status, total_credits, remaining_credits, price, created_at, expires_at").eq("organization_id", orgId).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("facility_units").select("id, unit_type, status").eq("organization_id", orgId).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("report_cards").select("id, rating, session_date").eq("organization_id", orgId).gte("session_date", dateFrom).order("id").range(f, t)),
+        fetchAll((f, t) => supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", orgId).gte("start_date", dateFrom).order("id").range(f, t)),
       ]);
 
-      if (invR.error) throw invR.error;
-      if (resR.error) throw resR.error;
-
       return {
-        invoices: invR.data ?? [],
-        newCustomers: custR.data ?? [],
-        packages: pkgR.data ?? [],
-        units: unitR.data ?? [],
-        reportCards: rcR.data ?? [],
-        reservations: resR.data ?? [],
+        invoices,
+        newCustomers,
+        packages,
+        units,
+        reportCards,
+        reservations,
         dateFrom,
       };
     },

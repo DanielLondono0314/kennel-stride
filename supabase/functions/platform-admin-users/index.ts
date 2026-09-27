@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
 // Vista cross-tenant de auth.users para el panel de plataforma (Fase 2).
 // auth.users no es accesible por RLS de Postgres normal, así que esto vive

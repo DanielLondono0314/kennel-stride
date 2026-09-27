@@ -59,10 +59,14 @@ export default function Dashboard() {
   // KPIs based on today's reservations
   const kpis = useMemo(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
+    // Hoy = lo que empieza hoy + todo perro que ya está dentro (aunque haya
+    // entrado días atrás en un internado).
     const today = reservations.filter(
       (r) =>
         format(r.startDate, "yyyy-MM-dd") === todayStr ||
-        (r.status === ReservationStatus.IN_PROGRESS && r.startDate <= new Date() && r.endDate >= new Date())
+        r.status === ReservationStatus.CHECKED_IN ||
+        r.status === ReservationStatus.IN_PROGRESS ||
+        r.status === ReservationStatus.READY
     );
     return {
       expected: today.filter((r) => r.status === ReservationStatus.SCHEDULED).length,

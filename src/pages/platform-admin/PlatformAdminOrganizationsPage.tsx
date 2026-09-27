@@ -1,3 +1,4 @@
+import { PLANS, isPlanTier } from "@/lib/plans";
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -57,6 +58,7 @@ export default function PlatformAdminOrganizationsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Organización</TableHead>
+                <TableHead>Plan</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Staff activo</TableHead>
                 <TableHead>Perros</TableHead>
@@ -73,6 +75,9 @@ export default function PlatformAdminOrganizationsPage() {
                       {org.name}
                     </Link>
                     <div className="text-xs text-muted-foreground">/{org.slug}</div>
+                  </TableCell>
+                  <TableCell>
+                    {isPlanTier(org.plan_tier) ? PLANS[org.plan_tier].name : org.plan_tier}
                   </TableCell>
                   <TableCell>
                     <Badge variant={subscriptionBadgeVariant(org.subscription_status)}>

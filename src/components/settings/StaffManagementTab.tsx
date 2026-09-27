@@ -40,22 +40,15 @@ import { Users, Plus, Edit, Trash2, Loader2, UserCheck, UserX } from "lucide-rea
 import { toast } from "sonner";
 import { staffMemberSchema } from "@/lib/schemas";
 import { type Specialty, SPECIALTY_LABELS } from "@/lib/worker";
+import { useOrgRoles } from "@/hooks/queries/useOrgRoles";
+import type { AccessType } from "@/lib/permissions";
 
 type StaffMember = Tables<"staff_members">;
-type AppRole = "admin" | "front_desk" | "worker" | "manager";
 
-const roleLabels: Record<AppRole, string> = {
-  admin: "Administrador",
-  front_desk: "Recepción",
-  worker: "Trabajador",
-  manager: "Gerente",
-};
-
-const roleBadgeVariant: Record<AppRole, "default" | "secondary" | "outline"> = {
+const accessBadgeVariant: Record<AccessType, "default" | "secondary" | "outline"> = {
   admin: "default",
-  front_desk: "secondary",
+  panel: "secondary",
   worker: "outline",
-  manager: "secondary",
 };
 
 export function StaffManagementTab() {
@@ -67,13 +60,16 @@ export function StaffManagementTab() {
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [saving, setSaving] = useState(false);
   const { organization } = useOrganization();
+  const { data: roles = [] } = useOrgRoles();
+  const roleById = new Map(roles.map((r) => [r.id, r]));
+  const defaultRoleId = roles.find((r) => r.system_key === "worker")?.id ?? "";
 
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<AppRole>("worker");
+  const [roleId, setRoleId] = useState("");
   const [specialty, setSpecialty] = useState<Specialty | "">("");
   const [isActive, setIsActive] = useState(true);
 
@@ -81,7 +77,7 @@ export function StaffManagementTab() {
     if (!organization) return;
     const { data, error } = await supabase
       .from("staff_members")
-      .select("id, first_name, last_name, email, phone, role, is_active, created_at, updated_at, organization_id, profile_id, specialty")
+      .select("id, first_name, last_name, email, phone, role, role_id, is_active, created_at, updated_at, organization_id, profile_id, specialty")
       .eq("organization_id", organization.id)
       .order("created_at", { ascending: true });
     if (error) {
@@ -96,7 +92,7 @@ export function StaffManagementTab() {
 
 
   const resetForm = () => {
-    setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setRole("worker"); setSpecialty(""); setIsActive(true);
+    setFirstName(""); setLastName(""); setEmail(""); setPhone(""); setRoleId(defaultRoleId); setSpecialty(""); setIsActive(true);
     setEditingStaff(null);
   };
 
@@ -108,13 +104,15 @@ export function StaffManagementTab() {
     setLastName(s.last_name);
     setEmail(s.email);
     setPhone(s.phone || "");
-    setRole(s.role);
+    setRoleId(s.role_id ?? "");
     setSpecialty((s.specialty as Specialty | null) ?? "");
     setIsActive(s.is_active);
     setModalOpen(true);
   };
 
   const openDelete = (s: StaffMember) => { setDeleteTarget(s); setDeleteDialogOpen(true); };
+
+  const isWorkerRole = roleById.get(roleId)?.access_type === "worker";
 
   const handleSave = async () => {
     if (!organization) {
@@ -125,8 +123,8 @@ export function StaffManagementTab() {
       last_name: lastName,
       email,
       phone,
-      role,
-      specialty: role === "worker" ? (specialty || null) : null,
+      role_id: roleId,
+      specialty: isWorkerRole ? (specialty || null) : null,
       is_active: isActive,
     });
     if (!parsed.success) {
@@ -141,7 +139,7 @@ export function StaffManagementTab() {
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingStaff.id)
         .eq("organization_id", organization.id);
-      if (error) { toast.error("No se pudo actualizar", { description: "Revisa tu conexión e inténtalo de nuevo." }); setSaving(false); return; }
+      if (error) { toast.error("No se pudo actualizar", { description: error.message }); setSaving(false); return; }
       else { toast.success("Empleado actualizado"); }
     } else {
       const { error } = await supabase
@@ -225,7 +223,10 @@ export function StaffManagementTab() {
                     <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{s.phone || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={roleBadgeVariant[s.role]}>{roleLabels[s.role]}</Badge>
+                      {(() => {
+                        const r = s.role_id ? roleById.get(s.role_id) : undefined;
+                        return r ? <Badge variant={accessBadgeVariant[r.access_type]}>{r.name}</Badge> : <Badge variant="outline">—</Badge>;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <button onClick={() => toggleActive(s)} className="cursor-pointer">
@@ -289,16 +290,19 @@ export function StaffManagementTab() {
             </div>
             <div className="space-y-2">
               <Label>Rol</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={roleId} onValueChange={setRoleId}>
+                <SelectTrigger><SelectValue placeholder="Selecciona un rol" /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(roleLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  {roles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {editingStaff?.profile_id && (
+                <p className="text-xs text-muted-foreground">Cambiar el rol cambia también el acceso de esta persona a la app.</p>
+              )}
             </div>
-            {role === "worker" && (
+            {isWorkerRole && (
               <div className="space-y-2">
                 <Label>Especialidad</Label>
                 <Select value={specialty} onValueChange={(v) => setSpecialty(v as Specialty)}>

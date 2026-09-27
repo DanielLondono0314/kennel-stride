@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 const PAGE_SIZE = 50;
@@ -64,7 +65,7 @@ export function useInvoices({ page = 0, status = "all", search = "" } = {}) {
 
       if (search.trim()) {
         query = query.or(
-          `invoice_number.ilike.%${search.trim()}%,customers.first_name.ilike.%${search.trim()}%,customers.last_name.ilike.%${search.trim()}%`
+          ilikeAny(["invoice_number", "customers.first_name", "customers.last_name"], search)
         );
       }
 

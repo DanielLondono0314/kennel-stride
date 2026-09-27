@@ -142,7 +142,7 @@ export function CheckOutModal({
       const { error } = await supabase.rpc("complete_checkout", {
         p_reservation_id: reservation.id,
         p_payment_method: paymentMethod,
-        p_package_id: paymentMethod === "package" ? availablePackage?.id ?? null : null,
+        p_package_id: paymentMethod === "package" ? availablePackage?.id : undefined,
         p_notes: notes,
       });
 

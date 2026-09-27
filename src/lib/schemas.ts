@@ -21,7 +21,6 @@ export const nameSchema = z
   .min(1, "Requerido")
   .max(80, "Máximo 80 caracteres");
 
-export const staffRoleSchema = z.enum(["admin", "front_desk", "worker", "manager"]);
 export const specialtySchema = z.enum(["trainer", "groomer", "cleaning", "welfare", "vet"]);
 
 export const staffMemberSchema = z.object({
@@ -29,14 +28,14 @@ export const staffMemberSchema = z.object({
   last_name: nameSchema,
   email: emailSchema,
   phone: phoneSchema.optional().default(""),
-  role: staffRoleSchema,
+  role_id: z.string().uuid("Selecciona un rol"),
   specialty: specialtySchema.nullable().optional(),
   is_active: z.boolean().default(true),
 });
 
 export const invitationSchema = z.object({
   email: emailSchema,
-  role: staffRoleSchema,
+  role_id: z.string().uuid("Selecciona un rol"),
 });
 
 // El formulario de cliente marca Teléfono con * — el schema lo exige de verdad.

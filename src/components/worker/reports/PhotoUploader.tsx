@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { toast } from "sonner";
 import { Upload, X, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -22,17 +23,19 @@ export function PhotoUploader({
   bucket = "report-card-photos",
 }: PhotoUploaderProps) {
   const [uploading, setUploading] = useState(false);
+  const { organization } = useOrganization();
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (!files || photos.length >= max) return;
+    if (!files || photos.length >= max || !organization) return;
 
     setUploading(true);
     const next = [...photos];
     for (let i = 0; i < Math.min(files.length, max - photos.length); i++) {
       const file = files[i];
       const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
+      // Prefijo de org: requerido por las políticas de storage.
+      const path = `${organization.id}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from(bucket).upload(path, file);
       if (error) {
         toast.error(`Error subiendo ${file.name}: ${error.message}`);

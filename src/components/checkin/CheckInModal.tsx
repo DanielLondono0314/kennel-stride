@@ -154,10 +154,18 @@ export function CheckInModal({
 
     setIsSubmitting(true);
 
+    // El override de validaciones (p. ej. vacunas vencidas) queda registrado
+    // en las notas de la reserva: antes el motivo se pedía pero se descartaba.
+    const overridden = (validation?.alerts ?? []).filter((a) => selectedOverrides.has(a.id));
+    const overrideNote = overridden.length
+      ? `[Validaciones omitidas: ${overridden.map((a) => a.title).join(", ")}] Motivo: ${overrideReason}`
+      : "";
+    const combinedNotes = [notes, overrideNote].filter(Boolean).join("\n");
+
     onConfirm({
       reservationId: reservation.id,
       unitId,
-      notes: notes || undefined,
+      notes: combinedNotes || undefined,
       overrideAlerts: Array.from(selectedOverrides),
       overrideReason: overrideReason || undefined,
       overrideBy: user?.id,

@@ -93,12 +93,15 @@ select throws_ok(
   $$select public.create_reservation(
       '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000d1',
       'daycare', 'Guardería', now() + interval '2 days', now() + interval '2 days 8 hours', 50)$$,
-  'Cliente inválido o fuera de tu organización'
+  'Cliente inválido, fuera de tu organización o sin permiso para crear reservas'
 );
 
 -- ─── check_in_reservation ───────────────────────────────────────────────────
--- Aprobar la reserva (como haría el staff vía updateStatus).
+-- Aprobar la reserva (como haría el staff de A vía updateStatus). Debe hacerlo
+-- alguien de la org A: guard_reservation_worker_update bloquea a los demás.
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
 update public.reservations set status = 'scheduled' where id = (select id from t_res);
+select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 
 -- La org B no puede hacer check-in de una reserva de la org A.
 select throws_ok(
@@ -145,7 +148,7 @@ select throws_ok(
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 select throws_ok(
   format($f$select public.complete_checkout(%L, 'cash')$f$, (select id from t_res)),
-  'Reserva inválida, fuera de tu organización o no está en curso'
+  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para cobrar'
 );
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
@@ -191,7 +194,7 @@ select is(
 -- Doble checkout → error (la reserva ya no está en curso).
 select throws_ok(
   format($f$select public.complete_checkout(%L, 'cash')$f$, (select id from t_res)),
-  'Reserva inválida, fuera de tu organización o no está en curso'
+  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para cobrar'
 );
 
 -- ─── complete_checkout (paquete) + deduct_package_credit ────────────────────
@@ -244,7 +247,7 @@ select is(
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 select throws_ok(
   $$select public.deduct_package_credit('00000000-0000-0000-0000-0000000000a9'::uuid, 'robo')$$,
-  'Sin créditos disponibles o paquete inválido'
+  'Sin créditos disponibles, paquete vencido o sin permiso'
 );
 
 select * from finish();

@@ -32,8 +32,9 @@ export function useMyDay() {
         .select("id, service_name, status, start_date, dog_id, dogs(name, is_aggressive, has_allergies, on_medication)")
         .eq("organization_id", organization!.id)
         .eq("staff_id", staff!.id)
-        .gte("start_date", start.toISOString())
+        // Solapamiento con hoy: incluye estadías de varios días en curso.
         .lte("start_date", end.toISOString())
+        .gte("end_date", start.toISOString())
         .order("start_date", { ascending: true });
       if (error) throw error;
 

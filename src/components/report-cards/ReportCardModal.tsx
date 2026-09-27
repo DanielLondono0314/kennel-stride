@@ -165,7 +165,7 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (!files || form.photos.length >= 4) return;
+    if (!files || form.photos.length >= 4 || !organization) return;
 
     setUploading(true);
     const newPhotos = [...form.photos];
@@ -173,7 +173,9 @@ export function ReportCardModal({ open, onOpenChange, editData, onSaved }: Repor
     for (let i = 0; i < Math.min(files.length, 4 - form.photos.length); i++) {
       const file = files[i];
       const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
+      // Prefijo de org: las políticas de storage solo permiten escribir en la
+      // carpeta de una organización del usuario.
+      const path = `${organization.id}/${crypto.randomUUID()}.${ext}`;
 
       const { error } = await supabase.storage.from("report-card-photos").upload(path, file);
       if (error) {

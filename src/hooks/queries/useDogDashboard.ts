@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { addDays, differenceInCalendarDays, format, subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { getAge, parseDateOnly } from "@/lib/age";
 import { analyzeWeight, type WeightAnalysis, type WeightPoint, type WeightSettings } from "@/lib/weightTrend";
@@ -61,21 +62,6 @@ export interface DashboardData {
 }
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
-
-const PAGE = 1000;
-
-type PageResult<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
-
-/** PostgREST corta en 1000 filas: pagina hasta traerlas todas. */
-async function fetchAll<T>(page: (from: number, to: number) => PageResult<T>): Promise<T[]> {
-  const out: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await page(from, from + PAGE - 1);
-    if (error) throw error;
-    out.push(...(data ?? []));
-    if (!data || data.length < PAGE) return out;
-  }
-}
 
 const toNum = (v: unknown): number | null => {
   const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : NaN;

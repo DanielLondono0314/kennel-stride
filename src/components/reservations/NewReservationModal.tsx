@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -73,6 +74,8 @@ interface EditReservationData {
   status: string;
   dogName?: string;
   customerName?: string;
+  pickupRequested?: boolean;
+  dropoffRequested?: boolean;
 }
 
 interface NewReservationModalProps {
@@ -121,6 +124,8 @@ export function NewReservationModal({
   const [totalPrice, setTotalPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("requested");
+  const [pickupRequested, setPickupRequested] = useState(false);
+  const [dropoffRequested, setDropoffRequested] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Data
@@ -151,6 +156,8 @@ export function NewReservationModal({
       setTotalPrice(String(editData.totalPrice ?? ""));
       setNotes(editData.notes ?? "");
       setStatus(editData.status);
+      setPickupRequested(!!editData.pickupRequested);
+      setDropoffRequested(!!editData.dropoffRequested);
     } else {
       setCustomerId(initialCustomerId ?? "");
       setDogId(initialDogId ?? "");
@@ -160,6 +167,8 @@ export function NewReservationModal({
       setTotalPrice("");
       setNotes("");
       setStatus("requested");
+      setPickupRequested(false);
+      setDropoffRequested(false);
     }
     setErrors({});
     // Reset intencional SOLO al abrir: los initial* son props que cambian de
@@ -243,12 +252,28 @@ export function NewReservationModal({
         p_status: status,
       });
 
-      setSaving(false);
       if (error) {
+        setSaving(false);
         toast.error(error.message || "Error al guardar los cambios");
         return;
       }
-      toast.success("Reserva actualizada");
+
+      // update_reservation (RPC hardened, sin parámetros de ruta) no toca estos
+      // dos flags — se guardan aparte con un UPDATE directo, permitido por la
+      // policy "reservations update" para roles scheduler.
+      const { error: flagsError } = await supabase.from("reservations").update({
+        pickup_requested: pickupRequested,
+        dropoff_requested: dropoffRequested,
+      }).eq("id", editData.id);
+
+      setSaving(false);
+      if (flagsError) {
+        toast.warning("Reserva actualizada, pero no se guardó el transporte", {
+          description: "Vuelve a marcar recogida/entrega e inténtalo de nuevo.",
+        });
+      } else {
+        toast.success("Reserva actualizada");
+      }
       onOpenChange(false);
       onSaved?.();
       return;
@@ -269,7 +294,7 @@ export function NewReservationModal({
 
     // H2/H5: creación transaccional vía RPC. Rechaza solapamiento para el mismo
     // perro (anti doble-booking) y crea reserva + notice atómicamente.
-    const { error } = await supabase.rpc("create_reservation", {
+    const { data: newReservationId, error } = await supabase.rpc("create_reservation", {
       p_customer_id: customerId,
       p_dog_id: dogId,
       p_service_type: serviceType,
@@ -278,7 +303,7 @@ export function NewReservationModal({
       p_end: new Date(endDate).toISOString(),
       p_total_price: totalPrice ? parseFloat(totalPrice) : 0,
       p_notes: notes || "",
-      p_staff_id: staffId,
+      p_staff_id: staffId ?? undefined,
     });
 
     if (error) {
@@ -288,11 +313,29 @@ export function NewReservationModal({
       return;
     }
 
+    // create_reservation (RPC hardened) no acepta flags de transporte — se
+    // guardan aparte con un UPDATE directo, permitido por la policy
+    // "reservations update" para roles scheduler.
+    let flagsFailed = false;
+    if ((pickupRequested || dropoffRequested) && newReservationId) {
+      const { error: flagsError } = await supabase.from("reservations").update({
+        pickup_requested: pickupRequested,
+        dropoff_requested: dropoffRequested,
+      }).eq("id", newReservationId as string);
+      flagsFailed = !!flagsError;
+    }
+
     setSaving(false);
     clearDraft();
-    toast.success("Reserva creada", {
-      description: "La solicitud ha sido registrada y está pendiente de aprobación.",
-    });
+    if (flagsFailed) {
+      toast.warning("Reserva creada, pero no se guardó el transporte", {
+        description: "Edita la reserva para marcar recogida/entrega.",
+      });
+    } else {
+      toast.success("Reserva creada", {
+        description: "La solicitud ha sido registrada y está pendiente de aprobación.",
+      });
+    }
     onOpenChange(false);
     onSaved?.();
   };
@@ -503,6 +546,31 @@ export function NewReservationModal({
                 </Select>
               </div>
             )}
+
+            {/* Servicio de ruta */}
+            <div className="space-y-2 rounded-lg border p-3">
+              <Label className="text-sm">Servicio de ruta</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="pickup-requested"
+                  checked={pickupRequested}
+                  onCheckedChange={(v) => setPickupRequested(!!v)}
+                />
+                <Label htmlFor="pickup-requested" className="font-normal cursor-pointer">
+                  Recoger en domicilio
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="dropoff-requested"
+                  checked={dropoffRequested}
+                  onCheckedChange={(v) => setDropoffRequested(!!v)}
+                />
+                <Label htmlFor="dropoff-requested" className="font-normal cursor-pointer">
+                  Entregar en domicilio
+                </Label>
+              </div>
+            </div>
 
             {/* Notes */}
             <div className="space-y-2">

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
 const PAGE_SIZE = 50;
@@ -58,9 +59,7 @@ export function useDogs({ page = 0, search = "", status = "active" as DogStatusF
       if (status !== "all") query = query.eq("is_active", status === "active");
 
       if (search.trim()) {
-        query = query.or(
-          `name.ilike.%${search.trim()}%,breed.ilike.%${search.trim()}%`
-        );
+        query = query.or(ilikeAny(["name", "breed"], search));
       }
 
       const { data, error, count } = await query;

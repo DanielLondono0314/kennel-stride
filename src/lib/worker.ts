@@ -1,4 +1,4 @@
-export type Specialty = "trainer" | "groomer" | "cleaning" | "welfare" | "vet";
+export type Specialty = "trainer" | "groomer" | "cleaning" | "welfare" | "vet" | "driver";
 
 export const SPECIALTY_LABELS: Record<Specialty, string> = {
   trainer: "Entrenador",
@@ -6,11 +6,17 @@ export const SPECIALTY_LABELS: Record<Specialty, string> = {
   cleaning: "Aseo",
   welfare: "Bienestar animal",
   vet: "Veterinario",
+  driver: "Chofer",
 };
 
-export type TaskType = "cleaning" | "feeding" | "walk" | "vet_check" | "grooming" | "other" | "welfare_check";
+export type TaskType =
+  | "cleaning" | "feeding" | "walk" | "vet_check" | "grooming" | "other" | "welfare_check"
+  | "route_pickup" | "route_dropoff";
 
-export const TASK_TYPES: TaskType[] = ["cleaning", "feeding", "walk", "vet_check", "grooming", "other", "welfare_check"];
+export const TASK_TYPES: TaskType[] = [
+  "cleaning", "feeding", "walk", "vet_check", "grooming", "other", "welfare_check",
+  "route_pickup", "route_dropoff",
+];
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   cleaning: "Aseo",
@@ -20,6 +26,8 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   grooming: "Grooming",
   other: "Otro",
   welfare_check: "Ronda de bienestar",
+  route_pickup: "Ruta de recogida",
+  route_dropoff: "Ruta de entrega",
 };
 
 export type TaskPriority = "low" | "normal" | "high";
@@ -36,6 +44,7 @@ export const TASK_TYPE_BY_SPECIALTY: Record<Specialty, TaskType[]> = {
   cleaning: ["cleaning"],
   welfare: ["feeding", "walk", "welfare_check"],
   vet: ["vet_check"],
+  driver: ["route_pickup", "route_dropoff"],
 };
 
 export type WorkStatus = "pending" | "in_progress" | "done" | "skipped";

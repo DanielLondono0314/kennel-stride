@@ -33,6 +33,7 @@ export interface PlatformOrganizationRow {
   slug: string;
   name: string;
   subscription_status: string;
+  plan_tier: string;
   trial_ends_at: string;
   created_at: string;
   active_staff_count: number;
@@ -85,6 +86,7 @@ export interface PlatformOrgDetail {
     slug: string;
     name: string;
     subscription_status: string;
+    plan_tier: string;
     trial_ends_at: string;
     created_at: string;
     ls_customer_id: string | null;
@@ -282,6 +284,26 @@ export function useSetSubscriptionStatus(orgId: string | undefined) {
       const { data, error } = await supabase.rpc("platform_admin_set_subscription_status", {
         p_org_id: orgId!,
         p_status: status,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "organization", orgId] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "audit-log"] });
+    },
+  });
+}
+
+export function useSetPlanTier(orgId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tier, reason }: { tier: string; reason: string }) => {
+      const { data, error } = await supabase.rpc("platform_admin_set_plan_tier", {
+        p_org_id: orgId!,
+        p_tier: tier,
         p_reason: reason,
       });
       if (error) throw error;

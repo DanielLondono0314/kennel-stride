@@ -150,7 +150,23 @@ export default function FacilityPage() {
 
   // Assign dog
   const handleAssign = async (unitId: string, data: any) => {
-    const { error } = await supabase.from("facility_units").update(data).eq("id", unitId);
+    // Un perro no puede ocupar dos perreras a la vez.
+    const alreadyIn = units.find((u) => u.id !== unitId && u.assigned_dog_id === data.assigned_dog_id);
+    if (alreadyIn) {
+      toast({
+        title: "Perro ya asignado",
+        description: `${data.assigned_dog_name} ya está en ${alreadyIn.name}. Libérala primero.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    // La asignación manual no está ligada a ninguna reserva: si quedaba un
+    // assigned_reservation_id viejo, el check-out de esa reserva liberaba
+    // esta perrera con otro perro dentro.
+    const { error } = await supabase
+      .from("facility_units")
+      .update({ ...data, assigned_reservation_id: null })
+      .eq("id", unitId);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     setModalOpen(false);
     fetchData();
@@ -165,6 +181,7 @@ export default function FacilityPage() {
       assigned_dog_name: null,
       assignment_start: null,
       assignment_end: null,
+      assigned_reservation_id: null,
       notes: "",
     }).eq("id", unitId);
     if (error) { toast({ title: "Error al liberar perrera", description: error.message, variant: "destructive" }); return; }
@@ -260,6 +277,7 @@ export default function FacilityPage() {
       assigned_dog_name: null,
       assignment_start: null,
       assignment_end: null,
+      assigned_reservation_id: null,
     }).eq("id", unitId);
     if (error) { toast({ title: "Error al cambiar estado", description: error.message, variant: "destructive" }); return; }
     setModalOpen(false);

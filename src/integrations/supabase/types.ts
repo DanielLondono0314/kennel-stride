@@ -167,6 +167,9 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          address_geocoded_at: string | null
+          address_lat: number | null
+          address_lng: number | null
           balance: number
           city: string | null
           created_at: string
@@ -179,15 +182,21 @@ export type Database = {
           last_name: string
           ls_customer_id: string | null
           notes: string | null
+          notification_channel_override: string | null
           organization_id: string | null
           phone: string
           state: string | null
           updated_at: string
           user_id: string | null
+          marketing_opt_out: boolean
+          whatsapp_opt_in: boolean
           zip_code: string | null
         }
         Insert: {
           address?: string | null
+          address_geocoded_at?: string | null
+          address_lat?: number | null
+          address_lng?: number | null
           balance?: number
           city?: string | null
           created_at?: string
@@ -200,15 +209,21 @@ export type Database = {
           last_name: string
           ls_customer_id?: string | null
           notes?: string | null
+          notification_channel_override?: string | null
           organization_id?: string | null
           phone?: string
           state?: string | null
           updated_at?: string
           user_id?: string | null
+          marketing_opt_out?: boolean
+          whatsapp_opt_in?: boolean
           zip_code?: string | null
         }
         Update: {
           address?: string | null
+          address_geocoded_at?: string | null
+          address_lat?: number | null
+          address_lng?: number | null
           balance?: number
           city?: string | null
           created_at?: string
@@ -221,11 +236,14 @@ export type Database = {
           last_name?: string
           ls_customer_id?: string | null
           notes?: string | null
+          notification_channel_override?: string | null
           organization_id?: string | null
           phone?: string
           state?: string | null
           updated_at?: string
           user_id?: string | null
+          marketing_opt_out?: boolean
+          whatsapp_opt_in?: boolean
           zip_code?: string | null
         }
         Relationships: [
@@ -1080,6 +1098,50 @@ export type Database = {
           },
         ]
       }
+      org_roles: {
+        Row: {
+          access_type: string
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          organization_id: string
+          permissions: string[]
+          system_key: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          access_type: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          organization_id: string
+          permissions?: string[]
+          system_key?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          permissions?: string[]
+          system_key?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null
@@ -1090,6 +1152,7 @@ export type Database = {
           invited_by: string | null
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           token: string
         }
         Insert: {
@@ -1101,6 +1164,7 @@ export type Database = {
           invited_by?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           token?: string
         }
         Update: {
@@ -1112,9 +1176,17 @@ export type Database = {
           invited_by?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organization_invitations_organization_id_fkey"
             columns: ["organization_id"]
@@ -1130,6 +1202,7 @@ export type Database = {
           id: string
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
+          role_id: string
           user_id: string
         }
         Insert: {
@@ -1137,6 +1210,7 @@ export type Database = {
           id?: string
           organization_id: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id: string
         }
         Update: {
@@ -1144,9 +1218,17 @@ export type Database = {
           id?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organization_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organization_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -1155,6 +1237,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_catalog: {
+        Row: {
+          display_name: string
+          ls_variant_id: string | null
+          max_dogs: number | null
+          max_members: number | null
+          monthly_price_cop: number
+          monthly_price_usd: number
+          sort_order: number
+          tier: string
+        }
+        Insert: {
+          display_name: string
+          ls_variant_id?: string | null
+          max_dogs?: number | null
+          max_members?: number | null
+          monthly_price_cop: number
+          monthly_price_usd: number
+          sort_order: number
+          tier: string
+        }
+        Update: {
+          display_name?: string
+          ls_variant_id?: string | null
+          max_dogs?: number | null
+          max_members?: number | null
+          monthly_price_cop?: number
+          monthly_price_usd?: number
+          sort_order?: number
+          tier?: string
+        }
+        Relationships: []
+      }
+      plan_features: {
+        Row: {
+          feature: string
+          tier: string
+        }
+        Insert: {
+          feature: string
+          tier: string
+        }
+        Update: {
+          feature?: string
+          tier?: string
+        }
+        Relationships: []
       }
       organizations: {
         Row: {
@@ -1172,6 +1302,9 @@ export type Database = {
           opening_time: string | null
           owner_id: string | null
           phone: string | null
+          plan_tier: string
+          route_notification_channel: string
+          route_notifications_enabled: boolean
           service_types: Json
           slug: string
           subscription_status: string
@@ -1194,6 +1327,9 @@ export type Database = {
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
+          plan_tier?: string
+          route_notification_channel?: string
+          route_notifications_enabled?: boolean
           service_types?: Json
           slug: string
           subscription_status?: string
@@ -1216,6 +1352,9 @@ export type Database = {
           opening_time?: string | null
           owner_id?: string | null
           phone?: string | null
+          plan_tier?: string
+          route_notification_channel?: string
+          route_notifications_enabled?: boolean
           service_types?: Json
           slug?: string
           subscription_status?: string
@@ -1562,6 +1701,104 @@ export type Database = {
           },
         ]
       }
+      route_stops: {
+        Row: {
+          address_snapshot: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          departed_at: string | null
+          dog_id: string
+          eta_calculated_at: string | null
+          eta_minutes: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          notification_channel: string | null
+          notification_error: string | null
+          notification_sent_at: string | null
+          reservation_id: string
+          sequence: number
+          skipped_reason: string | null
+          status: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          address_snapshot: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          departed_at?: string | null
+          dog_id: string
+          eta_calculated_at?: string | null
+          eta_minutes?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notification_channel?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          reservation_id: string
+          sequence: number
+          skipped_reason?: string | null
+          status?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          address_snapshot?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          departed_at?: string | null
+          dog_id?: string
+          eta_calculated_at?: string | null
+          eta_minutes?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notification_channel?: string | null
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          reservation_id?: string
+          sequence?: number
+          skipped_reason?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_stops_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservations: {
         Row: {
           check_in_time: string | null
@@ -1569,11 +1806,13 @@ export type Database = {
           created_at: string
           customer_id: string
           dog_id: string
+          dropoff_requested: boolean
           end_date: string
           id: string
           location_id: string | null
           notes: string | null
           organization_id: string | null
+          pickup_requested: boolean
           rejection_reason: string | null
           service_name: string
           service_type: string
@@ -1589,11 +1828,13 @@ export type Database = {
           created_at?: string
           customer_id: string
           dog_id: string
+          dropoff_requested?: boolean
           end_date: string
           id?: string
           location_id?: string | null
           notes?: string | null
           organization_id?: string | null
+          pickup_requested?: boolean
           rejection_reason?: string | null
           service_name?: string
           service_type?: string
@@ -1609,11 +1850,13 @@ export type Database = {
           created_at?: string
           customer_id?: string
           dog_id?: string
+          dropoff_requested?: boolean
           end_date?: string
           id?: string
           location_id?: string | null
           notes?: string | null
           organization_id?: string | null
+          pickup_requested?: boolean
           rejection_reason?: string | null
           service_name?: string
           service_type?: string
@@ -1673,6 +1916,7 @@ export type Database = {
           phone: string | null
           profile_id: string | null
           role: Database["public"]["Enums"]["app_role"]
+          role_id: string | null
           specialty: string | null
           updated_at: string
         }
@@ -1687,6 +1931,7 @@ export type Database = {
           phone?: string | null
           profile_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           specialty?: string | null
           updated_at?: string
         }
@@ -1701,10 +1946,18 @@ export type Database = {
           phone?: string | null
           profile_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          role_id?: string | null
           specialty?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "staff_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "org_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "staff_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -1986,6 +2239,19 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_route_stop: {
+        Args: { p_skip_reason?: string; p_stop_id: string }
+        Returns: undefined
+      }
+      create_daily_route: {
+        Args: {
+          p_assignee_staff_id: string
+          p_organization_id: string
+          p_reservation_ids: string[]
+          p_route_type: string
+        }
+        Returns: string
+      }
       create_organization: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
@@ -2003,6 +2269,19 @@ export type Database = {
           p_total_price: number
         }
         Returns: string
+      }
+      update_reservation: {
+        Args: {
+          p_end: string
+          p_notes?: string
+          p_reservation_id: string
+          p_service_name: string
+          p_service_type: string
+          p_start: string
+          p_status?: string
+          p_total_price: number
+        }
+        Returns: undefined
       }
       deduct_package_credit: {
         Args: { p_package_id: string; p_reason?: string }
@@ -2022,18 +2301,38 @@ export type Database = {
       get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
       get_platform_admin_role: { Args: never; Returns: string }
       get_reportcard_writer_org_ids: { Args: never; Returns: string[] }
+      get_org_ids_with_permission: {
+        Args: { p_perm: string }
+        Returns: string[]
+      }
       get_scheduler_org_ids: { Args: never; Returns: string[] }
+      has_org_permission: {
+        Args: { p_org: string; p_perm: string }
+        Returns: boolean
+      }
       get_user_org_ids: { Args: never; Returns: string[] }
       is_org_admin: { Args: { p_org: string }; Returns: boolean }
+      mark_route_stop_departed: {
+        Args: { p_stop_id: string }
+        Returns: undefined
+      }
       is_platform_admin: { Args: never; Returns: boolean }
       platform_admin_adjust_package_credits: {
         Args: { p_delta: number; p_package_id: string; p_reason: string }
         Returns: Json
       }
       platform_admin_credit_consumption: { Args: { p_days?: number }; Returns: Json }
+      org_has_feature: {
+        Args: { p_feature: string; p_org_id: string }
+        Returns: boolean
+      }
       platform_admin_list_organizations: { Args: never; Returns: Json }
       platform_admin_org_detail: { Args: { p_org_id: string }; Returns: Json }
       platform_admin_overview_stats: { Args: never; Returns: Json }
+      platform_admin_set_plan_tier: {
+        Args: { p_org_id: string; p_reason: string; p_tier: string }
+        Returns: Json
+      }
       platform_admin_set_subscription_status: {
         Args: { p_org_id: string; p_reason: string; p_status: string }
         Returns: Json
