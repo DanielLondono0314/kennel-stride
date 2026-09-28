@@ -34,12 +34,20 @@ function toSlug(label: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+// Latinoamérica primero: la lista solo tenía zonas de EE. UU. y México, y un
+// centro en Colombia no podía elegir Bogotá (QA E-03).
 const timezones = [
-  { value: "America/New_York", label: "Este (ET)" },
-  { value: "America/Chicago", label: "Central (CT)" },
-  { value: "America/Denver", label: "Montaña (MT)" },
-  { value: "America/Los_Angeles", label: "Pacífico (PT)" },
-  { value: "America/Mexico_City", label: "Ciudad de México (CST)" },
+  { value: "America/Bogota", label: "Bogotá, Lima, Quito (UTC−5)" },
+  { value: "America/Mexico_City", label: "Ciudad de México (UTC−6)" },
+  { value: "America/Caracas", label: "Caracas (UTC−4)" },
+  { value: "America/Santiago", label: "Santiago de Chile" },
+  { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (UTC−3)" },
+  { value: "America/Panama", label: "Panamá (UTC−5)" },
+  { value: "America/New_York", label: "Nueva York (ET)" },
+  { value: "America/Chicago", label: "Chicago (CT)" },
+  { value: "America/Denver", label: "Denver (MT)" },
+  { value: "America/Los_Angeles", label: "Los Ángeles (PT)" },
+  { value: "Europe/Madrid", label: "Madrid" },
 ];
 
 export function BusinessProfileTab() {
@@ -59,7 +67,7 @@ export function BusinessProfileTab() {
       email:        organization.email        ?? "",
       opening_time: organization.opening_time ?? "07:00",
       closing_time: organization.closing_time ?? "19:00",
-      timezone:     organization.timezone     ?? "America/Mexico_City",
+      timezone:     organization.timezone     ?? "America/Bogota",
       service_types: organization.service_types?.length
         ? organization.service_types
         : [
@@ -190,6 +198,9 @@ export function BusinessProfileTab() {
                   {timezones.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
                   ))}
+                  {fields.timezone && !timezones.some((tz) => tz.value === fields.timezone) && (
+                    <SelectItem value={fields.timezone}>{fields.timezone.replace(/_/g, " ")}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

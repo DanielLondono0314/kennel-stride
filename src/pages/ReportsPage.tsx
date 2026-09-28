@@ -426,7 +426,7 @@ export default function ReportsPage() {
                           <button
                             key={s.id}
                             className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => orgNavigate("/staff")}
+                            onClick={() => orgNavigate(`/tasks?assignee=${s.id}`)}
                           >
                             <p className="font-medium truncate">{s.first_name} {s.last_name}</p>
                             <div className="flex items-center gap-2 shrink-0 ml-3">

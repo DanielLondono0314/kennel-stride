@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import Papa from "papaparse";
+import { normalizePhone } from "@/lib/contact";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -19,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CUSTOMER_AUTHORIZATION_PATH } from "@/lib/legal";
 import {
   type RawRow, normalizeRow, decodeCsvBytes, toIsoDate, parseImportDate, isDescriptionRow,
-  looksLikeEmail, parseBool, parseDecimal, digitsOnly, parseAllergies, parseMedications,
+  looksLikeEmail, looksLikePhone, hasGarbledText, parseBool, parseDecimal, digitsOnly, parseAllergies, parseMedications,
 } from "@/lib/importParsing";
 
 interface Props {
@@ -184,6 +185,10 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         out.skipped++;
         continue;
       }
+      if (hasGarbledText(r)) {
+        out.errors.push({ row: i + 2, reason: "Tiene caracteres ilegibles (�): guarda el archivo como CSV UTF-8 y vuelve a importarlo" });
+        continue;
+      }
       if (!r.first_name || !r.last_name || !r.email) {
         out.errors.push({ row: i + 2, reason: "Faltan campos requeridos (first_name, last_name, email)" });
         continue;
@@ -192,18 +197,22 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         out.errors.push({ row: i + 2, reason: `Email "${r.email}" no es válido` });
         continue;
       }
+      if (!looksLikePhone(r.phone) || !looksLikePhone(r.emergency_contact_phone)) {
+        out.errors.push({ row: i + 2, reason: `Teléfono "${r.phone || r.emergency_contact_phone}" no es válido` });
+        continue;
+      }
       const payload = {
         organization_id: organization.id,
         first_name: r.first_name,
         last_name: r.last_name,
         email: r.email.toLowerCase(),
-        phone: r.phone || "",
+        phone: normalizePhone(r.phone) || "",
         address: r.address || null,
         city: r.city || null,
         state: r.state || null,
         zip_code: r.zip_code || null,
         emergency_contact_name: r.emergency_contact_name || null,
-        emergency_contact_phone: r.emergency_contact_phone || null,
+        emergency_contact_phone: normalizePhone(r.emergency_contact_phone) || null,
         notes: r.notes || null,
         // La cédula es opcional en la importación; si viene, se guarda.
         ...(r.id_document?.trim()
@@ -286,8 +295,16 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         out.skipped++;
         continue;
       }
+      if (hasGarbledText(r)) {
+        out.errors.push({ row: i + 2, reason: "Tiene caracteres ilegibles (�): guarda el archivo como CSV UTF-8 y vuelve a importarlo" });
+        continue;
+      }
       if (!r.name || !r.breed) {
         out.errors.push({ row: i + 2, reason: "Faltan campos requeridos (name, breed)" });
+        continue;
+      }
+      if (!looksLikePhone(r.owner_phone)) {
+        out.errors.push({ row: i + 2, reason: `owner_phone "${r.owner_phone}" no es un teléfono válido` });
         continue;
       }
 
@@ -308,7 +325,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
           first_name: r.owner_email.split("@")[0],
           last_name: "(Importado)",
           email: r.owner_email.toLowerCase(),
-          phone: r.owner_phone || "",
+          phone: normalizePhone(r.owner_phone) || "",
           data_consent_at: new Date().toISOString(),
         };
         const { data: newCust, error } = await supabase

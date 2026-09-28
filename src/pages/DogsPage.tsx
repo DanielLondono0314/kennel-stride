@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { Link } from "react-router-dom";
 import { useDogs, useDeleteDog, useBulkDeleteDogs, useSetDogsActive, type DbDog, type DogStatusFilter } from "@/hooks/queries/useDogs";
 import { DogModal } from "@/components/dogs/DogModal";
 import { DogCharacteristicIcons } from "@/components/dogs/DogCharacteristicIcons";
@@ -43,6 +44,7 @@ export default function DogsPage() {
   const queryClient = useQueryClient();
   const canDelete = usePermission("delete_records");
   const orgNavigate = useOrgNavigate();
+  const basePath = useOrgBasePath();
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDog, setEditingDog] = useState<DbDog | null>(null);
@@ -228,7 +230,13 @@ export default function DogsPage() {
                     </Avatar>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="font-medium">{dog.name}</p>
+                        <Link
+                          to={`${basePath}/dogs/${dog.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                        >
+                          {dog.name}
+                        </Link>
                         {!dog.is_active && <Badge variant="secondary" className="text-[10px] px-1.5">Inactivo</Badge>}
                       </div>
                       <DogCharacteristicIcons
@@ -243,7 +251,16 @@ export default function DogsPage() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell><span className="text-sm">{dog.customers?.first_name} {dog.customers?.last_name}</span></TableCell>
+                <TableCell>
+                  {/* El dueño lleva al cliente, no al perro (QA E-30). */}
+                  <Link
+                    to={`${basePath}/customers/${dog.customer_id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-sm hover:underline"
+                  >
+                    {dog.customers?.first_name} {dog.customers?.last_name}
+                  </Link>
+                </TableCell>
                 <TableCell><span className="text-sm text-muted-foreground">{dog.breed}</span></TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5 text-sm"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{getAge(dog.birth_date)}</div>

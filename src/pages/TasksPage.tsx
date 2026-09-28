@@ -72,12 +72,27 @@ export default function TasksPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [dragOver, setDragOver] = useState<Column | null>(null);
 
-  const tasks = useMemo(() => data ?? [], [data]);
+  // ?assignee=<staff id>: tareas de un empleado (enlace desde Personal y Reportes — QA E-27).
+  const assigneeFilter = searchParams.get("assignee");
+  const tasks = useMemo(
+    () => (data ?? []).filter((t) => !assigneeFilter || t.assignee_staff_id === assigneeFilter),
+    [data, assigneeFilter]
+  );
+  const assigneeName = useMemo(() => {
+    if (!assigneeFilter) return null;
+    const t = (data ?? []).find((x) => x.assignee_staff_id === assigneeFilter);
+    return t ? staffName(t.staff_members) : null;
+  }, [data, assigneeFilter]);
+  const clearAssignee = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("assignee");
+    setSearchParams(next, { replace: true });
+  };
 
   // La tarea abierta vive en la URL (?task=<id>): se puede enlazar desde el
   // Calendario u otras pantallas y abrir directo esa tarea.
   const openId = searchParams.get("task");
-  const openTask = useMemo(() => tasks.find((t) => t.id === openId) ?? null, [tasks, openId]);
+  const openTask = useMemo(() => (data ?? []).find((t) => t.id === openId) ?? null, [data, openId]);
 
   const setOpenId = (id: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -151,6 +166,15 @@ export default function TasksPage() {
             {tasks.length} tareas · {grouped.pending.length} pendientes
             {overdueCount > 0 && <span className="text-destructive font-medium"> · {overdueCount} vencidas</span>}
           </p>
+          {assigneeFilter && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-xs">
+              <User className="h-3.5 w-3.5" aria-hidden />
+              Asignadas a {assigneeName ?? "este empleado"}
+              <button type="button" onClick={clearAssignee} className="font-medium text-primary hover:underline">
+                Ver todas
+              </button>
+            </div>
+          )}
         </div>
         {canManage && (
           <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">

@@ -62,7 +62,11 @@ export function useCustomers({ page = 0, search = "", status = "active" as Custo
         .from("customers")
         .select("*, dogs(id)", { count: "exact" })
         .eq("organization_id", organization!.id)
+        // Orden estable: con nombres repetidos ("ANDRES FELIPE") el orden
+        // cambiaba entre cargas (QA E-16).
         .order("first_name", { ascending: true })
+        .order("last_name", { ascending: true })
+        .order("id", { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (status !== "all") query = query.eq("is_active", status === "active");

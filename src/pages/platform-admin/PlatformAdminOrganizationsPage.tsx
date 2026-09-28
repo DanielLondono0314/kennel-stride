@@ -39,7 +39,7 @@ export default function PlatformAdminOrganizationsPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nombre o slug..."
+          placeholder="Buscar por nombre o slug..." aria-label="Buscar por nombre o slug"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-9"

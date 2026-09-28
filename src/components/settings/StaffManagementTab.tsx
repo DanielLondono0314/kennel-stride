@@ -38,9 +38,14 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, Plus, Edit, Trash2, Loader2, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { telHref } from "@/lib/contact";
 import { staffMemberSchema } from "@/lib/schemas";
 import { type Specialty, SPECIALTY_LABELS } from "@/lib/worker";
 import { useOrgRoles } from "@/hooks/queries/useOrgRoles";
+import { useStaffList } from "@/hooks/queries/useStaffMembers";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AccessType } from "@/lib/permissions";
 
 type StaffMember = Tables<"staff_members">;
@@ -52,8 +57,7 @@ const accessBadgeVariant: Record<AccessType, "default" | "secondary" | "outline"
 };
 
 export function StaffManagementTab() {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const basePath = useOrgBasePath();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
@@ -73,22 +77,18 @@ export function StaffManagementTab() {
   const [specialty, setSpecialty] = useState<Specialty | "">("");
   const [isActive, setIsActive] = useState(true);
 
-  const fetchStaff = useCallback(async () => {
-    if (!organization) return;
-    const { data, error } = await supabase
-      .from("staff_members")
-      .select("id, first_name, last_name, email, phone, role, role_id, is_active, created_at, updated_at, organization_id, profile_id, specialty")
-      .eq("organization_id", organization.id)
-      .order("created_at", { ascending: true });
-    if (error) {
-      toast.error("No se pudo cargar el personal", { description: "Vuelve a cargar la página." });
-         } else {
-      setStaff(data || []);
-    }
-    setLoading(false);
-  }, [organization]);
+  const queryClient = useQueryClient();
+  const { data: staffData, isLoading: staffLoading, isError: staffError } = useStaffList();
+  const staff = (staffData ?? []) as StaffMember[];
+  const loading = staffLoading;
+  // Recarga la lista compartida (tabla, estadísticas y selects de personal).
+  const fetchStaff = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["staff-members", organization?.id] });
+  }, [queryClient, organization?.id]);
 
-  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+  useEffect(() => {
+    if (staffError) toast.error("No se pudo cargar el personal", { description: "Vuelve a cargar la página." });
+  }, [staffError]);
 
 
   const resetForm = () => {
@@ -217,11 +217,21 @@ export function StaffManagementTab() {
                         <Avatar className="h-9 w-9">
                           <AvatarFallback className="bg-primary/10 text-primary text-sm">{initials}</AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{s.first_name} {s.last_name}</span>
+                        <Link
+                          to={`${basePath}/tasks?assignee=${s.id}`}
+                          className="font-medium hover:underline"
+                          title="Ver sus tareas"
+                        >
+                          {s.first_name} {s.last_name}
+                        </Link>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{s.phone || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.email ? <a href={`mailto:${s.email}`} className="hover:underline">{s.email}</a> : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.phone ? <a href={telHref(s.phone) ?? undefined} className="hover:underline">{s.phone}</a> : "—"}
+                    </TableCell>
                     <TableCell>
                       {(() => {
                         const r = s.role_id ? roleById.get(s.role_id) : undefined;

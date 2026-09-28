@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { Link } from "react-router-dom";
+import { useUrlState } from "@/hooks/useUrlState";
 import {
   useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, findContactDuplicates,
   useBulkDeleteCustomers, useSetCustomersActive,
@@ -43,13 +45,16 @@ export default function CustomersPage() {
   const { organization } = useOrganization();
   const canDelete = usePermission("delete_records");
   const orgNavigate = useOrgNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
+  const basePath = useOrgBasePath();
+  // La búsqueda queda en la URL (?q=): sobrevive a recargar y se puede compartir (QA E-15).
+  const [urlSearch, setUrlSearch] = useUrlState<string>("q", "", { replace: true });
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<DbCustomer | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
   const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("active");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -57,11 +62,24 @@ export default function CustomersPage() {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setPage(0);
+      if (searchQuery.trim() !== urlSearch) setUrlSearch(searchQuery.trim());
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setPage(0); setSelectedIds(new Set()); }, [statusFilter]);
+
+  // Sin resultados por búsqueda ≠ no hay clientes (QA E-15).
+  const emptyState = debouncedSearch.trim() ? (
+    <EmptyState
+      icon={Search}
+      title={`Sin resultados para "${debouncedSearch.trim()}"`}
+      description="Prueba con otro nombre, correo o teléfono."
+      action={<Button variant="outline" onClick={() => setSearchQuery("")}>Limpiar búsqueda</Button>}
+    />
+  ) : (
+    <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
+  );
 
   const { data, isLoading, isFetching, isError, refetch } = useCustomers({ page, search: debouncedSearch, status: statusFilter });
   const [allCustomers, setAllCustomers] = useState<DbCustomer[]>([]);
@@ -252,7 +270,7 @@ export default function CustomersPage() {
             ) : allCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-4">
-                  <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
+                  {emptyState}
                 </TableCell>
               </TableRow>
             ) : allCustomers.map((customer) => {
@@ -280,9 +298,13 @@ export default function CustomersPage() {
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="font-medium">
+                          <Link
+                            to={`${basePath}/customers/${customer.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                          >
                             {customer.first_name} {customer.last_name}
-                          </p>
+                          </Link>
                           {!customer.is_active && <Badge variant="secondary" className="text-[10px] px-1.5">Inactivo</Badge>}
                           {!customer.data_consent_at && (
                             <Badge variant="outline" className="text-[10px] px-1.5 border-amber-500 text-amber-700" title="No hay autorización de tratamiento de datos registrada (Ley 1581). Edita el cliente para registrarla.">
@@ -374,7 +396,7 @@ export default function CustomersPage() {
         ) : isLoading ? (
           <CardGridSkeleton count={6} />
         ) : allCustomers.length === 0 ? (
-          <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
+          emptyState
         ) : allCustomers.map((customer) => {
           const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
           const hasBalance = customer.balance !== 0;

@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useOrganization } from "@/contexts/OrganizationContext";
+import { useMemo } from "react";
+import { useStaffList } from "@/hooks/queries/useStaffMembers";
 import { StaffManagementTab } from "@/components/settings/StaffManagementTab";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, UserCheck, GraduationCap, Shield, Loader2 } from "lucide-react";
@@ -13,27 +12,13 @@ interface StaffStats {
 }
 
 export default function StaffPage() {
-  const { organization } = useOrganization();
-  const [stats, setStats] = useState<StaffStats>({ total: 0, active: 0, workers: 0, admins: 0 });
-  const [loadingStats, setLoadingStats] = useState(true);
-
-  const orgId = organization?.id;
-
-  useEffect(() => {
-    if (!orgId) return;
-    setLoadingStats(true);
-    supabase.from("staff_members").select("role, is_active").eq("organization_id", orgId).then(({ data }) => {
-      if (data) {
-        setStats({
-          total: data.length,
-          active: data.filter((s) => s.is_active).length,
-          workers: data.filter((s) => s.role === "worker").length,
-          admins: data.filter((s) => s.role === "admin" || s.role === "manager").length,
-        });
-      }
-      setLoadingStats(false);
-    });
-  }, [orgId]);
+  const { data: staffList = [], isLoading: loadingStats } = useStaffList();
+  const stats = useMemo<StaffStats>(() => ({
+    total: staffList.length,
+    active: staffList.filter((s) => s.is_active).length,
+    workers: staffList.filter((s) => s.role === "worker").length,
+    admins: staffList.filter((s) => s.role === "admin" || s.role === "manager").length,
+  }), [staffList]);
 
   return (
     <div className="space-y-6 animate-fade-in">

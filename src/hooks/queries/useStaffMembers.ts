@@ -29,3 +29,27 @@ export function useStaffMembers() {
     },
   });
 }
+
+/**
+ * Todo el personal de la org (activo e inactivo) con sus datos completos. Una
+ * sola consulta compartida por la página de Personal y su tabla: antes cada
+ * una pedía staff_members por su lado y se repetía en cada re-render (QA E-07).
+ */
+export function useStaffList() {
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
+
+  return useQuery({
+    queryKey: ["staff-members", orgId, "all"],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_members")
+        .select("id, first_name, last_name, email, phone, role, role_id, is_active, created_at, updated_at, organization_id, profile_id, specialty")
+        .eq("organization_id", orgId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}

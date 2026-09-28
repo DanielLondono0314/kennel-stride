@@ -94,6 +94,21 @@ export function isDescriptionRow(r: RawRow): boolean {
   return first === "nombre" || first === "name" || first === "first_name" || first === "primer_nombre";
 }
 
+/**
+ * Fila con caracteres ilegibles (el "�" de un archivo guardado en otra
+ * codificación): mejor rechazarla que guardar "tel�fono" (QA E-09).
+ */
+export function hasGarbledText(r: RawRow): boolean {
+  return Object.values(r).some((v) => typeof v === "string" && v.includes("\uFFFD"));
+}
+
+/** Teléfono plausible: vacío (opcional) o entre 7 y 15 dígitos. */
+export function looksLikePhone(v: string | null | undefined): boolean {
+  if (!v?.trim()) return true;
+  const digits = v.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 export function looksLikeEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }

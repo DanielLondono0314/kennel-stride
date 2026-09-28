@@ -72,6 +72,42 @@ const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailP
 const WorkerNoticesPage    = lazy(() => import("./pages/worker/WorkerNoticesPage"));
 const WorkerProfilePage    = lazy(() => import("./pages/worker/WorkerProfilePage"));
 
+// Precarga el código de la página de la URL actual EN PARALELO con la carga de
+// la organización: antes la ruta pedía su chunk recién cuando OrgGuard
+// terminaba (~1 s después) — QA E-19. import() del mismo archivo reutiliza el
+// mismo módulo que usa lazy(), así que no se descarga dos veces.
+const ORG_ROUTE_PRELOAD: Record<string, () => Promise<unknown>> = {
+  dashboard: () => import("./pages/Dashboard"),
+  customers: () => import("./pages/CustomersPage"),
+  dogs: () => import("./pages/DogsPage"),
+  reservations: () => import("./pages/ReservationDetailPage"),
+  "dog-panel": () => import("./pages/DogDashboardPage"),
+  requests: () => import("./pages/RequestsPage"),
+  calendar: () => import("./pages/CalendarPage"),
+  tasks: () => import("./pages/TasksPage"),
+  notices: () => import("./pages/NoticesPage"),
+  facility: () => import("./pages/FacilityPage"),
+  "report-cards": () => import("./pages/ReportCardsPage"),
+  packages: () => import("./pages/PackagesPage"),
+  invoices: () => import("./pages/InvoicesPage"),
+  contracts: () => import("./pages/ContractsPage"),
+  reports: () => import("./pages/ReportsPage"),
+  campaigns: () => import("./pages/CampaignsPage"),
+  routes: () => import("./pages/RoutesPage"),
+  clinic: () => import("./pages/ClinicPage"),
+  staff: () => import("./pages/StaffPage"),
+  settings: () => import("./pages/SettingsPage"),
+};
+
+if (typeof window !== "undefined") {
+  const [, , section, sub] = window.location.pathname.split("/");
+  const preload =
+    section === "dogs" && sub ? () => import("./pages/DogProfilePage")
+    : section === "customers" && sub ? () => import("./pages/CustomerProfilePage")
+    : ORG_ROUTE_PRELOAD[section ?? ""];
+  preload?.().catch(() => {}); // si falla, lazy() lo reintenta al renderizar
+}
+
 const App = () => {
   const [queryClient] = useState(createQueryClient);
 

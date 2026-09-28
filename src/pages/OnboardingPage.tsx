@@ -108,6 +108,13 @@ export default function OnboardingPage() {
       return;
     }
 
+    // Zona horaria del navegador como propuesta inicial (QA E-03); se puede
+    // cambiar en Ajustes. Si falla, queda la de por defecto (Bogotá).
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (browserTz && browserTz !== "America/Bogota") {
+      await supabase.from("organizations").update({ timezone: browserTz }).eq("slug", orgData.slug);
+    }
+
     toast.success("¡Centro creado!");
     navigate(`/${orgData.slug}/dashboard`);
   };

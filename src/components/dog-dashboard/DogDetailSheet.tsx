@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDogWeightLog } from "@/hooks/queries/useDogWeightLog";
 import { usePermission } from "@/hooks/usePermission";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { Link } from "react-router-dom";
+import { telHref } from "@/lib/contact";
 import type { DashboardDog } from "@/hooks/queries/useDogDashboard";
 import type { CardField } from "@/lib/dogDashboardConfig";
 import { parseDateOnly } from "@/lib/age";
@@ -64,6 +66,7 @@ function Rating({ label, value }: { label: string; value: number }) {
 
 export function DogDetailSheet({ dog, onOpenChange, settings, fields }: Props) {
   const orgNavigate = useOrgNavigate();
+  const basePath = useOrgBasePath();
   const canRecord = usePermission("record_weight");
   const [weighOpen, setWeighOpen] = useState(false);
   const { data: entries, isLoading } = useDogWeightLog(dog?.id);
@@ -92,9 +95,11 @@ export function DogDetailSheet({ dog, onOpenChange, settings, fields }: Props) {
                 </SheetDescription>
                 {dog.owner && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {dog.owner.name}
+                    <Link to={`${basePath}/customers/${dog.owner.id}`} className="hover:underline hover:text-foreground">
+                      {dog.owner.name}
+                    </Link>
                     {dog.owner.phone && (
-                      <a href={`tel:${dog.owner.phone}`} className="ml-2 inline-flex items-center gap-1 text-foreground hover:underline">
+                      <a href={telHref(dog.owner.phone) ?? undefined} className="ml-2 inline-flex items-center gap-1 text-foreground hover:underline">
                         <Phone className="h-3 w-3" aria-hidden />{dog.owner.phone}
                       </a>
                     )}

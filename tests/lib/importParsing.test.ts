@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseImportDate, decodeCsvBytes, normalizeRow, isDescriptionRow, parseMedications, parseDecimal,
+  hasGarbledText, looksLikePhone,
 } from "@/lib/importParsing";
 
 const TODAY = new Date(2026, 8, 25); // 25/09/2026
@@ -72,5 +73,18 @@ describe("parseDecimal", () => {
   it("acepta coma decimal", () => {
     expect(parseDecimal("24,83")).toBe(24.83);
     expect(parseDecimal("abc")).toBeNull();
+  });
+});
+
+describe("validaciones por fila (QA E-09)", () => {
+  it("detecta texto con codificación rota", () => {
+    expect(hasGarbledText({ phone: "tel�fono_del_propietario" })).toBe(true);
+    expect(hasGarbledText({ phone: "teléfono" })).toBe(false);
+  });
+
+  it("valida teléfonos (vacío es válido)", () => {
+    expect(looksLikePhone("")).toBe(true);
+    expect(looksLikePhone("300 123 4567")).toBe(true);
+    expect(looksLikePhone("tel_propietario")).toBe(false);
   });
 });

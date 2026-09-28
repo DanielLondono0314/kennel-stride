@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { LEGAL_DOCS, operatorName } from '@/lib/legal';
 import {
   Calendar, Users, Stethoscope, CreditCard, Building2,
@@ -419,6 +420,8 @@ function DashboardMockup() {
 /* ─── NavBar ────────────────────────────────────────────────────────────────── */
 
 function NavBar() {
+  // Con sesión iniciada, "Iniciar sesión" confunde: /login redirige al panel (QA E-19).
+  const { session } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -481,7 +484,7 @@ function NavBar() {
             className="hidden md:block text-sm font-medium no-underline px-3 py-2"
             style={{ color: c.text }}
           >
-            Iniciar sesión
+            {session ? 'Ir a mi panel' : 'Iniciar sesión'}
           </Link>
           <Link
             to="/register"

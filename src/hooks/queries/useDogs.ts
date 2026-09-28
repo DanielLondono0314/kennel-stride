@@ -54,6 +54,7 @@ export function useDogs({ page = 0, search = "", status = "active" as DogStatusF
         .select("*, customers(id, first_name, last_name)", { count: "exact" })
         .eq("organization_id", organization!.id)
         .order("name", { ascending: true })
+        .order("id", { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (status !== "all") query = query.eq("is_active", status === "active");

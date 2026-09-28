@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +33,7 @@ interface DbDog {
 }
 
 export default function ClinicPage() {
+  const basePath = useOrgBasePath();
   const { organization } = useOrganization();
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,13 +76,13 @@ export default function ClinicPage() {
       {/* Dog list sidebar — hidden on mobile when a dog is selected */}
       <div className={`w-full md:w-80 border-r border-border bg-card flex flex-col ${selectedDogId ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+          <h1 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
             <Stethoscope className="h-5 w-5 text-primary" />
             Clínica Veterinaria
-          </h2>
+          </h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar perro..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            <Input placeholder="Buscar perro..." aria-label="Buscar perro" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -155,13 +158,18 @@ export default function ClinicPage() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{selectedDog.name}</h1>
+                <h2 className="text-2xl font-bold text-foreground">
+                  <Link to={`${basePath}/dogs/${selectedDog.id}`} className="hover:underline">{selectedDog.name}</Link>
+                </h2>
                 <p className="text-muted-foreground">
                   {selectedDog.breed} · {selectedDog.gender === "male" ? "Macho" : "Hembra"} ·{" "}
                   {selectedDog.weight ? `${selectedDog.weight} kg` : "Peso no registrado"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Dueño: {selectedDog.customers?.first_name} {selectedDog.customers?.last_name}
+                  Dueño:{" "}
+                  <Link to={`${basePath}/customers/${selectedDog.customer_id}`} className="hover:underline hover:text-foreground">
+                    {selectedDog.customers?.first_name} {selectedDog.customers?.last_name}
+                  </Link>
                 </p>
               </div>
             </div>
