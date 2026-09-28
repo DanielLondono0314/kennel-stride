@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Reservation, ReservationStatus, ServiceType } from "@/types";
-import { format } from "date-fns";
+import { format, isToday, startOfToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
@@ -57,6 +57,16 @@ const serviceTypeLabels: Record<ServiceType, string> = {
   [ServiceType.GROOMING]: "Grooming",
   [ServiceType.EVALUATION]: "Evaluación",
 };
+
+// En estadías de varios días solo la hora no dice nada: si no es hoy, se
+// muestra también la fecha.
+function formatWhen(d: Date) {
+  return isToday(d) ? format(d, "HH:mm", { locale: es }) : format(d, "d MMM HH:mm", { locale: es });
+}
+
+function isBeforeToday(d: Date) {
+  return d < startOfToday();
+}
 
 export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprove, onCancel }: OpsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -156,11 +166,14 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      <p>{format(reservation.startDate, "HH:mm", { locale: es })}</p>
+                    <div className="text-sm whitespace-nowrap">
+                      <p>{formatWhen(reservation.startDate)}</p>
                       <p className="text-muted-foreground">
-                        {format(reservation.endDate, "HH:mm", { locale: es })}
+                        {formatWhen(reservation.endDate)}
                       </p>
+                      {reservation.status === ReservationStatus.SCHEDULED && isBeforeToday(reservation.startDate) && (
+                        <p className="text-xs font-medium text-warning">Ingreso con fecha anterior</p>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>

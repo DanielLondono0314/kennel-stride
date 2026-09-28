@@ -30,6 +30,19 @@ import { toast } from "sonner";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 
+// Por ingresar = agendada cuyo ingreso es hoy o YA PASÓ y cuya salida no ha
+// pasado. Antes solo contaba el ingreso de hoy: una reserva cargada con fecha
+// anterior (perros que ya estaban en el centro al migrar, o una llegada que no
+// se registró a tiempo) no aparecía en ninguna pestaña y no había dónde hacer
+// el check-in.
+function isAwaitingCheckIn(r: { status: ReservationStatus; startDate: Date; endDate: Date }, todayStr: string) {
+  return (
+    r.status === ReservationStatus.SCHEDULED &&
+    format(r.startDate, "yyyy-MM-dd") <= todayStr &&
+    format(r.endDate, "yyyy-MM-dd") >= todayStr
+  );
+}
+
 export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
@@ -64,12 +77,13 @@ export default function Dashboard() {
     const today = reservations.filter(
       (r) =>
         format(r.startDate, "yyyy-MM-dd") === todayStr ||
+        isAwaitingCheckIn(r, todayStr) ||
         r.status === ReservationStatus.CHECKED_IN ||
         r.status === ReservationStatus.IN_PROGRESS ||
         r.status === ReservationStatus.READY
     );
     return {
-      expected: today.filter((r) => r.status === ReservationStatus.SCHEDULED).length,
+      expected: today.filter((r) => isAwaitingCheckIn(r, todayStr)).length,
       checkedIn: today.filter((r) =>
         r.status === ReservationStatus.CHECKED_IN || r.status === ReservationStatus.IN_PROGRESS
       ).length,
@@ -83,15 +97,13 @@ export default function Dashboard() {
   }, [reservations]);
 
   const tabCounts = useMemo(() => {
-    // "Esperados Hoy" y "Salen Hoy" filtran por FECHA además de estado,
+    // "Por ingresar" y "Salen Hoy" filtran por FECHA además de estado,
     // igual que los KPIs de arriba (antes el tab mostraba reservas de
     // mañana y contradecía al contador).
     const todayStr = format(new Date(), "yyyy-MM-dd");
     return {
     notices: notices.filter((n) => !n.isRead).length,
-    expected: reservations.filter((r) =>
-      r.status === ReservationStatus.SCHEDULED && format(r.startDate, "yyyy-MM-dd") === todayStr
-    ).length,
+    expected: reservations.filter((r) => isAwaitingCheckIn(r, todayStr)).length,
     goingHome: reservations.filter((r) =>
       r.status === ReservationStatus.READY ||
       (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)
@@ -108,9 +120,7 @@ export default function Dashboard() {
     );
     const todayStr = format(new Date(), "yyyy-MM-dd");
     switch (activeTab) {
-      case "expected": filtered = filtered.filter((r) =>
-        r.status === ReservationStatus.SCHEDULED && format(r.startDate, "yyyy-MM-dd") === todayStr
-      ); break;
+      case "expected": filtered = filtered.filter((r) => isAwaitingCheckIn(r, todayStr)); break;
       case "going-home": filtered = filtered.filter((r) =>
         r.status === ReservationStatus.READY ||
         (r.status === ReservationStatus.CHECKED_IN && format(r.endDate, "yyyy-MM-dd") === todayStr)

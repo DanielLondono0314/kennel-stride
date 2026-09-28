@@ -16,7 +16,7 @@ interface OpsTabsProps {
 
 const tabs: { id: OpsTab; label: string; countKey: keyof OpsTabsProps["counts"] }[] = [
   { id: "notices", label: "Avisos", countKey: "notices" },
-  { id: "expected", label: "Esperados Hoy", countKey: "expected" },
+  { id: "expected", label: "Por ingresar", countKey: "expected" },
   { id: "going-home", label: "Salen Hoy", countKey: "goingHome" },
   { id: "checked-in", label: "Registrados", countKey: "checkedIn" },
   { id: "requested", label: "Solicitudes", countKey: "requested" },
