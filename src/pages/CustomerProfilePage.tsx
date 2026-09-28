@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAge } from "@/lib/age";
@@ -18,7 +18,7 @@ import {
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Dog, Package,
   FileText, Edit, CreditCard, Calendar, AlertTriangle,
-  CheckCircle2, Clock, Loader2, Printer,
+  CheckCircle2, Clock, Loader2, Printer, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatIdDocument, isDuplicateIdDocumentError } from "@/lib/idDocument";
@@ -93,6 +93,7 @@ export default function CustomerProfilePage() {
   const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
+  const basePath = useOrgBasePath();
 
   const [customer, setCustomer] = useState<DbCustomer | null>(null);
   const [dogs, setDogs] = useState<DbDog[]>([]);
@@ -312,42 +313,51 @@ export default function CustomerProfilePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {dogs.map((dog) => (
-                <Card key={dog.id} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-accent/20">
-                          <Dog className="h-6 w-6 text-accent-foreground" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-base">{dog.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{dog.breed}</p>
+                <Link
+                  key={dog.id}
+                  to={`${basePath}/dogs/${dog.id}`}
+                  // El perfil del perro usa esto para que "Volver" regrese a este cliente.
+                  state={{ from: { path: `/customers/${customer.id}`, label: `${customer.first_name} ${customer.last_name}` } }}
+                  className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <Card className="overflow-hidden h-full transition-all group-hover:shadow-md group-hover:border-primary/40">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-accent/20">
+                            <Dog className="h-6 w-6 text-accent-foreground" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-base">{dog.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{dog.breed}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden />
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Género</span>
-                      <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Edad</span>
-                      <span>{getAge(dog.birth_date)}</span>
-                    </div>
-                    {dog.weight && (
+                    </CardHeader>
+                    <CardContent className="space-y-1.5 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Peso</span>
-                        <span>{dog.weight} kg</span>
+                        <span className="text-muted-foreground">Género</span>
+                        <span>{dog.gender === "male" ? "♂ Macho" : "♀ Hembra"}</span>
                       </div>
-                    )}
-                    {dog.is_neutered && (
-                      <Badge variant="secondary" className="text-xs">
-                        {dog.gender === "male" ? "Castrado" : "Esterilizada"}
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Edad</span>
+                        <span>{getAge(dog.birth_date)}</span>
+                      </div>
+                      {dog.weight && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Peso</span>
+                          <span>{dog.weight} kg</span>
+                        </div>
+                      )}
+                      {dog.is_neutered && (
+                        <Badge variant="secondary" className="text-xs">
+                          {dog.gender === "male" ? "Castrado" : "Esterilizada"}
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}

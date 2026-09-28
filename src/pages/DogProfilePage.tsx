@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
@@ -126,6 +126,9 @@ const statusLabels: Record<string, string> = {
 export default function DogProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  // Si se llegó desde el perfil de un cliente, "Volver" regresa a ese cliente.
+  const backTo = (location.state as { from?: { path: string; label: string } } | null)?.from;
   const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
@@ -265,9 +268,9 @@ export default function DogProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back */}
-      <Button variant="ghost" size="sm" className="gap-2 -ml-2 no-print" onClick={() => orgNavigate("/dogs")}>
+      <Button variant="ghost" size="sm" className="gap-2 -ml-2 no-print" onClick={() => orgNavigate(backTo?.path ?? "/dogs")}>
         <ArrowLeft className="h-4 w-4" />
-        Volver a Perros
+        {backTo ? `Volver a ${backTo.label}` : "Volver a Perros"}
       </Button>
 
       {/* Header */}
