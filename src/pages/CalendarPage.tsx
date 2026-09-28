@@ -36,7 +36,6 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
   const [newReservationDate, setNewReservationDate] = useState<Date | undefined>(undefined);
-  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
 
   // Filtros admin: trabajador, área y tipo (servicio o tarea).
@@ -86,7 +85,9 @@ export default function CalendarPage() {
   // Reservas y tareas, unificadas en CalendarEvent para dibujarse en el mismo grid.
   const allEvents = useMemo((): CalendarEvent[] => {
     const reservationEvents: CalendarEvent[] = allReservations
-      .filter((r) => isWithinInterval(new Date(r.startDate), visibleRange))
+      // Solapamiento con lo visible: una estadía que empezó antes (OTTO, 2 sep → 31 oct)
+      // también se ve en las semanas siguientes (QA E-24).
+      .filter((r) => new Date(r.startDate) <= visibleRange.end && new Date(r.endDate) >= visibleRange.start)
       .map((r) => ({
         id: r.id,
         kind: "reservation" as const,
@@ -159,7 +160,8 @@ export default function CalendarPage() {
 
   const handleSelectEvent = (event: CalendarEvent) => {
     if (event.kind === "reservation" && event.reservation) {
-      setEditingReservation(event.reservation);
+      // Detalle con enlaces al perro, dueño y perrera (se edita desde ahí) — QA E-25.
+      orgNavigate(`/reservations/${event.reservation.id}`);
     } else if (event.kind === "task" && event.task) {
       setSelectedTask(event.task);
     }
@@ -250,29 +252,11 @@ export default function CalendarPage() {
         onSaved={fetchRange}
       />
 
-      <NewReservationModal
-        open={!!editingReservation}
-        onOpenChange={(o) => { if (!o) setEditingReservation(null); }}
-        onSaved={fetchRange}
-        editData={editingReservation ? {
-          id: editingReservation.id,
-          serviceType: editingReservation.service?.type ?? "daycare",
-          serviceName: editingReservation.service?.name,
-          startDate: editingReservation.startDate,
-          endDate: editingReservation.endDate,
-          totalPrice: editingReservation.totalPrice,
-          notes: editingReservation.notes,
-          status: editingReservation.status,
-          dogName: editingReservation.dog?.name,
-          customerName: `${editingReservation.customer?.firstName ?? ""} ${editingReservation.customer?.lastName ?? ""}`.trim(),
-        } : undefined}
-      />
-
       <TaskDetailDialog
         task={selectedTask}
         open={!!selectedTask}
         onOpenChange={(o) => { if (!o) setSelectedTask(null); }}
-        onViewInTasks={() => orgNavigate("/tasks")}
+        onViewInTasks={() => orgNavigate(selectedTask ? `/tasks?task=${selectedTask.id}` : "/tasks")}
       />
     </div>
   );

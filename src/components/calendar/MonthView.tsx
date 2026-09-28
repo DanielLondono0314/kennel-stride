@@ -11,7 +11,8 @@ import {
   isToday,
 } from "date-fns";
 import { ServiceType } from "@/types";
-import { CalendarEvent } from "./calendarEvent";
+import { es } from "date-fns/locale";
+import { CalendarEvent, isMultiDay, occursOn, stayPhase } from "./calendarEvent";
 import { TASK_TYPE_LABELS, type TaskType } from "@/lib/worker";
 import { cn } from "@/lib/utils";
 import {
@@ -59,7 +60,10 @@ export function MonthView({
     const grouped: Record<string, CalendarEvent[]> = {};
     calendarDays.forEach((day) => {
       const dayKey = format(day, "yyyy-MM-dd");
-      grouped[dayKey] = events.filter((e) => isSameDay(e.startDate, day));
+      // Una estadía de varios días aparece en cada día que ocupa (QA E-24).
+      grouped[dayKey] = events.filter((e) =>
+        e.kind === "reservation" && isMultiDay(e) ? occursOn(e, day) : isSameDay(e.startDate, day)
+      );
     });
     return grouped;
   }, [events, calendarDays]);
@@ -152,7 +156,9 @@ export function MonthView({
                                 {primaryLabel}
                               </span>
                               <span className="text-muted-foreground ml-auto">
-                                {format(event.startDate, "HH:mm")}
+                                {!isTask && isMultiDay(event)
+                                  ? { start: "entra", end: "sale", middle: "·" }[stayPhase(event, day)]
+                                  : format(event.startDate, "HH:mm")}
                               </span>
                             </div>
                           </TooltipTrigger>
@@ -167,7 +173,9 @@ export function MonthView({
                                 <p className="text-xs text-muted-foreground">Área: {event.zoneName}</p>
                               )}
                               <p className="text-xs text-muted-foreground">
-                                {format(event.startDate, "HH:mm")} - {format(event.endDate, "HH:mm")}
+                                {isMultiDay(event)
+                                  ? `${format(event.startDate, "d MMM HH:mm", { locale: es })} → ${format(event.endDate, "d MMM HH:mm", { locale: es })}`
+                                  : `${format(event.startDate, "HH:mm")} - ${format(event.endDate, "HH:mm")}`}
                               </p>
                             </div>
                           </TooltipContent>

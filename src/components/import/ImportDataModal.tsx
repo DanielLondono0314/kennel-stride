@@ -57,8 +57,8 @@ const DOG_HEADERS = [
 
 const CUSTOMER_SAMPLE =
   CUSTOMER_HEADERS.join(",") +
-  "\nJuan,Pérez,juan@example.com,5551234567,Calle 1,CDMX,CDMX,01000,María Pérez,5559876543,Cliente VIP" +
-  "\nAna,García,ana@example.com,5557654321,,,,,,,";
+  "\nJuan,Pérez,juan@example.com,3001234567,Calle 10 # 43-12,Medellín,Antioquia,050021,María Pérez,3109876543,Cliente VIP" +
+  "\nAna,García,ana@example.com,3157654321,,,,,,,";
 
 const DOG_SAMPLE =
   DOG_HEADERS.join(",") +

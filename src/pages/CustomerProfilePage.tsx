@@ -18,11 +18,17 @@ import {
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Dog, Package,
   FileText, Edit, CreditCard, Calendar, AlertTriangle,
-  CheckCircle2, Clock, Loader2, Printer, ChevronRight,
+  CheckCircle2, Clock, Loader2, Printer, ChevronRight, Plus, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatIdDocument, isDuplicateIdDocumentError } from "@/lib/idDocument";
 import { CustomerModal } from "@/components/customers/CustomerModal";
+import { DogModal } from "@/components/dogs/DogModal";
+import { NewReservationModal } from "@/components/reservations/NewReservationModal";
+import { saveDog } from "@/lib/saveDog";
+import { isUuid } from "@/lib/ids";
+import { telHref, whatsappHref, normalizePhone } from "@/lib/contact";
+import { findContactDuplicates } from "@/hooks/queries/useCustomers";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { formatCurrency } from "@/lib/currency";
 import { getEffectivePackageStatus } from "@/lib/packageStatus";
@@ -46,7 +52,7 @@ interface DbReservation {
   start_date: string;
   end_date: string;
   total_price: number;
-  dogs: { name: string } | null;
+  dogs: { id: string; name: string } | null;
 }
 
 interface DbPackage {
@@ -103,8 +109,18 @@ export default function CustomerProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  const [dogModalOpen, setDogModalOpen] = useState(false);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+
   const fetchAll = useCallback(async () => {
-    if (!id || !organization) return;
+    if (!organization) return;
+    // Un id mal formado ("/customers/abc") no se consulta: Postgres responde
+    // 400 en las 5 consultas (QA E-14). Se muestra "Cliente no encontrado".
+    if (!isUuid(id)) {
+      setCustomer(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const [custRes, dogsRes, reservRes, pkgRes, invRes] = await Promise.all([
@@ -112,7 +128,7 @@ export default function CustomerProfilePage() {
       supabase.from("dogs").select("*").eq("customer_id", id).eq("organization_id", organization!.id).order("name"),
       supabase
         .from("reservations")
-        .select("id, service_name, service_type, status, start_date, end_date, total_price, dogs(name)")
+        .select("id, service_name, service_type, status, start_date, end_date, total_price, dogs(id, name)")
         .eq("customer_id", id)
         .eq("organization_id", organization!.id)
         .order("start_date", { ascending: false })
@@ -143,12 +159,24 @@ export default function CustomerProfilePage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const handleSaveDog = async (data: any) => {
+    try {
+      await saveDog(data, { organizationId: organization!.id, create: true });
+    } catch {
+      toast.error("No se pudo guardar el perro", { description: "Revisa tu conexión e inténtalo de nuevo." });
+      return;
+    }
+    toast.success("Perro registrado");
+    setDogModalOpen(false);
+    fetchAll();
+  };
+
   const handleSave = async (data: Partial<DbCustomer>) => {
     const payload = {
       first_name: data.first_name!,
       last_name: data.last_name!,
       email: data.email!,
-      phone: data.phone!,
+      phone: normalizePhone(data.phone) ?? data.phone!,
       id_document_type: data.id_document_type ?? "CC",
       id_document: data.id_document || null,
       address: data.address || null,
@@ -156,7 +184,7 @@ export default function CustomerProfilePage() {
       state: data.state || null,
       zip_code: data.zip_code || null,
       emergency_contact_name: data.emergency_contact_name || null,
-      emergency_contact_phone: data.emergency_contact_phone || null,
+      emergency_contact_phone: normalizePhone(data.emergency_contact_phone) || null,
       notes: data.notes || null,
       updated_at: new Date().toISOString(),
     };
@@ -168,6 +196,10 @@ export default function CustomerProfilePage() {
       toast.success("Cliente actualizado");
       setEditModalOpen(false);
       fetchAll();
+      const others = await findContactDuplicates(organization!.id, { email: payload.email, phone: payload.phone }, id);
+      if (others.length > 0) {
+        toast.warning("Otro cliente tiene el mismo correo o teléfono", { description: others.join(", ") });
+      }
     }
   };
 
@@ -219,12 +251,26 @@ export default function CustomerProfilePage() {
               {customer.first_name} {customer.last_name}
             </h1>
             <div className="flex flex-wrap gap-2 mt-1">
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Mail className="h-3.5 w-3.5" /> {customer.email}
-              </span>
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Phone className="h-3.5 w-3.5" /> {customer.phone}
-              </span>
+              {customer.email && (
+                <a href={`mailto:${customer.email}`} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline">
+                  <Mail className="h-3.5 w-3.5" aria-hidden /> {customer.email}
+                </a>
+              )}
+              {customer.phone && (
+                <a href={telHref(customer.phone) ?? undefined} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline">
+                  <Phone className="h-3.5 w-3.5" aria-hidden /> {customer.phone}
+                </a>
+              )}
+              {whatsappHref(customer.phone) && (
+                <a
+                  href={whatsappHref(customer.phone)!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-sm text-success hover:underline no-print"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" aria-hidden /> WhatsApp
+                </a>
+              )}
               {customer.city && (
                 <span className="flex items-center gap-1 text-sm text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5" /> {customer.city}{customer.state ? `, ${customer.state}` : ""}
@@ -306,11 +352,17 @@ export default function CustomerProfilePage() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
               <Dog className="h-10 w-10" />
               <p>Sin mascotas registradas</p>
-              <Button size="sm" variant="outline" onClick={() => orgNavigate("/dogs")}>
-                Registrar mascota
+              <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Agregar mascota
               </Button>
             </div>
           ) : (
+            <>
+            <div className="flex justify-end mb-3 no-print">
+              <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Agregar mascota
+              </Button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {dogs.map((dog) => (
                 <Link
@@ -360,11 +412,17 @@ export default function CustomerProfilePage() {
                 </Link>
               ))}
             </div>
+            </>
           )}
         </TabsContent>
 
         {/* Reservations Tab */}
         <TabsContent value="reservations" className="mt-4" forceMount>
+          <div className="flex justify-end mb-3 no-print">
+            <Button size="sm" variant="outline" onClick={() => setReservationModalOpen(true)} disabled={dogs.length === 0} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Nueva reserva
+            </Button>
+          </div>
           <div className="border rounded-lg bg-card overflow-x-auto">
             <Table>
               <TableHeader>
@@ -385,8 +443,14 @@ export default function CustomerProfilePage() {
                   </TableRow>
                 ) : reservations.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.dogs?.name ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{r.service_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {r.dogs?.id ? (
+                        <Link to={`${basePath}/dogs/${r.dogs.id}`} className="hover:underline">{r.dogs.name}</Link>
+                      ) : (r.dogs?.name ?? "—")}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <Link to={`${basePath}/reservations/${r.id}`} className="text-primary hover:underline">{r.service_name}</Link>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(r.start_date), "d MMM yyyy", { locale: es })}
                     </TableCell>
@@ -520,12 +584,12 @@ export default function CustomerProfilePage() {
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Email</span>
-                  <span>{customer.email}</span>
+                  {customer.email ? <a href={`mailto:${customer.email}`} className="hover:underline">{customer.email}</a> : <span>—</span>}
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Teléfono</span>
-                  <span>{customer.phone}</span>
+                  {customer.phone ? <a href={telHref(customer.phone) ?? undefined} className="hover:underline">{customer.phone}</a> : <span>—</span>}
                 </div>
                 {customer.address && (
                   <>
@@ -596,6 +660,20 @@ export default function CustomerProfilePage() {
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         onSave={handleSave}
+      />
+      <DogModal
+        dog={null}
+        preselectedCustomerId={customer.id}
+        open={dogModalOpen}
+        onOpenChange={setDogModalOpen}
+        onSave={handleSaveDog}
+      />
+      <NewReservationModal
+        open={reservationModalOpen}
+        onOpenChange={setReservationModalOpen}
+        initialCustomerId={customer.id}
+        initialDogId={dogs.length === 1 ? dogs[0].id : undefined}
+        onSaved={fetchAll}
       />
     </div>
   );

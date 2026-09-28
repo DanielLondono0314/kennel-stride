@@ -53,6 +53,7 @@ const ClinicPage           = lazy(() => import("./pages/ClinicPage"));
 const CustomerProfilePage  = lazy(() => import("./pages/CustomerProfilePage"));
 const StaffPage            = lazy(() => import("./pages/StaffPage"));
 const DogProfilePage       = lazy(() => import("./pages/DogProfilePage"));
+const ReservationDetailPage = lazy(() => import("./pages/ReservationDetailPage"));
 const DogDashboardPage     = lazy(() => import("./pages/DogDashboardPage"));
 const NotFound             = lazy(() => import("./pages/NotFound"));
 
@@ -130,6 +131,7 @@ const App = () => {
                       <Route path="customers/:id"    element={<CustomerProfilePage />} />
                       <Route path="dogs"             element={<DogsPage />} />
                       <Route path="dogs/:id"         element={<DogProfilePage />} />
+                      <Route path="reservations/:id" element={<ReservationDetailPage />} />
                       <Route path="dog-panel"        element={<DogDashboardPage />} />
                       <Route element={<FeatureRoute feature="requests" />}>
                         <Route path="requests" element={<RequestsPage />} />

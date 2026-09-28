@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { normalizePhone } from "@/lib/contact";
 import { supabase } from "@/integrations/supabase/client";
 import { ilikeAny } from "@/lib/supabaseQuery";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -87,6 +88,41 @@ export function useCustomers({ page = 0, search = "", status = "active" as Custo
 /** Dispara la geocodificación (Mapbox, vía Edge Function) sin bloquear el
  * guardado del cliente — errores se ignoran silenciosamente, el cliente
  * simplemente queda sin lat/lng hasta que se corrija la dirección. */
+/** Teléfonos a E.164 antes de guardar (QA E-17): evita "300…" y "+57300…" para el mismo número. */
+export function normalizeCustomerContact<T extends { phone?: string | null; emergency_contact_phone?: string | null }>(input: T): T {
+  const out = { ...input };
+  if ("phone" in out) out.phone = normalizePhone(out.phone) as T["phone"];
+  if ("emergency_contact_phone" in out) out.emergency_contact_phone = normalizePhone(out.emergency_contact_phone) as T["emergency_contact_phone"];
+  return out;
+}
+
+/**
+ * Otros clientes con el mismo correo o teléfono (QA E-12). No bloquea — dos
+ * personas de la misma familia pueden compartir teléfono — pero se avisa.
+ */
+export async function findContactDuplicates(
+  organizationId: string,
+  { email, phone }: { email?: string | null; phone?: string | null },
+  excludeId?: string,
+): Promise<string[]> {
+  const filters: string[] = [];
+  if (email?.trim()) filters.push(`email.ilike.${email.trim().replace(/[,()]/g, "")}`);
+  const e164 = normalizePhone(phone);
+  for (const p of new Set([phone?.trim(), e164].filter(Boolean) as string[])) {
+    filters.push(`phone.eq.${p.replace(/[,()]/g, "")}`);
+  }
+  if (filters.length === 0) return [];
+  let query = supabase
+    .from("customers")
+    .select("id, first_name, last_name")
+    .eq("organization_id", organizationId)
+    .or(filters.join(","))
+    .limit(3);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query;
+  return (data ?? []).map((c) => `${c.first_name} ${c.last_name}`.trim());
+}
+
 function triggerGeocode(customerId: string) {
   supabase.functions.invoke("geocode-customer-address", { body: { customerId } }).catch(() => {});
 }
@@ -96,10 +132,11 @@ export function useCreateCustomer() {
   const { organization } = useOrganization();
 
   return useMutation({
+    meta: { handlesErrors: true },
     mutationFn: async (input: CreateCustomerInput) => {
       const { data, error } = await supabase
         .from("customers")
-        .insert({ ...input, organization_id: organization!.id })
+        .insert({ ...normalizeCustomerContact(input), organization_id: organization!.id })
         .select()
         .single();
       if (error) throw error;
@@ -107,7 +144,7 @@ export function useCreateCustomer() {
     },
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: customerKeys(organization?.id).all });
-      if (created.address) triggerGeocode(created.id);
+      if (created.address?.trim()) triggerGeocode(created.id);
     },
   });
 }
@@ -117,10 +154,11 @@ export function useUpdateCustomer() {
   const { organization } = useOrganization();
 
   return useMutation({
+    meta: { handlesErrors: true },
     mutationFn: async ({ id, ...input }: UpdateCustomerInput & { id: string }) => {
       const { data, error } = await supabase
         .from("customers")
-        .update({ ...input, updated_at: new Date().toISOString() })
+        .update({ ...normalizeCustomerContact(input), updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("organization_id", organization!.id)
         .select()
@@ -133,7 +171,10 @@ export function useUpdateCustomer() {
       queryClient.setQueryData(customerKeys(organization?.id).detail(updated.id), updated);
       // Solo regeocodificar si el guardado tocó la dirección (evita llamadas
       // innecesarias a Mapbox en cada edición de teléfono/notas/etc).
-      if ("address" in variables || "city" in variables || "state" in variables || "zip_code" in variables) {
+      // Y solo si hay una dirección que geocodificar: sin ella la función
+      // responde 400 (QA E-11).
+      const touchedAddress = "address" in variables || "city" in variables || "state" in variables || "zip_code" in variables;
+      if (touchedAddress && updated.address?.trim()) {
         triggerGeocode(updated.id);
       }
     },

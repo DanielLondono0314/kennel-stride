@@ -62,6 +62,13 @@ export const customerSchema = z.object({
   state: z.string().trim().max(80).optional().or(z.literal("")),
   zip_code: z.string().trim().max(20).optional().or(z.literal("")),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
+}).superRefine((c, ctx) => {
+  // Reglas por tipo de documento (QA E-12: la cédula aceptaba "abc").
+  const digits = c.id_document.replace(/[.\s-]/g, "");
+  const invalid = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["id_document"], message });
+  if (c.id_document_type === "CC" && !/^\d{5,10}$/.test(digits)) invalid("La cédula debe tener entre 5 y 10 números");
+  if (c.id_document_type === "TI" && !/^\d{10,11}$/.test(digits)) invalid("La tarjeta de identidad debe tener 10 u 11 números");
+  if (c.id_document_type === "NIT" && !/^\d{9,10}$/.test(digits)) invalid("El NIT debe tener 9 números más el dígito de verificación");
 });
 
 export const dogSchema = z.object({

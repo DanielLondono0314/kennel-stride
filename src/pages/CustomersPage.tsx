@@ -3,7 +3,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import {
-  useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer,
+  useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer, findContactDuplicates,
   useBulkDeleteCustomers, useSetCustomersActive,
   DbCustomer, type CreateCustomerInput, type CustomerStatusFilter,
 } from "@/hooks/queries/useCustomers";
@@ -95,17 +95,26 @@ export default function CustomersPage() {
 
   const handleSave = async (formData: Partial<DbCustomer>) => {
     try {
+      let savedId: string;
       if (editingCustomer) {
         await updateCustomer.mutateAsync({ id: editingCustomer.id, ...formData });
+        savedId = editingCustomer.id;
         toast.success("Cliente actualizado");
       } else {
         // El modal valida con zod los campos obligatorios antes de llamar onSave.
         const { id: _ignored, ...input } = formData;
-        await createCustomer.mutateAsync(input as CreateCustomerInput);
+        const created = await createCustomer.mutateAsync(input as CreateCustomerInput);
+        savedId = created.id;
         toast.success("Cliente creado");
       }
       setModalOpen(false);
       setEditingCustomer(null);
+      if (organization) {
+        const others = await findContactDuplicates(organization.id, { email: formData.email, phone: formData.phone }, savedId);
+        if (others.length > 0) {
+          toast.warning("Otro cliente tiene el mismo correo o teléfono", { description: others.join(", ") });
+        }
+      }
     } catch (err) {
       if (isDuplicateIdDocumentError(err)) {
         toast.error("Ya existe un cliente con ese número de documento");

@@ -110,7 +110,8 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         category: "reservations",
         label: `${r.service_name}${dog ? ` — ${dog.name}` : ""}`,
         sublabel: `${STATUS_LABELS[r.status] || r.status} · ${format(new Date(r.start_date), "d MMM yyyy", { locale: es })}${customer ? ` · ${customer.first_name} ${customer.last_name}` : ""}`,
-        href: `/requests`,
+        // Detalle de la reserva; antes iba a Solicitudes → Pendientes, vacía si ya estaba aprobada (QA E-26).
+        href: `/reservations/${r.id}`,
       });
     }
 

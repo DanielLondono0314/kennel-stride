@@ -124,7 +124,7 @@ export function mapDbToReservation(row: DbReservationRow): Reservation {
 // Desde 20260604 (acople reserva⇆perrera) hay DOS FKs entre reservations y
 // facility_units (location_id y assigned_reservation_id): sin el hint, PostgREST
 // devuelve HTTP 300 (PGRST201) y TODAS las listas de reservas quedan vacías en silencio.
-const RESERVATION_SELECT = `
+export const RESERVATION_SELECT = `
   *,
   customers(id, first_name, last_name, phone, email, city, state, balance),
   dogs(id, name, breed, weight, gender, color, behavior_notes, medical_notes, photo_url),

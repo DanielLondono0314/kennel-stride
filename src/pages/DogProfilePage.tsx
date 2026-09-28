@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
@@ -30,6 +30,9 @@ import { es } from "date-fns/locale";
 import { getAge as getSharedAge } from "@/lib/age";
 import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
+import { saveDog } from "@/lib/saveDog";
+import { isUuid } from "@/lib/ids";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 
 interface DbDog {
   id: string;
@@ -129,6 +132,16 @@ export default function DogProfilePage() {
   const location = useLocation();
   // Si se llegó desde el perfil de un cliente, "Volver" regresa a ese cliente.
   const backTo = (location.state as { from?: { path: string; label: string } } | null)?.from;
+  // Sin origen explícito, "Volver" usa el historial si se llegó navegando
+  // dentro de la app (Reportes, Clínica, búsqueda…) — QA E-31.
+  const hasHistory = location.key !== "default";
+  const goBack = () => {
+    if (backTo) orgNavigate(backTo.path);
+    else if (hasHistory) navigate(-1);
+    else orgNavigate("/dogs");
+  };
+  const backLabel = backTo ? `Volver a ${backTo.label}` : hasHistory ? "Volver" : "Volver a Perros";
+  const basePath = useOrgBasePath();
   const navigate = useNavigate();
   const { organization } = useOrganization();
   const orgNavigate = useOrgNavigate();
@@ -141,7 +154,7 @@ export default function DogProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
 
   const fetchDog = useCallback(async () => {
-    if (!id || !organization) return;
+    if (!isUuid(id) || !organization) return;
     const { data } = await supabase
       .from("dogs")
       .select("*, customers(id, first_name, last_name, phone), facility_units(id, name)")
@@ -152,7 +165,7 @@ export default function DogProfilePage() {
   }, [id, organization]);
 
   const fetchReservations = useCallback(async () => {
-    if (!id || !organization) return;
+    if (!isUuid(id) || !organization) return;
     const { data } = await supabase
       .from("reservations")
       .select("id, service_name, status, start_date, total_price")
@@ -164,7 +177,7 @@ export default function DogProfilePage() {
   }, [id, organization]);
 
   const fetchClinicalDetails = useCallback(async () => {
-    if (!id || !organization) return;
+    if (!isUuid(id) || !organization) return;
     const [aRes, mRes] = await Promise.all([
       supabase.from("dog_allergies").select("id, allergen, type, reaction, severity").eq("dog_id", id).eq("organization_id", organization!.id),
       supabase.from("dog_medications").select("id, name, dose, frequency, duration_days, start_date, route, with_food").eq("dog_id", id).eq("organization_id", organization!.id),
@@ -179,66 +192,16 @@ export default function DogProfilePage() {
   }, [fetchDog, fetchReservations, fetchClinicalDetails]);
 
   const handleSave = async (data: any) => {
-    const payload = {
-      customer_id: data.customer_id,
-      name: data.name,
-      breed: data.breed,
-      birth_date: data.birth_date || null,
-      weight: data.weight ? parseFloat(data.weight) : null,
-      color: data.color || null,
-      gender: data.gender,
-      is_neutered: data.is_neutered,
-      is_aggressive: data.is_aggressive ?? false,
-      has_allergies: data.has_allergies ?? false,
-      on_medication: data.on_medication ?? false,
-      microchip_number: data.microchip_number || null,
-      preferred_unit_id: data.preferred_unit_id || null,
-      notes: data.notes || "",
-      behavior_notes: data.behavior_notes || "",
-      medical_notes: data.medical_notes || "",
-      photo_url: data.photo_url ?? null,
-      feeding: data.feeding ?? null,
-      aggression_details: data.is_aggressive ? data.aggression_details ?? null : null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from("dogs").update(payload).eq("id", id!);
-    if (error) {
+    try {
+      // Perro + alergias + medicación en una sola transacción (QA E-20).
+      await saveDog({ ...data, id: id! }, { organizationId: organization!.id, create: false });
+    } catch {
       toast.error("No se pudo guardar", { description: "Revisa tu conexión e inténtalo de nuevo." });
       return;
     }
-
-    // Sincronizar alergias y medicación (mismo patrón que DogsPage: delete-all + insert).
-    const orgId = organization!.id;
-    const allergyRows = (data.allergies ?? []).map((a: any) => ({
-      dog_id: id!, organization_id: orgId,
-      allergen: a.allergen, type: a.type,
-      reaction: a.reaction || null, severity: a.severity || null,
-    }));
-    const medRows = (data.medications ?? []).map((m: any) => ({
-      dog_id: id!, organization_id: orgId,
-      name: m.name, dose: m.dose || null, frequency: m.frequency || null,
-      duration_days: m.duration_days === "" ? null : m.duration_days,
-      start_date: m.start_date || null, route: m.route || null,
-      with_food: !!m.with_food,
-    }));
-
-    const delA = await supabase.from("dog_allergies").delete().eq("dog_id", id!);
-    const insA = allergyRows.length ? await supabase.from("dog_allergies").insert(allergyRows) : { error: null };
-    const delM = await supabase.from("dog_medications").delete().eq("dog_id", id!);
-    const insM = medRows.length ? await supabase.from("dog_medications").insert(medRows) : { error: null };
-    const syncError = delA.error || insA.error || delM.error || insM.error;
-
     setEditOpen(false);
     fetchDog();
     fetchClinicalDetails();
-
-    if (syncError) {
-      toast.error("El perro se guardó, pero falló la sincronización clínica", {
-        description: "Vuelve a abrir el perro y revisa alergias/medicación.",
-      });
-      return;
-    }
     toast.success("Perfil actualizado");
   };
 
@@ -268,9 +231,9 @@ export default function DogProfilePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Back */}
-      <Button variant="ghost" size="sm" className="gap-2 -ml-2 no-print" onClick={() => orgNavigate(backTo?.path ?? "/dogs")}>
+      <Button variant="ghost" size="sm" className="gap-2 -ml-2 no-print" onClick={goBack}>
         <ArrowLeft className="h-4 w-4" />
-        {backTo ? `Volver a ${backTo.label}` : "Volver a Perros"}
+        {backLabel}
       </Button>
 
       {/* Header */}
@@ -612,7 +575,8 @@ export default function DogProfilePage() {
           ) : (
             <div className="space-y-2">
               {reservations.map((r) => (
-                <Card key={r.id}>
+                <Link key={r.id} to={`${basePath}/reservations/${r.id}`} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Card className="transition-shadow hover:shadow-md">
                   <CardContent className="py-3 px-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm">{r.service_name}</p>
@@ -628,6 +592,7 @@ export default function DogProfilePage() {
                     </div>
                   </CardContent>
                 </Card>
+                </Link>
               ))}
             </div>
           )}

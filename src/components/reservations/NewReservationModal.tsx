@@ -220,7 +220,10 @@ export function NewReservationModal({
     }
   }, [filteredDogs, dogId]);
 
-  const handleSave = async () => {
+  const [confirmZeroOpen, setConfirmZeroOpen] = useState(false);
+
+  // Una reserva sin precio suele ser un olvido: se pide confirmar (QA E-12).
+  const handleSave = async (zeroConfirmed = false) => {
     if (!organization) return;
     const errs: Record<string, string> = {};
     if (!isEditing) {
@@ -238,6 +241,11 @@ export function NewReservationModal({
       return;
     }
     setErrors({});
+
+    if (!zeroConfirmed && !(parseFloat(totalPrice) > 0)) {
+      setConfirmZeroOpen(true);
+      return;
+    }
 
     setSaving(true);
     const serviceName =
@@ -613,7 +621,7 @@ export function NewReservationModal({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving || loadingData}>
+          <Button onClick={() => handleSave()} disabled={saving || loadingData}>
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
@@ -623,6 +631,23 @@ export function NewReservationModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmZeroOpen} onOpenChange={setConfirmZeroOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Guardar la reserva sin precio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El precio total es $0. Confírmalo si el servicio es gratuito o se cobra con un paquete.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver y poner precio</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmZeroOpen(false); handleSave(true); }}>
+              Guardar en $0
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>

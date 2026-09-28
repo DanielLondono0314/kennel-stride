@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useUrlState } from "@/hooks/useUrlState";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -36,6 +37,9 @@ import {
 import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
+import { formatReservationRange } from "@/lib/reservationDates";
+import { telHref } from "@/lib/contact";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { formatCurrency } from "@/lib/currency";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import {
@@ -65,6 +69,7 @@ interface StaffMember {
 
 export default function RequestsPage() {
   const { organization } = useOrganization();
+  const basePath = useOrgBasePath();
   const { labels: serviceTypeLabels } = useServiceTypes();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useUrlState<RequestTab>("tab", "pending");
@@ -318,9 +323,15 @@ export default function RequestsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{r.dog?.name}</p>
+                      <p className="font-medium">
+                        {r.dog ? <Link to={`${basePath}/dogs/${r.dog.id}`} className="hover:underline">{r.dog.name}</Link> : "—"}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {r.customer?.firstName} {r.customer?.lastName}
+                        {r.customer ? (
+                          <Link to={`${basePath}/customers/${r.customer.id}`} className="hover:underline">
+                            {r.customer.firstName} {r.customer.lastName}
+                          </Link>
+                        ) : "—"}
                       </p>
                     </div>
                     {r.dog && r.dog.flags.length > 0 && (
@@ -337,8 +348,8 @@ export default function RequestsPage() {
                 <TableCell>
                   <div className="text-sm">
                     <p>{format(r.startDate, "d MMM", { locale: es })}</p>
-                    <p className="text-muted-foreground">
-                      {format(r.startDate, "HH:mm")} – {format(r.endDate, "HH:mm")}
+                    <p className="text-muted-foreground whitespace-nowrap">
+                      {formatReservationRange(r.startDate, r.endDate, { withDay: false })}
                     </p>
                   </div>
                 </TableCell>
@@ -521,18 +532,31 @@ export default function RequestsPage() {
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">{selectedRequest.dog?.name}</h3>
+                      <h3 className="text-lg font-semibold">
+                        {selectedRequest.dog ? (
+                          <Link to={`${basePath}/dogs/${selectedRequest.dog.id}`} className="hover:underline">{selectedRequest.dog.name}</Link>
+                        ) : "—"}
+                      </h3>
                       <Badge variant="outline">{selectedRequest.dog?.breed}</Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <User className="h-3.5 w-3.5" />
-                        {selectedRequest.customer?.firstName} {selectedRequest.customer?.lastName}
+                        {selectedRequest.customer ? (
+                          <Link to={`${basePath}/customers/${selectedRequest.customer.id}`} className="hover:underline hover:text-foreground">
+                            {selectedRequest.customer.firstName} {selectedRequest.customer.lastName}
+                          </Link>
+                        ) : "—"}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        {selectedRequest.customer?.phone}
-                      </span>
+                      {selectedRequest.customer?.phone && (
+                        <a href={telHref(selectedRequest.customer.phone) ?? undefined} className="flex items-center gap-1 hover:underline hover:text-foreground">
+                          <Phone className="h-3.5 w-3.5" />
+                          {selectedRequest.customer.phone}
+                        </a>
+                      )}
+                      <Link to={`${basePath}/reservations/${selectedRequest.id}`} className="text-primary hover:underline">
+                        Ver reserva completa
+                      </Link>
                     </div>
                     {selectedRequest.dog && selectedRequest.dog.flags.length > 0 && (
                       <div className="mt-2">
@@ -567,7 +591,7 @@ export default function RequestsPage() {
                       </p>
                       <p className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        {format(selectedRequest.startDate, "HH:mm")} – {format(selectedRequest.endDate, "HH:mm")}
+                        {formatReservationRange(selectedRequest.startDate, selectedRequest.endDate, { withDay: false })}
                       </p>
                       {selectedRequest.staff && (
                         <p className="flex items-center gap-2 text-sm">

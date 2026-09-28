@@ -30,7 +30,6 @@ import {
   Eye,
   Edit,
   FileText,
-  CreditCard,
   ChevronDown,
   ChevronRight,
   Dog,
@@ -48,6 +47,9 @@ interface OpsTableProps {
   onView?: (reservationId: string) => void;
   onApprove?: (reservationId: string) => void;
   onCancel?: (reservationId: string) => void;
+  /** Llegada atrasada que no ocurrió: cierra la reserva como "No se presentó". */
+  onNoShow?: (reservationId: string) => void;
+  onViewDog?: (dogId: string) => void;
 }
 
 const serviceTypeLabels: Record<ServiceType, string> = {
@@ -68,7 +70,7 @@ function isBeforeToday(d: Date) {
   return d < startOfToday();
 }
 
-export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprove, onCancel }: OpsTableProps) {
+export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprove, onCancel, onNoShow, onViewDog }: OpsTableProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (id: string) => {
@@ -218,17 +220,21 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => onView?.(reservation.id)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Editar reserva
+                            Ver / editar reserva
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Crear report card
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Ver factura
-                          </DropdownMenuItem>
+                          {reservation.dog?.id && (
+                            <DropdownMenuItem onClick={() => onViewDog?.(reservation.dog!.id)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Ficha del perro
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
+                          {reservation.status === ReservationStatus.SCHEDULED && isBeforeToday(reservation.startDate) && (
+                            <DropdownMenuItem onClick={() => onNoShow?.(reservation.id)}>
+                              <XCircle className="mr-2 h-4 w-4" />
+                              No se presentó
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => onCancel?.(reservation.id)}

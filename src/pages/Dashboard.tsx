@@ -96,6 +96,11 @@ export default function Dashboard() {
     };
   }, [reservations]);
 
+  const lateCheckIns = useMemo(() => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    return reservations.filter((r) => isAwaitingCheckIn(r, todayStr) && format(r.startDate, "yyyy-MM-dd") < todayStr).length;
+  }, [reservations]);
+
   const tabCounts = useMemo(() => {
     // "Por ingresar" y "Salen Hoy" filtran por FECHA además de estado,
     // igual que los KPIs de arriba (antes el tab mostraba reservas de
@@ -196,6 +201,18 @@ export default function Dashboard() {
     }
   };
 
+  // Llegada atrasada que no ocurrió: se cierra con el motivo para que deje de
+  // aparecer como "Por ingresar" (QA E-29).
+  const handleNoShow = async (id: string) => {
+    const r = reservations.find((r) => r.id === id);
+    const { error } = await cancel(id, "No se presentó");
+    if (error) {
+      toast.error("No se pudo actualizar la reserva");
+      return;
+    }
+    toast.success(`${r?.dog?.name ?? "La reserva"}: marcada como "No se presentó"`);
+  };
+
   const handleCancelRequest = (id: string) => {
     setCancelTargetId(id);
     setCancelDialogOpen(true);
@@ -290,6 +307,20 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {lateCheckIns > 0 && activeTab !== "expected" && (
+        <button
+          type="button"
+          onClick={() => setActiveTab("expected")}
+          className="flex w-full items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-left text-sm hover:bg-warning/15"
+        >
+          <span>
+            <span className="font-semibold">{lateCheckIns} {lateCheckIns === 1 ? "reserva con check-in atrasado" : "reservas con check-in atrasado"}</span>
+            <span className="text-muted-foreground"> — su ingreso ya pasó y aún no se registra la llegada.</span>
+          </span>
+          <span className="shrink-0 font-medium text-warning">Revisar</span>
+        </button>
+      )}
+
       <OpsTabs activeTab={activeTab} onTabChange={setActiveTab} counts={tabCounts} />
 
       {activeTab === "notices" ? (
@@ -325,9 +356,11 @@ export default function Dashboard() {
               reservations={filteredReservations}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
-              onView={(id) => orgNavigate(`/requests?id=${id}`)}
+              onView={(id) => orgNavigate(`/reservations/${id}`)}
               onApprove={handleApprove}
               onCancel={handleCancelRequest}
+              onNoShow={handleNoShow}
+              onViewDog={(dogId) => orgNavigate(`/dogs/${dogId}`)}
             />
           )}
         </>

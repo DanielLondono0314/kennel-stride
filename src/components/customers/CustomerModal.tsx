@@ -244,7 +244,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             </div>
             <div className="space-y-2">
               <Label htmlFor="cust-phone">Teléfono *</Label>
-              <Input id="cust-phone" value={phone} onChange={(e) => { setPhone(e.target.value); clearError("phone"); }} placeholder="+1 555-0000"
+              <Input id="cust-phone" value={phone} onChange={(e) => { setPhone(e.target.value); clearError("phone"); }} placeholder="+57 300 123 4567"
                 aria-invalid={errors.phone ? true : undefined}
                 aria-describedby={errors.phone ? "cust-phone-error" : undefined}
                 className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""} />
@@ -254,7 +254,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Dirección</Label>
+              <Label htmlFor="cust-address">Dirección</Label>
               {isEditing && (
                 customer.address_lat != null ? (
                   <Badge variant="secondary" className="gap-1 text-xs font-normal">
@@ -267,32 +267,32 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
                 )
               )}
             </div>
-            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa" />
+            <Input id="cust-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Calle 10 # 43-12, apto 501" />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Ciudad</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ciudad" />
+              <Label htmlFor="cust-city">Ciudad</Label>
+              <Input id="cust-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Medellín" />
             </div>
             <div className="space-y-2">
-              <Label>Estado</Label>
-              <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="Estado" />
+              <Label htmlFor="cust-state">Departamento</Label>
+              <Input id="cust-state" value={state} onChange={(e) => setState(e.target.value)} placeholder="Antioquia" />
             </div>
             <div className="space-y-2">
-              <Label>Código Postal</Label>
-              <Input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="00000" />
+              <Label htmlFor="cust-zip">Código postal</Label>
+              <Input id="cust-zip" value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="050021" inputMode="numeric" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Contacto de emergencia</Label>
-              <Input value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} placeholder="Nombre" />
+              <Label htmlFor="cust-emergency-name">Contacto de emergencia</Label>
+              <Input id="cust-emergency-name" value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} placeholder="Nombre" />
             </div>
             <div className="space-y-2">
-              <Label>Teléfono de emergencia</Label>
-              <Input value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} placeholder="+1 555-0000" />
+              <Label htmlFor="cust-emergency-phone">Teléfono de emergencia</Label>
+              <Input id="cust-emergency-phone" value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} placeholder="+57 300 123 4567" inputMode="tel" />
             </div>
           </div>
 
@@ -351,12 +351,12 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
               </Label>
             </div>
             <div className="space-y-2">
-              <Label>Canal preferido (opcional)</Label>
+              <Label htmlFor="cust-channel">Canal preferido (opcional)</Label>
               <Select
                 value={notificationChannelOverride || "auto"}
                 onValueChange={(v) => setNotificationChannelOverride(v === "auto" ? "" : (v as "sms" | "whatsapp"))}
               >
-                <SelectTrigger>
+                <SelectTrigger id="cust-channel">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -369,8 +369,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
           </div>
 
           <div className="space-y-2">
-            <Label>Notas</Label>
+            <Label htmlFor="cust-notes">Notas</Label>
             <Textarea
+              id="cust-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notas adicionales sobre el cliente..."

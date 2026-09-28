@@ -14,7 +14,7 @@ import {
   Plus,
   Filter,
 } from "lucide-react";
-import { format, addWeeks, subWeeks, addMonths, subMonths } from "date-fns";
+import { format, addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 
 export type CalendarView = "week" | "month";
@@ -58,9 +58,19 @@ export function CalendarHeader({
 
   const getDateRangeLabel = () => {
     if (view === "week") {
-      return format(currentDate, "'Semana del' d 'de' MMMM, yyyy", { locale: es });
+      // Rango real de la semana (lunes a domingo): "21–27 sep 2026" (QA E-06).
+      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+      if (start.getMonth() === end.getMonth()) {
+        return `${format(start, "d")}–${format(end, "d MMM yyyy", { locale: es })}`;
+      }
+      if (start.getFullYear() === end.getFullYear()) {
+        return `${format(start, "d MMM", { locale: es })} – ${format(end, "d MMM yyyy", { locale: es })}`;
+      }
+      return `${format(start, "d MMM yyyy", { locale: es })} – ${format(end, "d MMM yyyy", { locale: es })}`;
     }
-    return format(currentDate, "MMMM yyyy", { locale: es });
+    const month = format(currentDate, "MMMM yyyy", { locale: es });
+    return month.charAt(0).toUpperCase() + month.slice(1);
   };
 
   return (
@@ -91,7 +101,7 @@ export function CalendarHeader({
 
         {/* Current date label */}
         <div className="min-w-[240px] text-center">
-          <span className="font-medium capitalize">{getDateRangeLabel()}</span>
+          <span className="font-medium">{getDateRangeLabel()}</span>
         </div>
 
         {/* View toggle */}

@@ -31,3 +31,23 @@ export interface CalendarEvent {
   reservation?: Reservation;
   task?: CalendarTask;
 }
+
+const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const dayEnd = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+/** Estadía que cruza al menos una medianoche (internado, hotel…). */
+export function isMultiDay(e: Pick<CalendarEvent, "startDate" | "endDate">): boolean {
+  return dayStart(e.startDate).getTime() !== dayStart(e.endDate).getTime();
+}
+
+/** ¿El evento ocupa alguna parte de ese día? (Antes solo contaba el día de entrada — QA E-24.) */
+export function occursOn(e: Pick<CalendarEvent, "startDate" | "endDate">, day: Date): boolean {
+  return e.startDate < dayEnd(day) && e.endDate >= dayStart(day);
+}
+
+/** Etiqueta del tramo de una estadía en un día: entrada, salida o intermedio. */
+export function stayPhase(e: Pick<CalendarEvent, "startDate" | "endDate">, day: Date): "start" | "end" | "middle" {
+  if (dayStart(e.startDate).getTime() === dayStart(day).getTime()) return "start";
+  if (dayStart(e.endDate).getTime() === dayStart(day).getTime()) return "end";
+  return "middle";
+}

@@ -32,6 +32,7 @@ import { Search, Plus, MoreHorizontal, Dog as DogIcon, Calendar, Scale, Upload, 
 import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { getAge } from "@/lib/age";
 import { toast } from "sonner";
+import { saveDog } from "@/lib/saveDog";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { cn } from "@/lib/utils";
 
@@ -85,75 +86,14 @@ export default function DogsPage() {
       toast.error("No se pudo guardar el perro", { description: "Vuelve a iniciar sesión e inténtalo de nuevo." });
       return;
     }
-    const payload = {
-      customer_id: data.customer_id,
-      name: data.name,
-      breed: data.breed,
-      birth_date: data.birth_date || null,
-      weight: data.weight ? parseFloat(data.weight) : null,
-      color: data.color || null,
-      gender: data.gender,
-      is_neutered: data.is_neutered,
-      is_aggressive: data.is_aggressive ?? false,
-      has_allergies: data.has_allergies ?? false,
-      on_medication: data.on_medication ?? false,
-      microchip_number: data.microchip_number || null,
-      preferred_unit_id: data.preferred_unit_id || null,
-      notes: data.notes || "",
-      behavior_notes: data.behavior_notes || "",
-      medical_notes: data.medical_notes || "",
-      photo_url: data.photo_url ?? null,
-      aggression_details: data.aggression_details ?? null,
-      feeding: data.feeding ?? null,
-      updated_at: new Date().toISOString(),
-    };
-
-    let error;
-    if (data.id && editingDog) {
-      ({ error } = await supabase.from("dogs").update(payload).eq("id", data.id));
-    } else {
-      ({ error } = await supabase.from("dogs").insert({ ...payload, id: data.id, organization_id: organization.id }));
-    }
-
-    if (error) {
+    try {
+      // Perro + alergias + medicación en una sola transacción (QA E-20).
+      await saveDog(data, { organizationId: organization.id, create: !editingDog });
+    } catch {
       toast.error("No se pudo guardar el perro", { description: "Revisa tu conexión e inténtalo de nuevo." });
       return;
     }
-
-    // Sincronizar alergias y medicación (delete-all + insert; listas cortas de intake).
-    const orgId = organization.id;
-    const allergyRows = (data.allergies ?? []).map((a: any) => ({
-      dog_id: data.id, organization_id: orgId,
-      allergen: a.allergen, type: a.type,
-      reaction: a.reaction || null, severity: a.severity || null,
-    }));
-    const medRows = (data.medications ?? []).map((m: any) => ({
-      dog_id: data.id, organization_id: orgId,
-      name: m.name, dose: m.dose || null, frequency: m.frequency || null,
-      duration_days: m.duration_days === "" ? null : m.duration_days,
-      start_date: m.start_date || null, route: m.route || null,
-      with_food: !!m.with_food,
-    }));
-
-    const db = supabase;
-    // Comprobar el error de cada operación: si el sync falla tras borrar, se
-    // perderían datos clínicos en silencio. Abortamos con aviso explícito.
-    const delA = await db.from("dog_allergies").delete().eq("dog_id", data.id);
-    const insA = allergyRows.length ? await db.from("dog_allergies").insert(allergyRows) : { error: null };
-    const delM = await db.from("dog_medications").delete().eq("dog_id", data.id);
-    const insM = medRows.length ? await db.from("dog_medications").insert(medRows) : { error: null };
-
-    const syncError = delA.error || insA.error || delM.error || insM.error;
-    // Refrescar la lista pase lo que pase: el perro ya se guardó.
-    queryClient.invalidateQueries({ queryKey: ["dogs", orgId] });
-
-    if (syncError) {
-      toast.error("El perro se guardó, pero falló la sincronización clínica", {
-        description: "Vuelve a abrir el perro y revisa alergias/medicación.",
-      });
-      return;
-    }
-
+    queryClient.invalidateQueries({ queryKey: ["dogs", organization.id] });
     toast.success(editingDog ? "Perro actualizado" : "Perro registrado");
     setModalOpen(false);
   };

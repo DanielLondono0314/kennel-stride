@@ -61,3 +61,11 @@ export function reservationBucket(status: string): "pending" | "in_progress" | "
   if (["in_progress", "checked_in"].includes(status)) return "in_progress";
   return "pending";
 }
+
+/** Rol base del personal (staff_members.role) en español. */
+export const STAFF_ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  manager: "Gerente",
+  front_desk: "Recepción",
+  worker: "Trabajador",
+};

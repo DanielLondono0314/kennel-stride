@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { ReservationStatus, ServiceType } from "@/types";
-import { CalendarEvent } from "./calendarEvent";
+import { CalendarEvent, isMultiDay, occursOn, stayPhase } from "./calendarEvent";
 import { TASK_TYPE_LABELS, type TaskType } from "@/lib/worker";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -74,15 +74,28 @@ export function WeekView({
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  // Group events by day
+  // Estadías de varios días (internado, hotel) van en la franja superior en
+  // TODOS los días que ocupan; la cuadrícula horaria es para lo que empieza y
+  // termina el mismo día. Antes una estadía solo se veía el día de entrada
+  // (QA E-24).
+  const stays = useMemo(() => events.filter((e) => e.kind === "reservation" && isMultiDay(e)), [events]);
+
   const eventsByDay = useMemo(() => {
     const grouped: Record<string, CalendarEvent[]> = {};
     weekDays.forEach((day) => {
       const dayKey = format(day, "yyyy-MM-dd");
-      grouped[dayKey] = events.filter((e) => isSameDay(e.startDate, day));
+      grouped[dayKey] = events.filter((e) => !stays.includes(e) && isSameDay(e.startDate, day));
     });
     return grouped;
-  }, [events, weekDays]);
+  }, [events, weekDays, stays]);
+
+  const staysByDay = useMemo(() => {
+    const grouped: Record<string, CalendarEvent[]> = {};
+    weekDays.forEach((day) => {
+      grouped[format(day, "yyyy-MM-dd")] = stays.filter((e) => occursOn(e, day));
+    });
+    return grouped;
+  }, [stays, weekDays]);
 
   const calculateEventPosition = (event: CalendarEvent) => {
     const startHour = getHours(event.startDate) + getMinutes(event.startDate) / 60;
@@ -177,6 +190,56 @@ export function WeekView({
         ))}
       </div>
 
+      {/* Estadías de varios días */}
+      {stays.length > 0 && (
+        <div className="flex border-b bg-muted/10">
+          <div className="w-16 flex-shrink-0 border-r px-1 py-1.5 text-[10px] leading-tight text-muted-foreground text-right">
+            Estadías
+          </div>
+          {weekDays.map((day) => {
+            const dayKey = format(day, "yyyy-MM-dd");
+            return (
+              <div key={dayKey} className="flex-1 min-w-0 border-r last:border-r-0 p-1 space-y-1 max-h-32 overflow-y-auto">
+                {staysByDay[dayKey].map((event) => {
+                  const r = event.reservation!;
+                  const phase = stayPhase(event, day);
+                  const colorClass = serviceColors[r.service?.type ?? ""] ?? DEFAULT_SERVICE_COLOR;
+                  return (
+                    <Tooltip key={`${event.id}-${dayKey}`}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => onSelectEvent(event)}
+                          className={cn(
+                            "flex w-full items-center gap-1 rounded border px-1.5 py-0.5 text-left text-[11px] font-medium hover:shadow-sm",
+                            colorClass
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusIndicators[r.status])} aria-hidden />
+                          <span className="truncate">
+                            {phase === "start" && "→ "}
+                            {r.dog?.name}
+                            {phase === "end" && " ←"}
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p className="font-semibold">{r.dog?.name}</p>
+                        <p className="text-sm text-muted-foreground">{r.customer?.firstName} {r.customer?.lastName}</p>
+                        <p className="text-sm">{r.service?.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(event.startDate, "d MMM HH:mm", { locale: es })} → {format(event.endDate, "d MMM HH:mm", { locale: es })}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Scrollable time grid */}
       <ScrollArea className="flex-1">
         <div className="flex">
@@ -187,7 +250,7 @@ export function WeekView({
                 key={hour}
                 className="h-[60px] border-b text-xs text-muted-foreground pr-2 text-right pt-1"
               >
-                {format(setHours(new Date(), hour), "HH:mm")}
+                {`${String(hour).padStart(2, "0")}:00`}
               </div>
             ))}
           </div>

@@ -1,4 +1,7 @@
 import { Notice, NoticeSeverity } from "@/types";
+import { Link } from "react-router-dom";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { noticeHref } from "@/lib/noticeLinks";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -35,6 +38,7 @@ const severityConfig: Record<
 };
 
 export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: NoticesListProps) {
+  const basePath = useOrgBasePath();
   if (notices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -68,7 +72,17 @@ export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: Notice
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{notice.title}</h4>
+                      {noticeHref(notice.entityType, notice.entityId) ? (
+                        <Link
+                          to={`${basePath}${noticeHref(notice.entityType, notice.entityId)}`}
+                          className="font-medium hover:underline"
+                          onClick={() => !notice.isRead && onMarkRead?.(notice.id)}
+                        >
+                          {notice.title}
+                        </Link>
+                      ) : (
+                        <h4 className="font-medium">{notice.title}</h4>
+                      )}
                       {!notice.isRead && (
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                           Nuevo
@@ -105,7 +119,7 @@ export function NoticesList({ notices, onAction, onDismiss, onMarkRead }: Notice
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
                         onClick={() => onDismiss(notice.id)}
                         aria-label="Descartar aviso"
-                        title="Eliminar aviso"
+                        title="Descartar"
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>

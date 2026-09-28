@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { Link } from "react-router-dom";
+import { noticeHref } from "@/lib/noticeLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useNotices, useDismissNotice, useMarkNoticeRead, useMarkAllNoticesRead, useNoticesRealtime } from "@/hooks/queries/useNotices";
@@ -36,6 +38,7 @@ export default function NoticesPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: notices = [], isLoading, isError, refetch } = useNotices();
+  const basePath = useOrgBasePath();
   useNoticesRealtime();
   const dismissNotice = useDismissNotice();
   const markReadMutation = useMarkNoticeRead();
@@ -251,7 +254,17 @@ export default function NoticesPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{notice.title}</h4>
+                          {noticeHref(notice.entityType, notice.entityId) ? (
+                            <Link
+                              to={`${basePath}${noticeHref(notice.entityType, notice.entityId)}`}
+                              className="font-medium hover:underline"
+                              onClick={() => !notice.isRead && markRead(notice.id)}
+                            >
+                              {notice.title}
+                            </Link>
+                          ) : (
+                            <h4 className="font-medium">{notice.title}</h4>
+                          )}
                           {!notice.isRead && (
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Nuevo</Badge>
                           )}
@@ -267,7 +280,7 @@ export default function NoticesPage() {
                             <CheckCheck className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dismiss(notice.id)} title="Eliminar" aria-label="Eliminar aviso">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => dismiss(notice.id)} title="Descartar" aria-label="Descartar aviso">
                           <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>

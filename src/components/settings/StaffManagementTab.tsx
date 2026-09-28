@@ -286,7 +286,7 @@ export function StaffManagementTab() {
             </div>
             <div className="space-y-2">
               <Label>Teléfono</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555-0000" />
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+57 300 123 4567" />
             </div>
             <div className="space-y-2">
               <Label>Rol</Label>

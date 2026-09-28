@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency";
 import { getEffectivePackageStatus } from "@/lib/packageStatus";
+import { STAFF_ROLE_LABELS } from "@/lib/worker";
 
 const COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 20%)", "hsl(142, 76%, 36%)",
@@ -86,6 +87,8 @@ export default function ReportsPage() {
   const activeCustomers = newCustomers.length;
   const occupiedKennels = units.filter((u: any) => u.status === "occupied").length;
   const totalKennels = units.length;
+  // Disponibles = libres de verdad; las que están en mantenimiento no cuentan (QA E-04).
+  const availableKennels = units.filter((u: any) => u.status === "available").length;
   const occupancyRate = totalKennels > 0 ? Math.round((occupiedKennels / totalKennels) * 100) : 0;
   const totalReservations = filteredReservations.length;
   const completedReservations = filteredReservations.filter((r) => r.status === "completed").length;
@@ -259,7 +262,7 @@ export default function ReportsPage() {
                       <div className="p-2 rounded-lg bg-success/10"><PawPrint className="h-5 w-5 text-success" /></div>
                       <div>
                         <p className="text-2xl font-bold">{adminSummary.activeDogsCount}</p>
-                        <p className="text-xs text-muted-foreground">Perros Activos</p>
+                        <p className="text-xs text-muted-foreground">Con reservas (90 días)</p>
                       </div>
                     </div>
                   </CardContent>
@@ -270,7 +273,7 @@ export default function ReportsPage() {
                       <div className="p-2 rounded-lg bg-muted"><PawPrint className="h-5 w-5 text-muted-foreground" /></div>
                       <div>
                         <p className="text-2xl font-bold">{adminSummary.inactiveDogsCount}</p>
-                        <p className="text-xs text-muted-foreground">Perros Inactivos</p>
+                        <p className="text-xs text-muted-foreground">Sin reservas (90 días)</p>
                       </div>
                     </div>
                   </CardContent>
@@ -358,7 +361,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <span className="text-sm font-medium">Perreras disponibles</span>
-                      <span className="text-lg font-bold">{Math.max(totalKennels - occupiedKennels, 0)}</span>
+                      <span className="text-lg font-bold">{availableKennels}</span>
                     </div>
                     <button
                       className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
@@ -398,7 +401,7 @@ export default function ReportsPage() {
                                 {d.kennelName ?? "Sin perrera"}
                               </Badge>
                               <Badge variant={d.isActive ? "default" : "secondary"} className="text-xs">
-                                {d.isActive ? "Activo" : "Inactivo"}
+                                {d.isActive ? "Con reservas" : "Sin reservas"}
                               </Badge>
                             </div>
                           </button>
@@ -427,7 +430,7 @@ export default function ReportsPage() {
                           >
                             <p className="font-medium truncate">{s.first_name} {s.last_name}</p>
                             <div className="flex items-center gap-2 shrink-0 ml-3">
-                              <Badge variant="outline" className="text-xs font-normal capitalize">{s.role}</Badge>
+                              <Badge variant="outline" className="text-xs font-normal">{STAFF_ROLE_LABELS[s.role] ?? s.role}</Badge>
                               <Badge variant={s.is_active ? "default" : "secondary"} className="text-xs">
                                 {s.is_active ? "Activo" : "Inactivo"}
                               </Badge>
