@@ -67,3 +67,18 @@ export function useUpdateTask() {
     },
   });
 }
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+  const { organization } = useOrganization();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys(organization?.id).all });
+      queryClient.invalidateQueries({ queryKey: ["my-day"] });
+    },
+  });
+}

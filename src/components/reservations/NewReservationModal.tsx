@@ -67,6 +67,8 @@ const STATUS_OPTIONS = [
 interface EditReservationData {
   id: string;
   serviceType: string;
+  /** Nombre guardado en la reserva: se muestra aunque el servicio ya no esté en el catálogo. */
+  serviceName?: string;
   startDate: Date;
   endDate: Date;
   totalPrice: number;
@@ -238,7 +240,10 @@ export function NewReservationModal({
     setErrors({});
 
     setSaving(true);
-    const serviceName = serviceTypeOptions.find((s) => s.value === serviceType)?.label ?? serviceType;
+    const serviceName =
+      serviceTypeOptions.find((s) => s.value === serviceType)?.label ??
+      (editData && serviceType === editData.serviceType ? editData.serviceName : undefined) ??
+      serviceType;
 
     if (isEditing && editData) {
       const { error } = await supabase.rpc("update_reservation", {
@@ -451,9 +456,9 @@ export function NewReservationModal({
 
             {/* Service */}
             <div className="space-y-2">
-              <Label>Tipo de servicio *</Label>
+              <Label htmlFor="reservation-service">Tipo de servicio *</Label>
               <Select value={serviceType} onValueChange={setServiceType}>
-                <SelectTrigger>
+                <SelectTrigger id="reservation-service">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -462,6 +467,14 @@ export function NewReservationModal({
                       {s.label}
                     </SelectItem>
                   ))}
+                  {/* El servicio de la reserva ya no está en el catálogo de la org
+                      (p. ej. "Internado + Entrenamiento"): se muestra igual para
+                      no dejar el campo vacío ni obligar a cambiarlo (QA E-23). */}
+                  {editData && !serviceTypeOptions.some((s) => s.value === editData.serviceType) && (
+                    <SelectItem value={editData.serviceType}>
+                      {editData.serviceName || editData.serviceType} (fuera del catálogo)
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

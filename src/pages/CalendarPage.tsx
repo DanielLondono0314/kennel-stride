@@ -257,6 +257,7 @@ export default function CalendarPage() {
         editData={editingReservation ? {
           id: editingReservation.id,
           serviceType: editingReservation.service?.type ?? "daycare",
+          serviceName: editingReservation.service?.name,
           startDate: editingReservation.startDate,
           endDate: editingReservation.endDate,
           totalPrice: editingReservation.totalPrice,

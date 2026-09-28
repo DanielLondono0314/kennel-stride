@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { DOG_BREEDS } from "@/lib/constants";
 import {
   dogSchema, feedingSchema, aggressionDetailsSchema, allergyRowSchema, medicationRowSchema,
@@ -55,8 +56,13 @@ const FIELD_TAB: Record<string, TabId> = {
   weight: "basicos",
   color: "basicos",
   microchip_number: "basicos",
+  birth_date: "basicos",
   "feeding.food_type": "alimentacion",
   "feeding.meals_per_day": "alimentacion",
+  "feeding.brand": "alimentacion",
+  "feeding.portion_amount": "alimentacion",
+  "feeding.portion_unit": "alimentacion",
+  "feeding.instructions": "alimentacion",
   "aggression.severity": "salud",
   "aggression.handling": "salud",
   allergies: "salud",
@@ -361,6 +367,11 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
     });
     if (!parsed.success) Object.assign(errs, zodFieldErrors(parsed.error));
 
+    // La fecha de nacimiento no puede ser futura (QA E-12).
+    if (birthDate && birthDate > format(new Date(), "yyyy-MM-dd")) {
+      errs.birth_date = "La fecha de nacimiento no puede ser futura";
+    }
+
     // Alimentación obligatoria.
     const feedingParsed = feedingSchema.safeParse(feeding);
     if (!feedingParsed.success) {
@@ -657,7 +668,17 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dog-birth-date">Fecha de nacimiento</Label>
-                <Input id="dog-birth-date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+                <Input
+                  id="dog-birth-date"
+                  type="date"
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  value={birthDate}
+                  onChange={(e) => { setBirthDate(e.target.value); clearError("birth_date"); }}
+                  aria-invalid={errors.birth_date ? true : undefined}
+                  aria-describedby={errors.birth_date ? "dog-birth-date-error" : undefined}
+                  className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.birth_date && <p id="dog-birth-date-error" className="text-xs text-destructive">{errors.birth_date}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dog-weight">Peso (kg)</Label>
@@ -714,11 +735,16 @@ export function DogModal({ dog, preselectedCustomerId, open, onOpenChange, onSav
           <TabsContent value="alimentacion" className="mt-4">
             <FeedingFields
               value={feeding}
-              onChange={(v) => { setFeeding(v); clearError("feeding.food_type"); clearError("feeding.meals_per_day"); }}
+              onChange={(v) => {
+                setFeeding(v);
+                for (const k of ["food_type", "meals_per_day", "portion_amount", "portion_unit"]) clearError(`feeding.${k}`);
+              }}
               foodAllergyWarning={foodAllergyWarning}
               errors={{
                 food_type: errors["feeding.food_type"],
                 meals_per_day: errors["feeding.meals_per_day"],
+                portion_amount: errors["feeding.portion_amount"],
+                portion_unit: errors["feeding.portion_unit"],
               }}
             />
           </TabsContent>

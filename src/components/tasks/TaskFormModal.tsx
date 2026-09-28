@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { useCreateTask } from "@/hooks/queries/useTasks";
+import { useCreateTask, useUpdateTask } from "@/hooks/queries/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { useDraftForm } from "@/hooks/useDraftForm";
 import { DraftBanner } from "@/components/shared/DraftBanner";
@@ -36,7 +37,7 @@ import {
 } from "@/lib/worker";
 
 const taskSchema = z.object({
-  type: z.enum(["cleaning", "feeding", "walk", "vet_check", "grooming", "other", "welfare_check"]),
+  type: z.enum(TASK_TYPES as [TaskType, ...TaskType[]]),
   title: z.string().trim().min(1, "El título es obligatorio").max(200),
   dog_id: z.string().uuid().nullable(),
   zone_id: z.string().uuid().nullable(),
@@ -45,10 +46,23 @@ const taskSchema = z.object({
   priority: z.enum(["low", "normal", "high"]),
 });
 
+export interface EditableTask {
+  id: string;
+  type: string;
+  title: string;
+  dog_id: string | null;
+  zone_id: string | null;
+  assignee_staff_id: string | null;
+  due_at: string | null;
+  priority: string;
+}
+
 interface TaskFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
+  /** Tarea a editar; sin ella el modal crea una nueva. */
+  task?: EditableTask | null;
 }
 
 interface WorkerStaff {
@@ -64,10 +78,12 @@ interface NamedRow {
 
 const NONE = "__none__";
 
-export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProps) {
+export function TaskFormModal({ open, onOpenChange, onSaved, task }: TaskFormModalProps) {
   const { organization } = useOrganization();
   const orgId = organization?.id;
   const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const isEditing = !!task;
 
   const [type, setType] = useState<TaskType>("cleaning");
   const [title, setTitle] = useState("");
@@ -84,13 +100,14 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
 
   useEffect(() => {
     if (!open || !orgId) return;
-    setType("cleaning");
-    setTitle("");
-    setDogId(NONE);
-    setZoneId(NONE);
-    setAssigneeId(NONE);
-    setDueAt("");
-    setPriority("normal");
+    setType((task?.type as TaskType) ?? "cleaning");
+    setTitle(task?.title ?? "");
+    setDogId(task?.dog_id ?? NONE);
+    setZoneId(task?.zone_id ?? NONE);
+    setAssigneeId(task?.assignee_staff_id ?? NONE);
+    // datetime-local espera la hora LOCAL sin zona.
+    setDueAt(task?.due_at ? format(new Date(task.due_at), "yyyy-MM-dd'T'HH:mm") : "");
+    setPriority((task?.priority as TaskPriority) ?? "normal");
 
     supabase
       .from("staff_members")
@@ -114,11 +131,11 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
       .eq("organization_id", orgId)
       .order("name")
       .then(({ data }) => { if (data) setZones(data as NamedRow[]); });
-  }, [open, orgId]);
+  }, [open, orgId, task]);
 
   // Borrador local: si cierran el modal sin guardar (cambio de pestaña/app,
   // Escape, clic afuera), no se pierde lo llenado.
-  const draftKey = orgId ? `taskDraft:${orgId}:new` : null;
+  const draftKey = orgId && !isEditing ? `taskDraft:${orgId}:new` : null;
   const draftValue = { type, title, dogId, zoneId, assigneeId, dueAt, priority };
   const { hasDraft, clearDraft } = useDraftForm({
     key: draftKey,
@@ -143,11 +160,11 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
   const selectedWorker = workers.find((w) => w.id === assigneeId);
   const typeOptions = useMemo<TaskType[]>(() => {
     const specialty = selectedWorker?.specialty as Specialty | undefined;
-    if (specialty && TASK_TYPE_BY_SPECIALTY[specialty]) {
-      return TASK_TYPE_BY_SPECIALTY[specialty];
-    }
-    return TASK_TYPES;
-  }, [selectedWorker?.specialty]);
+    const base = specialty && TASK_TYPE_BY_SPECIALTY[specialty] ? TASK_TYPE_BY_SPECIALTY[specialty] : TASK_TYPES;
+    // Al editar, el tipo original siempre sigue disponible (no se cambia solo).
+    const original = task?.type as TaskType | undefined;
+    return original && !base.includes(original) ? [original, ...base] : base;
+  }, [selectedWorker?.specialty, task?.type]);
 
   useEffect(() => {
     if (!typeOptions.includes(type)) setType(typeOptions[0]);
@@ -170,13 +187,20 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
 
     setSaving(true);
     try {
-      await createTask.mutateAsync(parsed.data);
-      toast.success("Tarea creada");
+      if (task) {
+        await updateTask.mutateAsync({ id: task.id, patch: { ...parsed.data, updated_at: new Date().toISOString() } });
+        toast.success("Tarea actualizada");
+      } else {
+        await createTask.mutateAsync(parsed.data);
+        toast.success("Tarea creada");
+      }
       clearDraft();
       onOpenChange(false);
       onSaved?.();
     } catch (err: any) {
-      toast.error(err?.message ?? "Error creando la tarea");
+      toast.error(isEditing ? "No se pudo guardar la tarea" : "No se pudo crear la tarea", {
+        description: err?.message,
+      });
     } finally {
       setSaving(false);
     }
@@ -186,14 +210,15 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nueva tarea</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar tarea" : "Nueva tarea"}</DialogTitle>
           {hasDraft && <DraftBanner onDiscard={discardDraft} />}
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="space-y-1.5">
-            <Label>Título *</Label>
+            <Label htmlFor="task-title">Título *</Label>
             <Input
+              id="task-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej. Aseo zona A, paseo matutino…"
@@ -202,9 +227,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Asignar a</Label>
+              <Label htmlFor="task-assignee">Asignar a</Label>
               <Select value={assigneeId} onValueChange={setAssigneeId}>
-                <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
+                <SelectTrigger id="task-assignee"><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Sin asignar</SelectItem>
                   {workers.map((w) => (
@@ -218,9 +243,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
             </div>
 
             <div className="space-y-1.5">
-              <Label>Tipo *</Label>
+              <Label htmlFor="task-type">Tipo *</Label>
               <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="task-type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {typeOptions.map((t) => (
                     <SelectItem key={t} value={t}>{TASK_TYPE_LABELS[t]}</SelectItem>
@@ -232,9 +257,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Perro</Label>
+              <Label htmlFor="task-dog">Perro</Label>
               <Select value={dogId} onValueChange={setDogId}>
-                <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
+                <SelectTrigger id="task-dog"><SelectValue placeholder="Ninguno" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Ninguno</SelectItem>
                   {dogs.map((d) => (
@@ -245,9 +270,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
             </div>
 
             <div className="space-y-1.5">
-              <Label>Zona</Label>
+              <Label htmlFor="task-zone">Zona</Label>
               <Select value={zoneId} onValueChange={setZoneId}>
-                <SelectTrigger><SelectValue placeholder="Ninguna" /></SelectTrigger>
+                <SelectTrigger id="task-zone"><SelectValue placeholder="Ninguna" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Ninguna</SelectItem>
                   {zones.map((z) => (
@@ -260,8 +285,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Vencimiento</Label>
+              <Label htmlFor="task-due">Vencimiento</Label>
               <Input
+                id="task-due"
                 type="datetime-local"
                 value={dueAt}
                 onChange={(e) => setDueAt(e.target.value)}
@@ -269,9 +295,9 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
             </div>
 
             <div className="space-y-1.5">
-              <Label>Prioridad</Label>
+              <Label htmlFor="task-priority">Prioridad</Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="task-priority"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(TASK_PRIORITY_LABELS) as TaskPriority[]).map((p) => (
                     <SelectItem key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</SelectItem>
@@ -286,7 +312,7 @@ export function TaskFormModal({ open, onOpenChange, onSaved }: TaskFormModalProp
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-            Crear tarea
+            {isEditing ? "Guardar cambios" : "Crear tarea"}
           </Button>
         </DialogFooter>
       </DialogContent>

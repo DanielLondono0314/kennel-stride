@@ -10,7 +10,7 @@ interface Props {
   onChange: (v: FeedingForm) => void;
   foodAllergyWarning?: string[];
   /** Errores inline por campo (food_type, meals_per_day). */
-  errors?: Partial<Record<"food_type" | "meals_per_day", string>>;
+  errors?: Partial<Record<"food_type" | "meals_per_day" | "portion_amount" | "portion_unit", string>>;
 }
 
 export function FeedingFields({ value, onChange, foodAllergyWarning = [], errors = {} }: Props) {
@@ -70,18 +70,30 @@ export function FeedingFields({ value, onChange, foodAllergyWarning = [], errors
           <Label htmlFor="feeding-portion" className="text-xs">Porción</Label>
           <Input id="feeding-portion" type="number" min={0} value={value.portion_amount}
             onChange={(e) => set({ portion_amount: e.target.value === "" ? "" : Number(e.target.value) })}
+            aria-invalid={errors.portion_amount ? true : undefined}
+            aria-describedby={errors.portion_amount ? "feeding-portion-error" : undefined}
+            className={errors.portion_amount ? "border-destructive focus-visible:ring-destructive" : ""}
             placeholder="150" />
+          {errors.portion_amount && <p id="feeding-portion-error" className="text-xs text-destructive">{errors.portion_amount}</p>}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="feeding-unit" className="text-xs">Unidad</Label>
           <Select value={value.portion_unit} onValueChange={(v) => set({ portion_unit: v as PortionUnit })}>
-            <SelectTrigger id="feeding-unit"><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectTrigger
+              id="feeding-unit"
+              aria-invalid={errors.portion_unit ? true : undefined}
+              aria-describedby={errors.portion_unit ? "feeding-unit-error" : undefined}
+              className={errors.portion_unit ? "border-destructive focus:ring-destructive" : ""}
+            >
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="g">g</SelectItem>
               <SelectItem value="taza">taza</SelectItem>
               <SelectItem value="scoop">scoop</SelectItem>
             </SelectContent>
           </Select>
+          {errors.portion_unit && <p id="feeding-unit-error" className="text-xs text-destructive">{errors.portion_unit}</p>}
         </div>
       </div>
 
