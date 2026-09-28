@@ -194,7 +194,15 @@ export default function ReservationDetailPage() {
                 </Badge>
               </p>
             ))}
-            {data!.invoices.length === 0 && <p className="text-muted-foreground">Sin factura todavía (se genera al hacer el check-out).</p>}
+            {data!.invoices.length === 0 && (
+              <p className="text-muted-foreground">
+                {["cancelled", "no_show", "rejected"].includes(r.status)
+                  ? "Sin factura."
+                  : r.status === "completed"
+                    ? "Sin factura (se cobró con paquete o fuera del sistema)."
+                    : "Sin factura todavía: se genera al hacer el check-out."}
+              </p>
+            )}
             {r.customer && (
               <Link to={`${base}/customers/${r.customer.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
                 Ver saldo del cliente
