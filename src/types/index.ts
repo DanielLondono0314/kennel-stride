@@ -22,6 +22,8 @@ export enum ReservationStatus {
   PICKED_UP = 'picked_up',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+  /** El perro no llegó a una reserva aprobada (QA E-29). */
+  NO_SHOW = 'no_show',
 }
 
 export enum ServiceType {

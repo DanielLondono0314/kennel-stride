@@ -42,6 +42,7 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseDateOnly, todayLocal } from "@/lib/age";
 
 interface CheckOutModalProps {
   reservation: Reservation | null;
@@ -93,7 +94,7 @@ export function CheckOutModal({
         .eq("status", "active")
         .eq("organization_id", organization.id)
         .gt("remaining_credits", 0)
-        .gte("expires_at", new Date().toISOString().slice(0, 10))
+        .gte("expires_at", todayLocal())
         .order("expires_at")
         .limit(1)
         .maybeSingle();
@@ -313,7 +314,7 @@ export function CheckOutModal({
                         {availablePackage.remaining_credits} créditos disponibles
                         {" · "}
                         Vence{" "}
-                        {format(new Date(availablePackage.expires_at), "d 'de' MMM", {
+                        {format(parseDateOnly(availablePackage.expires_at), "d 'de' MMM", {
                           locale: es,
                         })}
                       </p>

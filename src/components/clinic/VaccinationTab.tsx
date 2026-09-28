@@ -20,9 +20,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Syringe, CheckCircle, AlertTriangle, Clock, Pencil, Trash2 } from "lucide-react";
-import { format, isPast, isFuture, addDays } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { parseDateOnly, todayLocal } from "@/lib/age";
 
 interface Props { dogId: string; dogName: string; }
 
@@ -38,7 +39,7 @@ const vaccineTypes = [
   { value: "other", label: "Otra" },
 ];
 
-const emptyForm = { vaccine_name: "", vaccine_type: "core", date_administered: new Date().toISOString().split("T")[0], next_dose_date: "", batch_number: "", veterinarian: "", notes: "" };
+const emptyForm = () => ({ vaccine_name: "", vaccine_type: "core", date_administered: todayLocal(), next_dose_date: "", batch_number: "", veterinarian: "", notes: "" });
 
 export function VaccinationTab({ dogId, dogName }: Props) {
   const { organization } = useOrganization();
@@ -47,7 +48,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -60,7 +61,7 @@ export function VaccinationTab({ dogId, dogName }: Props) {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm()); setModalOpen(true); };
   const openEdit = (r: Tables<"vaccination_schedule">) => {
     setEditingId(r.id);
     setForm({ vaccine_name: r.vaccine_name, vaccine_type: r.vaccine_type, date_administered: r.date_administered, next_dose_date: r.next_dose_date || "", batch_number: r.batch_number || "", veterinarian: r.veterinarian || "", notes: r.notes || "" });
@@ -89,9 +90,10 @@ export function VaccinationTab({ dogId, dogName }: Props) {
 
   const getStatus = (r: Tables<"vaccination_schedule">) => {
     if (!r.next_dose_date) return { label: "Vigente", icon: CheckCircle, className: "bg-success/10 text-success" };
-    const next = new Date(r.next_dose_date);
-    if (isPast(next)) return { label: "Vencida", icon: AlertTriangle, className: "bg-destructive/10 text-destructive" };
-    if (isFuture(next) && next <= addDays(new Date(), 30)) return { label: "Por vencer", icon: Clock, className: "bg-warning/10 text-warning" };
+    // Días de calendario: el día de la dosis cuenta como "por vencer", no vencida.
+    const daysLeft = differenceInCalendarDays(parseDateOnly(r.next_dose_date), new Date());
+    if (daysLeft < 0) return { label: "Vencida", icon: AlertTriangle, className: "bg-destructive/10 text-destructive" };
+    if (daysLeft <= 30) return { label: "Por vencer", icon: Clock, className: "bg-warning/10 text-warning" };
     return { label: "Vigente", icon: CheckCircle, className: "bg-success/10 text-success" };
   };
 
@@ -121,8 +123,8 @@ export function VaccinationTab({ dogId, dogName }: Props) {
                       <Badge className={status.className}><StatusIcon className="h-3 w-3 mr-1" />{status.label}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Aplicada: {format(new Date(r.date_administered), "dd MMM yyyy", { locale: es })}
-                      {r.next_dose_date && ` · Próxima: ${format(new Date(r.next_dose_date), "dd MMM yyyy", { locale: es })}`}
+                      Aplicada: {format(parseDateOnly(r.date_administered), "dd MMM yyyy", { locale: es })}
+                      {r.next_dose_date && ` · Próxima: ${format(parseDateOnly(r.next_dose_date), "dd MMM yyyy", { locale: es })}`}
                     </p>
                     {r.veterinarian && <p className="text-xs text-muted-foreground">Dr. {r.veterinarian}</p>}
                     {r.batch_number && <p className="text-xs text-muted-foreground">Lote: {r.batch_number}</p>}

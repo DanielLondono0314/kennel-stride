@@ -92,8 +92,8 @@ frontend.
 - Esencial no incluye `requests` pero toda reserva nace `requested`.
 - Confirmación de email en Supabase Auth: verificar que esté activa (si no,
   alguien puede registrarse con el correo de un invitado y tomar la invitación).
-- `supabase/config.toml` apunta a `jqnpqmkwcaxqrevfqmue`; este archivo usa
-  `vdcwrtqrnsekyguhqowc`. Confirmar cuál es producción.
+- ✅ Producción es `jqnpqmkwcaxqrevfqmue` (confirmado 2026-08-19). El ref
+  `jqnpqmkwcaxqrevfqmue` que aparecía aquí era viejo.
 - Números de factura aleatorios (no consecutivos): revisar requisito DIAN.
 - react-router: queda 1 advisory moderado que requiere migrar a v7.
 - Columnas `ls_*` de organizations siguen legibles por miembros (el REVOKE por
@@ -190,7 +190,7 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   Las funciones send-campaign y handle-ls-webhook fueron modificadas con los fixes de seguridad       
   críticos. Necesitas subirlas manualmente al dashboard de Supabase.                                  
                                                                                                       
-  Accede a: https://supabase.com/dashboard/project/vdcwrtqrnsekyguhqowc/functions                     
+  Accede a: https://supabase.com/dashboard/project/jqnpqmkwcaxqrevfqmue/functions                     
    
   Para cada función, copia el contenido del archivo correspondiente:                                  
                                                             
@@ -202,7 +202,7 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   ---                                                                                                 
   2. Configurar los secrets de las Edge Functions (CRÍTICO) 
                                                                                                       
-  Accede a: https://supabase.com/dashboard/project/vdcwrtqrnsekyguhqowc/settings/functions
+  Accede a: https://supabase.com/dashboard/project/jqnpqmkwcaxqrevfqmue/settings/functions
                                                                                                       
   Añade estos secrets (o verifica que ya existen):                                                    
                                                                                                       
@@ -213,7 +213,7 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   ├─────────────────────────────┼──────────────────────────────────────────────────────┤
   │ LEMONSQUEEZY_WEBHOOK_SECRET │ Signing secret del webhook en LemonSqueezy dashboard │              
   ├─────────────────────────────┼──────────────────────────────────────────────────────┤              
-  │ ALLOWED_ORIGIN              │ https://tudominio.lovable.app (o tu dominio custom)  │              
+  │ ALLOWED_ORIGIN              │ https://kennel-stride.vercel.app (o tu dominio custom)  │              
   ├─────────────────────────────┼──────────────────────────────────────────────────────┤              
   │ SUPABASE_ANON_KEY           │ Tu anon/public key de Supabase (ya tienes la URL)    │
   └─────────────────────────────┴──────────────────────────────────────────────────────┘              
@@ -224,7 +224,7 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   ---                                                       
   3. Verificar RLS Policies (ALTO)
                                   
-  Accede a: https://supabase.com/dashboard/project/vdcwrtqrnsekyguhqowc/auth/policies
+  Accede a: https://supabase.com/dashboard/project/jqnpqmkwcaxqrevfqmue/auth/policies
                                                                                                       
   Verifica que las tablas críticas tengan RLS habilitado y políticas que filtren por organization_id  
   y/o user_id:                                                                                        
@@ -238,12 +238,11 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   Si alguna tabla tiene RLS disabled, actívalo con el toggle en el dashboard.                         
                                                                                                       
   ---                                                                                                 
-  4. Redesplegar el frontend desde Lovable                  
+  4. Redesplegar el frontend (Vercel)
                                                                                                       
-  Desde el editor de Lovable, haz clic en "Publish" (botón en la esquina superior derecha). Esto
-  redespliega el frontend con todos los cambios de código que hemos aplicado.                         
+  Ya no se usa Lovable: Vercel despliega solo cada push a `main`.
                                                             
-  Si tienes conectado un repositorio GitHub, Lovable detecta los commits automáticamente.             
+  Las migraciones y Edge Functions NO se despliegan con el push: ver README.md → Despliegue.
                                                             
   ---                                                                                                 
   5. Verificación rápida post-deploy                        
@@ -259,4 +258,4 @@ Plan completo guardado en (histórico de la sesión que lo construyó):
   ---                                                                                                 
   Lo más urgente es el punto 1 (Edge Functions) — sin el redeploy, las funciones en producción siguen 
   teniendo el código sin autenticación JWT y el bug de cross-org data leakage. Los cambios del        
-  frontend ya están en el repositorio y se despliegan solos desde Lovable.
+  frontend ya están en el repositorio y se despliegan solos con Vercel al hacer push a main.

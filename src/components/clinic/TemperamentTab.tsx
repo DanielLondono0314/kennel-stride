@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Brain, Save } from "lucide-react";
 import { toast } from "sonner";
+import { todayLocal } from "@/lib/age";
 
 interface Props {
   dogId: string;
@@ -78,7 +79,7 @@ export function TemperamentTab({ dogId, dogName }: Props) {
       dog_id: dogId,
       dog_name: dogName,
       ...form,
-      last_evaluation_date: new Date().toISOString().split("T")[0],
+      last_evaluation_date: todayLocal(),
       updated_at: new Date().toISOString(),
       organization_id: organization.id,
     };

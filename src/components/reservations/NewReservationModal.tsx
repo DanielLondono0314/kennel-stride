@@ -62,6 +62,7 @@ const STATUS_OPTIONS = [
   { value: "scheduled", label: "Aprobada / Programada" },
   { value: "cancelled", label: "Cancelada / Rechazada" },
   { value: "completed", label: "Completada" },
+  { value: "no_show", label: "No se presentó" },
 ];
 
 interface EditReservationData {

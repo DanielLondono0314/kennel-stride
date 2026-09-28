@@ -52,13 +52,6 @@ interface OpsTableProps {
   onViewDog?: (dogId: string) => void;
 }
 
-const serviceTypeLabels: Record<ServiceType, string> = {
-  [ServiceType.DAYCARE]: "Guardería",
-  [ServiceType.BOARD_AND_TRAIN]: "Internado",
-  [ServiceType.TRAINING_SESSION]: "Sesión",
-  [ServiceType.GROOMING]: "Grooming",
-  [ServiceType.EVALUATION]: "Evaluación",
-};
 
 // En estadías de varios días solo la hora no dice nada: si no es hoy, se
 // muestra también la fecha.
@@ -159,7 +152,8 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm">
-                      {reservation.service && serviceTypeLabels[reservation.service.type]}
+                      {/* Nombre guardado en la reserva: sirve también para servicios personalizados de la org. */}
+                      {reservation.service?.name}
                     </span>
                   </TableCell>
                   <TableCell>

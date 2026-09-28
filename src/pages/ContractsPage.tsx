@@ -49,6 +49,8 @@ export default function ContractsPage() {
 
   const [tab, setTab] = useUrlState<string>("tab", "contracts");
   const [search, setSearch] = useState("");
+  // ?contract=<id>: enlace directo a un contrato (p. ej. desde el detalle de una reserva).
+  const [contractParam, setContractParam] = useUrlState<string>("contract", "", { replace: true });
   const [statusFilter, setStatusFilter] = useState<"all" | ContractStatus>("all");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<ContractTemplate | null>(null);
@@ -65,12 +67,13 @@ export default function ContractsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return contracts.filter((c) => {
+      if (contractParam) return c.id === contractParam;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (!q) return true;
       const customer = c.customers ? `${c.customers.first_name} ${c.customers.last_name}` : "";
       return [customer, c.title, ...contractDogNames(c)].some((s) => s.toLowerCase().includes(q));
     });
-  }, [contracts, search, statusFilter]);
+  }, [contracts, search, statusFilter, contractParam]);
 
   const pendingCount = contracts.filter((c) => c.status === "generated" || c.status === "sent").length;
 
@@ -171,6 +174,13 @@ export default function ContractsPage() {
                 <QueryErrorState onRetry={() => contractsQuery.refetch()} />
               ) : contractsQuery.isLoading ? (
                 <div className="p-4"><TableSkeleton rows={5} columns={6} /></div>
+              ) : filtered.length === 0 && contractParam ? (
+                <EmptyState
+                  icon={FileSignature}
+                  title="Contrato no encontrado"
+                  description="El contrato enlazado no existe o fue eliminado."
+                  action={<Button variant="outline" onClick={() => setContractParam("")}>Ver todos los contratos</Button>}
+                />
               ) : filtered.length === 0 ? (
                 <EmptyState
                   icon={FileSignature}
@@ -212,6 +222,16 @@ export default function ContractsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {contractParam && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="bg-muted/40 text-sm">
+                          Mostrando el contrato enlazado.{" "}
+                          <button type="button" onClick={() => setContractParam("")} className="font-medium text-primary underline underline-offset-2">
+                            Ver todos
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {filtered.map((c) => (
                       <TableRow key={c.id} className={c.status === "void" ? "opacity-60" : undefined}>
                         <TableCell>

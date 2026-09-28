@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useReportsData, DateRange } from "@/hooks/queries/useReportsData";
 import { useAdminSummary } from "@/hooks/queries/useAdminSummary";
-import { useOrgNavigate } from "@/hooks/useOrgNavigate";
+import { useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ const COLORS = [
 
 export default function ReportsPage() {
   const [range, setRange] = useState<DateRange>("30d");
-  const orgNavigate = useOrgNavigate();
+  const basePath = useOrgBasePath();
 
   const { data, isLoading } = useReportsData(range);
   const { data: adminSummary, isLoading: adminLoading } = useAdminSummary();
@@ -61,7 +62,7 @@ export default function ReportsPage() {
   const reservationsByStatus = useMemo(() => {
     const statusLabels: Record<string, string> = {
       requested: "Solicitadas", scheduled: "Programadas", checked_in: "En curso",
-      completed: "Completadas", cancelled: "Canceladas",
+      completed: "Completadas", cancelled: "Canceladas", no_show: "No se presentó",
     };
     const counts: Record<string, number> = {};
     filteredReservations.forEach((r) => {
@@ -339,13 +340,13 @@ export default function ReportsPage() {
                       <span className="text-sm font-medium">Cuentas por Cobrar</span>
                       <span className="text-lg font-bold text-warning">{formatCurrency(totalPending)}</span>
                     </div>
-                    <button
+                    <Link
+                      to={`${basePath}/invoices`}
                       className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
-                      onClick={() => orgNavigate("/invoices")}
                     >
                       Ver todas las facturas
                       <ChevronRight className="h-4 w-4" />
-                    </button>
+                    </Link>
                   </CardContent>
                 </Card>
 
@@ -363,13 +364,13 @@ export default function ReportsPage() {
                       <span className="text-sm font-medium">Perreras disponibles</span>
                       <span className="text-lg font-bold">{availableKennels}</span>
                     </div>
-                    <button
+                    <Link
+                      to={`${basePath}/facility`}
                       className="w-full flex items-center justify-between text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
-                      onClick={() => orgNavigate("/facility")}
                     >
                       Ver mapa de perreras
                       <ChevronRight className="h-4 w-4" />
-                    </button>
+                    </Link>
                   </CardContent>
                 </Card>
               </div>
@@ -387,10 +388,10 @@ export default function ReportsPage() {
                         <p className="text-sm text-muted-foreground py-8 text-center">Sin perros registrados</p>
                       ) : (
                         adminSummary.dogs.map((d) => (
-                          <button
+                          <Link
                             key={d.id}
+                            to={`${basePath}/dogs/${d.id}`}
                             className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => orgNavigate(`/dogs/${d.id}`)}
                           >
                             <div className="min-w-0">
                               <p className="font-medium truncate">{d.name}</p>
@@ -404,7 +405,7 @@ export default function ReportsPage() {
                                 {d.isActive ? "Con reservas" : "Sin reservas"}
                               </Badge>
                             </div>
-                          </button>
+                          </Link>
                         ))
                       )}
                     </div>
@@ -423,10 +424,10 @@ export default function ReportsPage() {
                         <p className="text-sm text-muted-foreground py-8 text-center">Sin empleados registrados</p>
                       ) : (
                         adminSummary.staff.map((s) => (
-                          <button
+                          <Link
                             key={s.id}
+                            to={`${basePath}/tasks?assignee=${s.id}`}
                             className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => orgNavigate(`/tasks?assignee=${s.id}`)}
                           >
                             <p className="font-medium truncate">{s.first_name} {s.last_name}</p>
                             <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -435,7 +436,7 @@ export default function ReportsPage() {
                                 {s.is_active ? "Activo" : "Inactivo"}
                               </Badge>
                             </div>
-                          </button>
+                          </Link>
                         ))
                       )}
                     </div>

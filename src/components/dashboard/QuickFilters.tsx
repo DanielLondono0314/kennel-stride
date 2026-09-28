@@ -7,27 +7,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ServiceType, FlagType } from "@/types";
+import { FlagType } from "@/types";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 interface QuickFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  serviceFilter: ServiceType | "all";
-  onServiceChange: (value: ServiceType | "all") => void;
+  serviceFilter: string;
+  onServiceChange: (value: string) => void;
   flagFilter: FlagType | "all";
   onFlagChange: (value: FlagType | "all") => void;
   onClearFilters: () => void;
 }
 
-const serviceOptions: { value: ServiceType | "all"; label: string }[] = [
-  { value: "all", label: "Todos los servicios" },
-  { value: ServiceType.DAYCARE, label: "Guardería" },
-  { value: ServiceType.BOARD_AND_TRAIN, label: "Internado" },
-  { value: ServiceType.TRAINING_SESSION, label: "Sesiones" },
-  { value: ServiceType.GROOMING, label: "Grooming" },
-  { value: ServiceType.EVALUATION, label: "Evaluación" },
-];
 
 const flagOptions: { value: FlagType | "all"; label: string }[] = [
   { value: "all", label: "Todas las alertas" },
@@ -47,6 +40,10 @@ export function QuickFilters({
   onFlagChange,
   onClearFilters,
 }: QuickFiltersProps) {
+  // Servicios de la organización (incluye los personalizados, p. ej. los 11 de Colina).
+  const { options: orgServices } = useServiceTypes();
+  const serviceOptions = [{ value: "all", label: "Todos los servicios" }, ...orgServices];
+
   const hasActiveFilters =
     searchQuery !== "" || serviceFilter !== "all" || flagFilter !== "all";
 
@@ -67,7 +64,7 @@ export function QuickFilters({
       {/* Service filter */}
       <Select
         value={serviceFilter}
-        onValueChange={(value) => onServiceChange(value as ServiceType | "all")}
+        onValueChange={onServiceChange}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Servicio" />

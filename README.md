@@ -1,73 +1,41 @@
-# Welcome to your Lovable project
+# KennelOps (kennel-stride)
 
-## Project info
+Software de operación para centros caninos: reservas y check-in, perreras, clientes y perros, clínica, report cards por servicio, tareas del personal, rutas, contratos, facturación y paquetes. Multi-organización (cada centro ve solo sus datos por RLS).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+| Parte | Tecnología |
+| --- | --- |
+| Frontend | React + Vite + TypeScript, Tailwind, shadcn/ui, React Query |
+| Backend | Supabase (Postgres + RLS, RPC, Auth, Edge Functions, Storage, pg_cron) |
+| Hosting | Vercel (despliega solo al hacer push a `main`) |
+| Supabase de producción | proyecto `jqnpqmkwcaxqrevfqmue` |
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Desarrollo local
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+cp .env.example .env        # completar con las claves del proyecto
+npm run dev                 # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+Base local con Supabase CLI: `supabase start` (aplica `supabase/migrations/`).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Comando | Qué hace |
+| --- | --- |
+| `npm run typecheck` | TypeScript sin emitir |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (`tests/`) |
+| `npm run build` | Build de producción (lo mismo que corre Vercel) |
 
-**Use GitHub Codespaces**
+## Despliegue
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+El orden importa cuando un cambio del frontend depende de la base:
 
-## What technologies are used for this project?
+1. **Migraciones** (`supabase/migrations/`): `supabase db push --linked` (primero `--dry-run`).
+2. **Edge Functions** que cambiaron: `supabase functions deploy <nombre> --project-ref jqnpqmkwcaxqrevfqmue`. Vercel no las despliega.
+3. **Frontend**: push a `main` → Vercel despliega solo.
 
-This project is built with:
+GitHub Actions (`.github/workflows/`) corre typecheck, lint + tests + build y el guard de RLS con tests de base (`supabase/tests/database/`) en cada push. No despliegan nada.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Los secretos de las Edge Functions (Resend, Twilio, Mapbox, LemonSqueezy…) se configuran en Supabase → Project Settings → Edge Functions → Secrets; la lista está en `.env.example`.

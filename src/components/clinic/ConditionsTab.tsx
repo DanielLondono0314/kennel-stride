@@ -22,6 +22,7 @@ import { Plus, AlertTriangle, CheckCircle, Activity, Pencil, Trash2 } from "luci
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { parseDateOnly, todayLocal } from "@/lib/age";
 
 interface Props { dogId: string; dogName: string; }
 
@@ -38,7 +39,7 @@ const statusMap: Record<string, { label: string; className: string }> = {
   monitoring: { label: "En Observación", className: "bg-info/10 text-info" },
 };
 
-const emptyForm = { condition_name: "", condition_type: "disease", diagnosed_date: new Date().toISOString().split("T")[0], status: "active", severity: "moderate", treatment: "", notes: "" };
+const emptyForm = () => ({ condition_name: "", condition_type: "disease", diagnosed_date: todayLocal(), status: "active", severity: "moderate", treatment: "", notes: "" });
 
 export function ConditionsTab({ dogId, dogName }: Props) {
   const { organization } = useOrganization();
@@ -47,7 +48,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -58,7 +59,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm()); setModalOpen(true); };
   const openEdit = (r: any) => {
     setEditingId(r.id);
     setForm({ condition_name: r.condition_name, condition_type: r.condition_type, diagnosed_date: r.diagnosed_date, status: r.status, severity: r.severity, treatment: r.treatment || "", notes: r.notes || "" });
@@ -85,7 +86,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
   };
 
   const handleResolve = async (id: string) => {
-    const { error } = await supabase.from("medical_conditions").update({ status: "resolved", resolved_date: new Date().toISOString().split("T")[0], updated_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("medical_conditions").update({ status: "resolved", resolved_date: todayLocal(), updated_at: new Date().toISOString() }).eq("id", id);
     if (!error) { toast.success("Condición marcada como resuelta"); fetchRecords(); }
   };
 
@@ -122,8 +123,8 @@ export function ConditionsTab({ dogId, dogName }: Props) {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  Diagnosticada: {format(new Date(r.diagnosed_date), "dd MMM yyyy", { locale: es })}
-                  {r.resolved_date && ` · Resuelta: ${format(new Date(r.resolved_date), "dd MMM yyyy", { locale: es })}`}
+                  Diagnosticada: {format(parseDateOnly(r.diagnosed_date), "dd MMM yyyy", { locale: es })}
+                  {r.resolved_date && ` · Resuelta: ${format(parseDateOnly(r.resolved_date), "dd MMM yyyy", { locale: es })}`}
                 </p>
                 {r.treatment && <p className="text-sm text-muted-foreground">Tratamiento: {r.treatment}</p>}
                 {r.notes && <p className="text-sm text-muted-foreground mt-1">{r.notes}</p>}

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getAge, parseDateOnly } from "@/lib/age";
+import { getEffectivePackageStatus } from "@/lib/packageStatus";
+import { format as fmt, addDays as add } from "date-fns";
 
 describe("parseDateOnly", () => {
   it("parsea YYYY-MM-DD como fecha local (no UTC)", () => {
@@ -49,5 +51,17 @@ describe("getAge", () => {
     // Con new Date("2025-07-05") (UTC) en un huso UTC-5, a las 22:00 locales
     // el perro aparecería con "1 año" un día antes de cumplirlo.
     expect(getAge("2025-07-05")).toBe("11 meses");
+  });
+});
+
+
+describe("vencimiento de paquetes con fecha sin hora", () => {
+  it("un paquete que vence hoy sigue activo todo el día", () => {
+    const today = fmt(new Date(), "yyyy-MM-dd");
+    expect(getEffectivePackageStatus({ status: "active", expires_at: today })).toBe("active");
+  });
+  it("vencido desde el día siguiente", () => {
+    const yesterday = fmt(add(new Date(), -1), "yyyy-MM-dd");
+    expect(getEffectivePackageStatus({ status: "active", expires_at: yesterday })).toBe("expired");
   });
 });

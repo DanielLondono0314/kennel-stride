@@ -18,7 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import {
@@ -33,6 +33,7 @@ import { useServiceTypes } from "@/hooks/useServiceTypes";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { parseDateOnly } from "@/lib/age";
 
 interface PackageRow {
   id: string;
@@ -186,7 +187,7 @@ export default function PackagesPage() {
   const totalCreditsRemaining = packages.filter((p: any) => getEffectiveStatus(p) === "active").reduce((s: number, p: any) => s + p.remaining_credits, 0);
   const expiringCount = packages.filter((p: any) => {
     if (getEffectiveStatus(p) !== "active") return false;
-    const days = (new Date(p.expires_at).getTime() - Date.now()) / 86400000;
+    const days = differenceInCalendarDays(parseDateOnly(p.expires_at), new Date());
     return days <= 7 && days >= 0;
   }).length;
   const totalRevenue = packages.reduce((s: number, p: any) => s + Number(p.price), 0);
@@ -315,7 +316,7 @@ export default function PackagesPage() {
               </TableHeader>
               <TableBody>
                 {filteredPackages.map((pkg: any) => {
-                  const daysLeft = Math.ceil((new Date(pkg.expires_at).getTime() - Date.now()) / 86400000);
+                  const daysLeft = differenceInCalendarDays(parseDateOnly(pkg.expires_at), new Date());
                   const effectiveStatus = getEffectiveStatus(pkg);
                   const isExpiringSoon = effectiveStatus === "active" && daysLeft <= 7 && daysLeft >= 0;
                   const cfg = statusConfig[effectiveStatus] || statusConfig.active;
@@ -360,7 +361,7 @@ export default function PackagesPage() {
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                           <span className={isExpiringSoon ? "text-warning font-medium" : ""}>
-                            {format(new Date(pkg.expires_at), "d MMM yyyy", { locale: es })}
+                            {format(parseDateOnly(pkg.expires_at), "d MMM yyyy", { locale: es })}
                           </span>
                         </div>
                         {isExpiringSoon && (

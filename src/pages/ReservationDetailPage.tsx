@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  ArrowLeft, CalendarDays, Clock, Dog, FileSignature, Home, LogIn, LogOut, Pencil, StickyNote, Truck, User,
+  ArrowLeft, CalendarDays, FileText, Clock, Dog, FileSignature, Home, LogIn, LogOut, Pencil, StickyNote, Truck, User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -19,6 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+  draft: "Borrador",
+  pending: "Pendiente",
+  paid: "Pagada",
+  overdue: "Vencida",
+  cancelled: "Cancelada",
+};
 
 /**
  * Detalle de una reserva con enlaces a su perro, dueño, perrera y contratos
@@ -40,9 +48,10 @@ export default function ReservationDetailPage() {
     enabled: !!orgId && validId,
     retry: false,
     queryFn: async () => {
-      const [res, contracts] = await Promise.all([
+      const [res, contracts, invoices] = await Promise.all([
         supabase.from("reservations").select(RESERVATION_SELECT).eq("id", id!).eq("organization_id", orgId!).maybeSingle(),
         supabase.from("contracts").select("id, title, status, signed_at").eq("reservation_id", id!).eq("organization_id", orgId!),
+        supabase.from("invoices").select("id, invoice_number, status, total").eq("reservation_id", id!).eq("organization_id", orgId!),
       ]);
       if (res.error) throw res.error;
       const row = res.data as unknown as (DbReservationRow & { pickup_requested?: boolean; dropoff_requested?: boolean }) | null;
@@ -51,6 +60,7 @@ export default function ReservationDetailPage() {
         pickup: !!row?.pickup_requested,
         dropoff: !!row?.dropoff_requested,
         contracts: contracts.data ?? [],
+        invoices: invoices.data ?? [],
       };
     },
   });
@@ -113,14 +123,14 @@ export default function ReservationDetailPage() {
             <p className="flex items-center gap-2">
               <Dog className="h-4 w-4 text-muted-foreground" aria-hidden />
               {r.dog ? (
-                <Link to={`${base}/dogs/${r.dog.id}`} className="font-medium text-primary hover:underline">{r.dog.name}</Link>
+                <Link to={`${base}/dogs/${r.dog.id}`} className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{r.dog.name}</Link>
               ) : "—"}
               {r.dog?.breed && <span className="text-muted-foreground">· {r.dog.breed}</span>}
             </p>
             <p className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" aria-hidden />
               {r.customer && customerName ? (
-                <Link to={`${base}/customers/${r.customer.id}`} className="font-medium text-primary hover:underline">{customerName}</Link>
+                <Link to={`${base}/customers/${r.customer.id}`} className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{customerName}</Link>
               ) : "—"}
             </p>
             {r.customer?.phone && (
@@ -145,7 +155,7 @@ export default function ReservationDetailPage() {
             <p className="flex items-center gap-2">
               <Home className="h-4 w-4 text-muted-foreground" aria-hidden />
               {r.location ? (
-                <Link to={`${base}/facility`} className="text-primary hover:underline">Perrera {r.location.name}</Link>
+                <Link to={`${base}/facility`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">Perrera {r.location.name}</Link>
               ) : <span className="text-muted-foreground">Sin perrera asignada</span>}
             </p>
             {r.checkInTime && (
@@ -173,9 +183,21 @@ export default function ReservationDetailPage() {
           <CardHeader className="pb-2"><CardTitle className="text-base">Cobro</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="text-2xl font-bold">{formatCurrency(r.totalPrice)}</p>
+            {data!.invoices.map((inv) => (
+              <p key={inv.id} className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <Link to={`${base}/invoices?invoice=${inv.id}`} className="text-primary underline underline-offset-2">
+                  Factura {inv.invoice_number}
+                </Link>
+                <Badge variant={inv.status === "paid" ? "default" : "secondary"} className="text-xs">
+                  {INVOICE_STATUS_LABELS[inv.status] ?? inv.status}
+                </Badge>
+              </p>
+            ))}
+            {data!.invoices.length === 0 && <p className="text-muted-foreground">Sin factura todavía (se genera al hacer el check-out).</p>}
             {r.customer && (
-              <Link to={`${base}/customers/${r.customer.id}`} className="text-primary hover:underline">
-                Ver facturas y saldo del cliente
+              <Link to={`${base}/customers/${r.customer.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
+                Ver saldo del cliente
               </Link>
             )}
           </CardContent>
@@ -190,7 +212,7 @@ export default function ReservationDetailPage() {
               data!.contracts.map((c) => (
                 <p key={c.id} className="flex items-center gap-2">
                   <FileSignature className="h-4 w-4 text-muted-foreground" aria-hidden />
-                  <Link to={`${base}/contracts`} className="text-primary hover:underline">{c.title}</Link>
+                  <Link to={`${base}/contracts?contract=${c.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{c.title}</Link>
                   <Badge variant={c.signed_at ? "default" : "secondary"} className="text-xs">{c.signed_at ? "Firmado" : "Sin firmar"}</Badge>
                 </p>
               ))

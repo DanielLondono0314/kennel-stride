@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
 import { formatReservationRange } from "@/lib/reservationDates";
+import { CATEGORY_CONFIG } from "@/lib/reportCardServices";
 import { telHref } from "@/lib/contact";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { formatCurrency } from "@/lib/currency";
@@ -47,16 +48,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Los iconos son solo cosmética por tipo conocido; un servicio personalizado
-// (agregado en Ajustes > Perfil del Negocio) cae en el genérico 📌.
-const serviceTypeIcons: Record<string, string> = {
-  daycare: "🐕",
-  board_and_train: "🏠",
-  training_session: "🎓",
-  grooming: "✂️",
-  evaluation: "📋",
-};
-const DEFAULT_SERVICE_ICON = "📌";
 
 type RequestTab = "pending" | "approved" | "rejected";
 
@@ -70,7 +61,9 @@ interface StaffMember {
 export default function RequestsPage() {
   const { organization } = useOrganization();
   const basePath = useOrgBasePath();
-  const { labels: serviceTypeLabels } = useServiceTypes();
+  const { labels: serviceTypeLabels, categoryFor } = useServiceTypes();
+  // Ícono por categoría del servicio (incluye los personalizados de la org).
+  const serviceIcon = (type: string) => CATEGORY_CONFIG[categoryFor(type)].icon;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useUrlState<RequestTab>("tab", "pending");
   const [searchQuery, setSearchQuery] = useUrlState<string>("q", "");
@@ -341,7 +334,7 @@ export default function RequestsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
-                    <span>{r.service && (serviceTypeIcons[r.service.type] ?? DEFAULT_SERVICE_ICON)}</span>
+                    <span>{r.service && serviceIcon(r.service.type)}</span>
                     <span className="text-sm">{r.service?.name}</span>
                   </div>
                 </TableCell>
@@ -554,7 +547,7 @@ export default function RequestsPage() {
                           {selectedRequest.customer.phone}
                         </a>
                       )}
-                      <Link to={`${basePath}/reservations/${selectedRequest.id}`} className="text-primary hover:underline">
+                      <Link to={`${basePath}/reservations/${selectedRequest.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
                         Ver reserva completa
                       </Link>
                     </div>
@@ -571,12 +564,12 @@ export default function RequestsPage() {
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xl">
-                          {selectedRequest.service && (serviceTypeIcons[selectedRequest.service.type] ?? DEFAULT_SERVICE_ICON)}
+                          {selectedRequest.service && serviceIcon(selectedRequest.service.type)}
                         </span>
                         <div>
                           <p className="font-medium">{selectedRequest.service?.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {selectedRequest.service && serviceTypeLabels[selectedRequest.service.type]}
+                            {selectedRequest.service && (serviceTypeLabels[selectedRequest.service.type] ?? selectedRequest.service.name)}
                           </p>
                         </div>
                       </div>

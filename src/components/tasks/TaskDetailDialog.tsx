@@ -78,7 +78,7 @@ export function TaskDetailDialog({ task, open, onOpenChange, canManage, busy, on
               <Dog className="h-4 w-4 text-muted-foreground" aria-hidden />
               <dt className="sr-only">Perro</dt>
               <dd>
-                <Link to={`${base}/dogs/${task.dogs.id}`} className="text-primary hover:underline">{task.dogs.name}</Link>
+                <Link to={`${base}/dogs/${task.dogs.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{task.dogs.name}</Link>
               </dd>
             </div>
           )}

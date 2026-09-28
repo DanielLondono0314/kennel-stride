@@ -170,7 +170,7 @@ export default function TasksPage() {
             <div className="mt-2 inline-flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-xs">
               <User className="h-3.5 w-3.5" aria-hidden />
               Asignadas a {assigneeName ?? "este empleado"}
-              <button type="button" onClick={clearAssignee} className="font-medium text-primary hover:underline">
+              <button type="button" onClick={clearAssignee} className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
                 Ver todas
               </button>
             </div>

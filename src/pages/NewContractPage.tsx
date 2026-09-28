@@ -33,6 +33,7 @@ import {
   formatLongDate, humanizeKey, isOvernightService, numberToSpanishWords, printContract,
   renderTemplate, usedVariables,
 } from "@/lib/contracts";
+import { todayLocal } from "@/lib/age";
 
 const STEPS = ["Plantilla", "Cliente", "Detalles", "Imprimir"] as const;
 
@@ -322,7 +323,7 @@ export default function NewContractPage() {
       fecha_inicio: formatLongDate(form.start_date),
       fecha_fin: formatLongDate(form.end_date),
       duracion: duration,
-      fecha_hoy: formatLongDate(new Date().toISOString().slice(0, 10)),
+      fecha_hoy: formatLongDate(todayLocal()),
     };
     for (const k of customVars) v[k] = custom[k] ?? "";
     return v;

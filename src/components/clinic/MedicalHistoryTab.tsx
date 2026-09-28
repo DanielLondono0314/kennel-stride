@@ -22,6 +22,7 @@ import { Plus, FileText, Thermometer, Heart, Weight, Calendar, Pencil, Trash2 } 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { parseDateOnly, todayLocal } from "@/lib/age";
 
 interface Props { dogId: string; dogName: string; }
 
@@ -36,12 +37,12 @@ const recordTypes: Record<string, { label: string; color: string }> = {
   imaging: { label: "Imagen", color: "bg-primary/10 text-primary" },
 };
 
-const emptyForm = {
-  record_date: new Date().toISOString().split("T")[0],
+const emptyForm = () => ({
+  record_date: todayLocal(),
   record_type: "consultation", veterinarian: "", reason: "", diagnosis: "",
   treatment: "", prescription: "", weight: "", temperature: "", heart_rate: "",
   respiratory_rate: "", blood_pressure: "", body_condition_score: "", notes: "", next_appointment: "",
-};
+});
 
 export function MedicalHistoryTab({ dogId, dogName }: Props) {
   const [records, setRecords] = useState<any[]>([]);
@@ -49,7 +50,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
   const { organization } = useOrganization();
 
   const fetchRecords = useCallback(async () => {
@@ -61,7 +62,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setModalOpen(true); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm()); setModalOpen(true); };
   const openEdit = (r: any) => {
     setEditingId(r.id);
     setForm({
@@ -142,7 +143,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
                     <Badge className={recordTypes[r.record_type]?.color || "bg-muted text-muted-foreground"}>
                       {recordTypes[r.record_type]?.label || r.record_type}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">{format(new Date(r.record_date), "dd MMM yyyy", { locale: es })}</span>
+                    <span className="text-sm text-muted-foreground">{format(parseDateOnly(r.record_date), "dd MMM yyyy", { locale: es })}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {r.veterinarian && <span className="text-xs text-muted-foreground mr-2">Dr. {r.veterinarian}</span>}
@@ -163,7 +164,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
                 </div>
                 {r.next_appointment && (
                   <p className="text-xs text-info mt-2 flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />Próxima cita: {format(new Date(r.next_appointment), "dd MMM yyyy", { locale: es })}
+                    <Calendar className="h-3 w-3" />Próxima cita: {format(parseDateOnly(r.next_appointment), "dd MMM yyyy", { locale: es })}
                   </p>
                 )}
               </CardContent>

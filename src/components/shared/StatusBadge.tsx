@@ -60,6 +60,11 @@ const statusConfig: Record<
     className: "bg-muted text-muted-foreground",
     icon: XCircle,
   },
+  [ReservationStatus.NO_SHOW]: {
+    label: "No se presentó",
+    className: "bg-warning/10 text-warning",
+    icon: XCircle,
+  },
 };
 
 export function StatusBadge({ status, showIcon = true, size = "md" }: StatusBadgeProps) {

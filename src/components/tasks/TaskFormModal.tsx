@@ -111,12 +111,16 @@ export function TaskFormModal({ open, onOpenChange, onSaved, task }: TaskFormMod
 
     supabase
       .from("staff_members")
-      .select("id, first_name, last_name, specialty")
+      .select("id, first_name, last_name, specialty, role")
       .eq("organization_id", orgId)
       .eq("is_active", true)
-      .eq("role", "worker")
       .order("first_name")
-      .then(({ data }) => { if (data) setWorkers(data as WorkerStaff[]); });
+      .then(({ data }) => {
+        // Todo el personal activo, trabajadores primero: antes solo se
+        // listaban trabajadores y una tarea asignada a un gerente aparecía
+        // con "Asignar a" vacío al editarla.
+        if (data) setWorkers([...data].sort((a, b) => Number(b.role === "worker") - Number(a.role === "worker")) as WorkerStaff[]);
+      });
 
     supabase
       .from("dogs")

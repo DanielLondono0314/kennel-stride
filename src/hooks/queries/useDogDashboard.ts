@@ -162,7 +162,7 @@ export function useDogDashboard(weightSettings: WeightSettings) {
         // Plan activo: el bono vigente que vence primero.
         const pkgs = pkgsByCustomer.get(d.customer_id) ?? [];
         const pkg = pkgs[0];
-        const daysLeft = pkg ? differenceInCalendarDays(new Date(pkg.expires_at), today) : null;
+        const daysLeft = pkg ? differenceInCalendarDays(parseDateOnly(pkg.expires_at), today) : null;
         const planState: PlanState = !pkg
           ? "none"
           : (daysLeft !== null && daysLeft <= 7) || pkg.remaining_credits <= 2 ? "expiring" : "active";

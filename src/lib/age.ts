@@ -23,3 +23,13 @@ export function getAge(birthDate?: string | null, unknownLabel = "—"): string 
   const months = Math.max(0, differenceInMonths(now, bd));
   return `${months} mes${months !== 1 ? "es" : ""}`;
 }
+
+/**
+ * Hoy como `YYYY-MM-DD` en la hora LOCAL. `new Date().toISOString().slice(0,10)`
+ * da la fecha UTC: después de las 7 p. m. en Colombia ya es "mañana", y una
+ * vacuna aplicada en la noche quedaba registrada con la fecha del día siguiente.
+ */
+export function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}

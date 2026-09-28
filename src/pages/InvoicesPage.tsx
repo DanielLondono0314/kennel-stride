@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -37,6 +38,7 @@ import {
   useInvoices, useInvoiceCustomers, useMarkInvoicePaid, useCancelInvoice,
   InvoiceRow, InvoiceItemRow, InvoiceCustomer,
 } from "@/hooks/queries/useInvoices";
+import { parseDateOnly } from "@/lib/age";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }> = {
   draft: { label: "Borrador", variant: "outline", icon: FileText },
@@ -237,6 +239,30 @@ export default function InvoicesPage() {
     setDetailOpen(true);
   };
 
+  // ?invoice=<id>: abre esa factura (enlace desde el detalle de la reserva).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const invoiceParam = searchParams.get("invoice");
+  useEffect(() => {
+    if (!invoiceParam || !organization) return;
+    supabase
+      .from("invoices")
+      .select("*, customers(id, first_name, last_name, email)")
+      .eq("id", invoiceParam)
+      .eq("organization_id", organization.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const next = new URLSearchParams(searchParams);
+        next.delete("invoice");
+        setSearchParams(next, { replace: true });
+        if (!data) {
+          toast.error("La factura no existe o fue eliminada");
+          return;
+        }
+        const { customers, ...inv } = data as InvoiceRow & { customers: InvoiceCustomer | null };
+        openDetail({ ...inv, customer: customers ?? undefined });
+      });
+  }, [invoiceParam, organization]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // KPIs
   const totalPending = allInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
   const totalPaid = allInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0);
@@ -360,7 +386,7 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>{inv.customer?.first_name} {inv.customer?.last_name}</TableCell>
                       <TableCell className="font-bold">{formatCurrency(inv.total)}</TableCell>
-                      <TableCell>{format(new Date(inv.due_date), "d MMM yyyy", { locale: es })}</TableCell>
+                      <TableCell>{format(parseDateOnly(inv.due_date), "d MMM yyyy", { locale: es })}</TableCell>
                       <TableCell>
                         {inv.payment_method ? (
                           <Badge variant="outline">{paymentMethodLabels[inv.payment_method] || inv.payment_method}</Badge>
@@ -522,7 +548,7 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-muted-foreground">Vencimiento</p>
                 <p className="font-medium">
-                  {detailInvoice?.due_date && format(new Date(detailInvoice.due_date), "d MMM yyyy", { locale: es })}
+                  {detailInvoice?.due_date && format(parseDateOnly(detailInvoice.due_date), "d MMM yyyy", { locale: es })}
                 </p>
               </div>
               {detailInvoice?.paid_at && (

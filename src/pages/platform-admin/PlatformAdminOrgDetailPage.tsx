@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import { getFunctionErrorMessage } from "@/lib/functionError";
 import { PLANS, PLAN_ORDER, isPlanTier } from "@/lib/plans";
+import { parseDateOnly } from "@/lib/age";
 
 function subscriptionVariant(status: string): "default" | "secondary" | "destructive" {
   if (status === "active") return "default";
@@ -327,7 +328,7 @@ export default function PlatformAdminOrgDetailPage() {
                     <TableCell>{p.name}</TableCell>
                     <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
                     <TableCell>{p.remaining_credits} / {p.total_credits}</TableCell>
-                    <TableCell className="text-muted-foreground">{format(new Date(p.expires_at), "d MMM yyyy", { locale: es })}</TableCell>
+                    <TableCell className="text-muted-foreground">{format(parseDateOnly(p.expires_at), "d MMM yyyy", { locale: es })}</TableCell>
                     {canWrite && (
                       <TableCell>
                         <AdjustCreditsDialog pkg={p} orgId={org.id} />

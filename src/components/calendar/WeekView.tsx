@@ -54,6 +54,7 @@ const statusIndicators: Record<ReservationStatus, string> = {
   [ReservationStatus.PICKED_UP]: "bg-status-completed",
   [ReservationStatus.COMPLETED]: "bg-status-completed",
   [ReservationStatus.CANCELLED]: "bg-muted",
+  [ReservationStatus.NO_SHOW]: "bg-muted",
 };
 
 // Las tareas se distinguen visualmente de las reservas (borde punteado +

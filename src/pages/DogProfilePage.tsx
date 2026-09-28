@@ -27,7 +27,7 @@ import {
 import { DogContractsTab } from "@/components/contracts/DogContractsTab";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { getAge as getSharedAge } from "@/lib/age";
+import { getAge as getSharedAge, parseDateOnly } from "@/lib/age";
 import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 import { saveDog } from "@/lib/saveDog";
@@ -115,6 +115,7 @@ const statusColors: Record<string, string> = {
   scheduled: "bg-primary/10 text-primary",
   checked_in: "bg-info/10 text-info",
   cancelled: "bg-destructive/10 text-destructive",
+  no_show: "bg-warning/10 text-warning",
   requested: "bg-warning/10 text-warning",
 };
 
@@ -123,6 +124,7 @@ const statusLabels: Record<string, string> = {
   scheduled: "Programada",
   checked_in: "En el centro",
   cancelled: "Cancelada",
+  no_show: "No se presentó",
   requested: "Solicitada",
 };
 
@@ -392,7 +394,7 @@ export default function DogProfilePage() {
                   <span className="text-muted-foreground">Fecha de nacimiento</span>
                   <span className="font-medium">
                     {dog.birth_date
-                      ? format(new Date(dog.birth_date), "d MMM yyyy", { locale: es })
+                      ? format(parseDateOnly(dog.birth_date), "d MMM yyyy", { locale: es })
                       : "—"}
                   </span>
                 </div>

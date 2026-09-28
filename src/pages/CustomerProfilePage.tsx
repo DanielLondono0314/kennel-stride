@@ -5,7 +5,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgNavigate, useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { getAge } from "@/lib/age";
+import { getAge, parseDateOnly } from "@/lib/age";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -82,6 +82,7 @@ const statusColors: Record<string, string> = {
   in_progress: "bg-amber-100 text-amber-700",
   completed: "bg-gray-100 text-gray-600",
   cancelled: "bg-destructive/10 text-destructive",
+  no_show: "bg-warning/10 text-warning",
 };
 
 const statusLabels: Record<string, string> = {
@@ -92,6 +93,7 @@ const statusLabels: Record<string, string> = {
   ready: "Lista",
   completed: "Completada",
   cancelled: "Cancelada",
+  no_show: "No se presentó",
 };
 
 export default function CustomerProfilePage() {
@@ -449,7 +451,7 @@ export default function CustomerProfilePage() {
                       ) : (r.dogs?.name ?? "—")}
                     </TableCell>
                     <TableCell className="text-sm">
-                      <Link to={`${basePath}/reservations/${r.id}`} className="text-primary hover:underline">{r.service_name}</Link>
+                      <Link to={`${basePath}/reservations/${r.id}`} className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{r.service_name}</Link>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(r.start_date), "d MMM yyyy", { locale: es })}
@@ -504,7 +506,7 @@ export default function CustomerProfilePage() {
                         />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Vence: {format(new Date(pkg.expires_at), "d MMM yyyy", { locale: es })}</span>
+                        <span>Vence: {format(parseDateOnly(pkg.expires_at), "d MMM yyyy", { locale: es })}</span>
                         <span>{formatCurrency(pkg.price)}</span>
                       </div>
                     </CardContent>
@@ -538,7 +540,7 @@ export default function CustomerProfilePage() {
                   <TableRow key={inv.id}>
                     <TableCell className="font-mono text-sm">{inv.invoice_number}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(inv.due_date), "d MMM yyyy", { locale: es })}
+                      {format(parseDateOnly(inv.due_date), "d MMM yyyy", { locale: es })}
                     </TableCell>
                     <TableCell className="font-medium">{formatCurrency(inv.total)}</TableCell>
                     <TableCell>

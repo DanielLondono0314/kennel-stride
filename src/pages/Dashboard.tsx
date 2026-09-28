@@ -48,7 +48,7 @@ export default function Dashboard() {
   const { organization } = useOrganization();
   const [activeTab, setActiveTab] = useUrlState<OpsTab>("tab", "expected");
   const [searchQuery, setSearchQuery] = useUrlState<string>("q", "");
-  const [serviceFilter, setServiceFilter] = useUrlState<ServiceType | "all">("service", "all");
+  const [serviceFilter, setServiceFilter] = useUrlState<string>("service", "all");
   const [flagFilter, setFlagFilter] = useUrlState<FlagType | "all">("flag", "all");
 
   const [checkInModalOpen, setCheckInModalOpen] = useState(false);
@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [newReservationOpen, setNewReservationOpen] = useState(false);
 
   // Real reservations from Supabase with auto-refresh
-  const { reservations, loading, error: reservationsError, checkIn, approve, cancel, refetch } = useReservations({
+  const { reservations, loading, error: reservationsError, checkIn, approve, cancel, updateStatus, refetch } = useReservations({
     autoRefresh: true,
   });
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
 
   const filteredReservations = useMemo(() => {
     let filtered = reservations.filter(
-      (r) => r.status !== ReservationStatus.CANCELLED && r.status !== ReservationStatus.COMPLETED
+      (r) => r.status !== ReservationStatus.CANCELLED && r.status !== ReservationStatus.COMPLETED && r.status !== ReservationStatus.NO_SHOW
     );
     const todayStr = format(new Date(), "yyyy-MM-dd");
     switch (activeTab) {
@@ -205,7 +205,7 @@ export default function Dashboard() {
   // aparecer como "Por ingresar" (QA E-29).
   const handleNoShow = async (id: string) => {
     const r = reservations.find((r) => r.id === id);
-    const { error } = await cancel(id, "No se presentó");
+    const { error } = await updateStatus(id, ReservationStatus.NO_SHOW);
     if (error) {
       toast.error("No se pudo actualizar la reserva");
       return;

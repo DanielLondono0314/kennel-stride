@@ -36,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
   checked_in: "En el centro",
   completed: "Completada",
   cancelled: "Cancelada",
+  no_show: "No se presentó",
 };
 
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {

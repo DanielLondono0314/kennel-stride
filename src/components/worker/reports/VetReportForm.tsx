@@ -8,8 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useCreateReportCard } from "@/hooks/queries/useReportCards";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { buildReportCardPayload } from "@/lib/reportCardServices";
 import { useCloseTarget } from "./useCloseTarget";
 import type { ReportFormProps } from "./ReportRouter";
+import { todayLocal } from "@/lib/age";
 
 type RecordKind = "note" | "vaccine" | "deworming" | "condition";
 
@@ -21,6 +25,8 @@ type RecordKind = "note" | "vaccine" | "deworming" | "condition";
 export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
   const { organization } = useOrganization();
   const { closeTask, closeReservation } = useCloseTarget(target, staffId);
+  const createReportCard = useCreateReportCard();
+  const { labels: serviceLabels } = useServiceTypes();
   const [kind, setKind] = useState<RecordKind>("note");
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,9 +61,32 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           diagnosis: note.diagnosis || null,
           treatment: note.treatment || null,
           notes: note.notes || null,
-          record_date: new Date().toISOString().slice(0, 10),
+          record_date: todayLocal(),
         });
         if (error) throw error;
+
+        // La consulta también queda como report card (borrador) en el
+        // historial de servicios del perro, para enviarla al dueño.
+        const serviceType = target.serviceType ?? "vet_consultation";
+        const { columns, details } = buildReportCardPayload({
+          category: "vet",
+          serviceLabel: serviceLabels[serviceType] ?? "Consulta veterinaria",
+          overall: 3,
+          ratings: {},
+          values: { reason: note.reason, diagnosis: note.diagnosis, treatment: note.treatment },
+        });
+        await createReportCard.mutateAsync({
+          dog_id: dog_id,
+          dog_name,
+          trainer_id: staffId,
+          service_type: serviceType,
+          service_category: "vet",
+          session_date: todayLocal(),
+          overall_score: 3,
+          ...columns,
+          details: details as never,
+          notes: note.notes || "",
+        });
       } else if (kind === "vaccine") {
         if (!vaccine.vaccine_name.trim()) {
           toast.error("El nombre de la vacuna es obligatorio");
@@ -70,7 +99,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           organization_id,
           vaccine_name: vaccine.vaccine_name,
           vaccine_type: vaccine.vaccine_type || "core",
-          date_administered: new Date().toISOString().slice(0, 10),
+          date_administered: todayLocal(),
           next_dose_date: vaccine.next_dose_date || null,
         });
         if (error) throw error;
@@ -86,7 +115,7 @@ export function VetReportForm({ target, staffId, onDone }: ReportFormProps) {
           organization_id,
           product_name: deworming.product_name,
           product_type: deworming.product_type || "internal",
-          date_administered: new Date().toISOString().slice(0, 10),
+          date_administered: todayLocal(),
           next_dose_date: deworming.next_dose_date || null,
         });
         if (error) throw error;
