@@ -347,7 +347,7 @@ export default function CustomersPage() {
                         {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">$0.00</span>
+                      <span className="text-muted-foreground">{formatCurrency(0)}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -492,7 +492,7 @@ export default function CustomersPage() {
                         {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">$0.00</span>
+                      <span className="text-muted-foreground">{formatCurrency(0)}</span>
                     )}
                   </div>
                 </div>

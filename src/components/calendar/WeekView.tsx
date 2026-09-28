@@ -32,9 +32,8 @@ interface WeekViewProps {
 }
 
 const HOUR_HEIGHT = 60; // pixels per hour
-const START_HOUR = 6;
-const END_HOUR = 21;
-const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+const DEFAULT_START_HOUR = 6;
+const DEFAULT_END_HOUR = 21;
 
 const serviceColors: Record<string, string> = {
   [ServiceType.DAYCARE]: "bg-info/20 border-info text-info",
@@ -96,6 +95,21 @@ export function WeekView({
     });
     return grouped;
   }, [stays, weekDays]);
+
+  // La cuadrícula va de 06:00 a 21:00, pero se amplía si esta semana hay algo
+  // antes o después: un evento a las 02:00 quedaba fuera de la vista y el
+  // contador decía "1 evento" sin mostrar nada.
+  const { START_HOUR, HOURS } = useMemo(() => {
+    let start = DEFAULT_START_HOUR;
+    let end = DEFAULT_END_HOUR;
+    for (const list of Object.values(eventsByDay)) {
+      for (const e of list) {
+        start = Math.min(start, getHours(e.startDate));
+        end = Math.max(end, Math.min(24, getHours(e.endDate) + (getMinutes(e.endDate) > 0 ? 1 : 0)));
+      }
+    }
+    return { START_HOUR: start, HOURS: Array.from({ length: end - start }, (_, i) => start + i) };
+  }, [eventsByDay]);
 
   const calculateEventPosition = (event: CalendarEvent) => {
     const startHour = getHours(event.startDate) + getMinutes(event.startDate) / 60;

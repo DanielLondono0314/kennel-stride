@@ -461,7 +461,7 @@ export default function ReportsPage() {
                     <BarChart data={revenueByMonth}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
                       <XAxis dataKey="name" fontSize={12} />
-                      <YAxis fontSize={12} tickFormatter={(v) => `$${v}`} />
+                      <YAxis fontSize={12} tickFormatter={(v) => formatCurrency(v)} />
                       <Tooltip formatter={(v: number) => [formatCurrency(v), "Ingresos"]} />
                       <Bar dataKey="ingresos" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -583,7 +583,7 @@ export default function ReportsPage() {
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={topCustomers} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-                    <XAxis type="number" fontSize={12} tickFormatter={(v) => `$${v}`} />
+                    <XAxis type="number" fontSize={12} tickFormatter={(v) => formatCurrency(v)} />
                     <YAxis type="category" dataKey="name" fontSize={12} width={140} />
                     <Tooltip formatter={(v: number) => [formatCurrency(v), "Gasto Total"]} />
                     <Bar dataKey="total" fill="hsl(222, 47%, 20%)" radius={[0, 4, 4, 0]} />

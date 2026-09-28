@@ -81,7 +81,7 @@ export function CalendarHeader({
           <h1 className="text-2xl font-bold">Calendario</h1>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {reservationCount} eventos
+          {reservationCount} {reservationCount === 1 ? "evento" : "eventos"}
         </Badge>
       </div>
 
