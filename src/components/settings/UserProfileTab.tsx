@@ -22,16 +22,20 @@ export function UserProfileTab() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
 
+  // Por id/email y no por el objeto: al renovar el token llega un `user` nuevo
+  // y esto pisaba lo que la persona estaba editando.
+  const userId = user?.id;
+  const userEmail = user?.email;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
-    setEmail(user.email ?? "");
+    setEmail(userEmail ?? "");
 
     // Load profile from profiles table
     supabase
       .from("profiles")
       .select("first_name, last_name, phone")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -41,7 +45,7 @@ export function UserProfileTab() {
         }
         setLoading(false);
       });
-  }, [user]);
+  }, [userId, userEmail]);
 
   const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase() || "U";
 
