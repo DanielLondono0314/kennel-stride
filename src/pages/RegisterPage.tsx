@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ACCOUNT_CONSENT_VERSIONS, LegalConsentCheckbox } from "@/components/legal/LegalConsentCheckbox";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -16,9 +18,14 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [accepted, setAccepted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!accepted) {
+      toast.error("Debes aceptar los Términos y la Política de Tratamiento de Datos");
+      return;
+    }
     if (password !== confirm) {
       toast.error("Las contraseñas no coinciden");
       return;
@@ -27,7 +34,16 @@ export default function RegisterPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: {
+          full_name: name,
+          // Prueba de la autorización (Ley 1581): el trigger de auth.users la
+          // guarda en legal_acceptances.
+          accepted_terms_version: ACCOUNT_CONSENT_VERSIONS.terms,
+          accepted_privacy_version: ACCOUNT_CONSENT_VERSIONS.privacy,
+          accepted_user_agent: navigator.userAgent,
+        },
+      },
     });
     if (error) {
       if (
@@ -78,7 +94,8 @@ export default function RegisterPage() {
             <Label htmlFor="confirm">Confirmar contraseña</Label>
             <Input id="confirm" type="password" placeholder="••••••••" value={confirm} onChange={(e) => setConfirm(e.target.value)} required autoComplete="new-password" />
           </div>
-          <Button type="submit" className="w-full h-11" disabled={loading}>
+          <LegalConsentCheckbox checked={accepted} onCheckedChange={setAccepted} />
+          <Button type="submit" className="w-full h-11" disabled={loading || !accepted}>
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Crear cuenta
           </Button>
@@ -90,6 +107,7 @@ export default function RegisterPage() {
             Iniciar sesión
           </Link>
         </p>
+        <LegalLinks />
       </div>
     </div>
   );

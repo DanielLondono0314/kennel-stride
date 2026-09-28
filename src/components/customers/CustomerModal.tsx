@@ -18,6 +18,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useDraftForm } from "@/hooks/useDraftForm";
 import { ID_DOCUMENT_TYPES, type IdDocumentType } from "@/lib/idDocument";
 import { DraftBanner } from "@/components/shared/DraftBanner";
+import { CUSTOMER_AUTHORIZATION_PATH } from "@/lib/legal";
 
 interface CustomerModalProps {
   customer?: DbCustomer | null;
@@ -44,7 +45,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [whatsappOptIn, setWhatsappOptIn] = useState(false);
-  const [marketingOptOut, setMarketingOptOut] = useState(false);
+  const [marketingOptOut, setMarketingOptOut] = useState(true);
+  // Ley 1581: autorización del titular para tratar sus datos (obligatoria al crear).
+  const [dataConsent, setDataConsent] = useState(false);
   const [notificationChannelOverride, setNotificationChannelOverride] = useState<"" | "sms" | "whatsapp">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Errores inline por campo con el mensaje real de zod (PR-13).
@@ -74,6 +77,7 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setNotes(customer.notes || "");
       setWhatsappOptIn(!!customer.whatsapp_opt_in);
       setMarketingOptOut(!!customer.marketing_opt_out);
+      setDataConsent(!!customer.data_consent_at);
       setNotificationChannelOverride(customer.notification_channel_override ?? "");
     } else {
       setFirstName(""); setLastName(""); setEmail(""); setPhone("");
@@ -81,7 +85,9 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       setAddress(""); setCity(""); setState(""); setZipCode("");
       setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
       setWhatsappOptIn(false);
-      setMarketingOptOut(false);
+      // Publicidad solo con autorización expresa: por defecto, sin campañas.
+      setMarketingOptOut(true);
+      setDataConsent(false);
       setNotificationChannelOverride("");
     }
     setErrors({});
@@ -114,7 +120,14 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
     setEmergencyContactName(""); setEmergencyContactPhone(""); setNotes("");
   };
 
+  const consentAlreadyRecorded = !!customer?.data_consent_at;
+
   const handleSubmit = async () => {
+    if (!isEditing && !dataConsent) {
+      setErrors((prev) => ({ ...prev, data_consent: "Confirma que el cliente autorizó el tratamiento de sus datos" }));
+      toast.error("Falta la autorización del cliente para tratar sus datos");
+      return;
+    }
     const candidate = {
       first_name: firstName,
       last_name: lastName,
@@ -156,6 +169,8 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
       whatsapp_opt_in: whatsappOptIn,
       marketing_opt_out: marketingOptOut,
       notification_channel_override: notificationChannelOverride || null,
+      // La fecha real la fija el servidor (trigger customers_data_consent).
+      ...(dataConsent && !consentAlreadyRecorded ? { data_consent_at: new Date().toISOString() } : {}),
     });
     clearDraft();
     setIsSubmitting(false);
@@ -281,15 +296,46 @@ export function CustomerModal({ customer, open, onOpenChange, onSave }: Customer
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border p-3">
-            <Checkbox
-              id="cust-marketing-opt-out"
-              checked={marketingOptOut}
-              onCheckedChange={(v) => setMarketingOptOut(!!v)}
-            />
-            <Label htmlFor="cust-marketing-opt-out" className="font-normal cursor-pointer">
-              El cliente pidió no recibir campañas de marketing
-            </Label>
+          <div
+            className={`space-y-3 rounded-lg border p-3 ${errors.data_consent ? "border-destructive" : ""}`}
+          >
+            <Label className="text-sm">Autorizaciones del cliente (Ley 1581 de 2012)</Label>
+            {consentAlreadyRecorded ? (
+              <p className="text-sm text-muted-foreground">
+                Autorización de tratamiento de datos registrada el{" "}
+                {new Date(customer!.data_consent_at!).toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })}.
+              </p>
+            ) : (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="cust-data-consent"
+                  checked={dataConsent}
+                  onCheckedChange={(v) => { setDataConsent(!!v); clearError("data_consent"); }}
+                  className="mt-0.5"
+                  aria-invalid={errors.data_consent ? true : undefined}
+                />
+                <Label htmlFor="cust-data-consent" className="font-normal cursor-pointer leading-snug">
+                  {isEditing ? "" : "* "}Confirmo que el cliente autorizó de forma previa y expresa el tratamiento de sus
+                  datos personales y los de su mascota, y que conservamos el soporte (
+                  <a href={CUSTOMER_AUTHORIZATION_PATH} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    ver modelo de autorización
+                  </a>
+                  ).
+                </Label>
+              </div>
+            )}
+            {errors.data_consent && <p className="text-xs text-destructive">{errors.data_consent}</p>}
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="cust-marketing-consent"
+                checked={!marketingOptOut}
+                onCheckedChange={(v) => setMarketingOptOut(!v)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="cust-marketing-consent" className="font-normal cursor-pointer leading-snug">
+                El cliente autorizó recibir promociones y campañas (opcional)
+              </Label>
+            </div>
           </div>
 
           <div className="space-y-3 rounded-lg border p-3">

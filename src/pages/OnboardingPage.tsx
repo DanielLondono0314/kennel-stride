@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dog, Loader2, CheckCircle2 } from "lucide-react";
 // Loader2 still used in form submit button & slug spinner
 import { toast } from "sonner";
+import { ACCOUNT_CONSENT_VERSIONS, LegalConsentCheckbox } from "@/components/legal/LegalConsentCheckbox";
+import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
 
 function toSlug(name: string) {
   return name
@@ -27,6 +29,7 @@ export default function OnboardingPage() {
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [centerName, setCenterName] = useState("");
   const [slug, setSlug] = useState("");
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (centerName) setSlug(toSlug(centerName));
@@ -51,6 +54,7 @@ export default function OnboardingPage() {
     e.preventDefault();
     if (!user) return;
     if (!slug.trim()) { toast.error("El URL de acceso no puede estar vacío"); return; }
+    if (!accepted) { toast.error("Debes aceptar los documentos legales para crear el centro"); return; }
     // Espeja la validación del RPC create_organization (3–40, minúsculas/números/guiones).
     if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug)) {
       toast.error("URL inválido: usa 3–40 caracteres, solo minúsculas, números y guiones");
@@ -77,7 +81,13 @@ export default function OnboardingPage() {
     }
 
     const { data: org, error: orgError } = await (supabase)
-      .rpc("create_organization", { p_name: centerName, p_slug: slug });
+      .rpc("create_organization", {
+        p_name: centerName,
+        p_slug: slug,
+        p_dpa_version: LEGAL_DOCS.data_processing.version,
+        p_terms_version: ACCOUNT_CONSENT_VERSIONS.terms,
+        p_privacy_version: ACCOUNT_CONSENT_VERSIONS.privacy,
+      });
 
     if (orgError) {
       // Handle unique constraint violation from the DB (last line of defence)
@@ -109,7 +119,7 @@ export default function OnboardingPage() {
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
             <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-bold text-xl">KennelOps</span>
+          <span className="font-bold text-xl">{LEGAL.brand}</span>
         </div>
 
         <div>
@@ -160,7 +170,8 @@ export default function OnboardingPage() {
             <p className="text-xs text-muted-foreground">Solo letras, números y guiones.</p>
           </div>
 
-          <Button type="submit" className="w-full h-11" disabled={loading || !slugAvailable}>
+          <LegalConsentCheckbox variant="organization" checked={accepted} onCheckedChange={setAccepted} />
+          <Button type="submit" className="w-full h-11" disabled={loading || !slugAvailable || !accepted}>
             {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Crear centro y entrar
           </Button>

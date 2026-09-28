@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
+import { CONTACT_HOURS_MESSAGE, isWithinColombiaContactHours } from "../_shared/colombiaContactHours.ts";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
 
@@ -187,6 +188,11 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Esta campaña ya fue enviada", alreadySent: true }, 409);
     }
 
+    // Ley 2300 de 2023: fuera del horario permitido no se envía publicidad.
+    if (!isWithinColombiaContactHours()) {
+      return jsonResponse({ error: CONTACT_HOURS_MESSAGE }, 400);
+    }
+
     // [E1] Lock optimista: pasar a 'sending' solo si sigue en el estado leído.
     // Si otra invocación concurrente ganó la carrera, el update toca 0 filas y
     // abortamos con 409 — esto previene el doble envío por doble-clic o reintento.
@@ -224,7 +230,8 @@ serve(async (req: Request) => {
         .select("id, first_name, last_name, email, dogs(name)")
         .eq("organization_id", orgId)
         .eq("is_active", true)
-        .eq("marketing_opt_out", false);
+        .eq("marketing_opt_out", false)
+        .not("data_consent_at", "is", null);
       recipients = (data ?? []) as CustomerRow[];
     } else if (campaign.segment_type === "new") {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -234,6 +241,7 @@ serve(async (req: Request) => {
         .eq("organization_id", orgId)
         .eq("is_active", true)
         .eq("marketing_opt_out", false)
+        .not("data_consent_at", "is", null)
         .gte("created_at", thirtyDaysAgo);
       recipients = (data ?? []) as CustomerRow[];
     } else if (campaign.segment_type === "inactive") {
@@ -246,6 +254,7 @@ serve(async (req: Request) => {
           .eq("organization_id", orgId)
           .eq("is_active", true)
           .eq("marketing_opt_out", false)
+        .not("data_consent_at", "is", null)
           .in("id", inactiveIds as string[]);
         recipients = (data ?? []) as CustomerRow[];
       }
@@ -275,6 +284,7 @@ serve(async (req: Request) => {
             .eq("organization_id", orgId)
             .eq("is_active", true)
             .eq("marketing_opt_out", false)
+        .not("data_consent_at", "is", null)
             .in("id", vipIds);
           recipients = (data ?? []) as CustomerRow[];
         }

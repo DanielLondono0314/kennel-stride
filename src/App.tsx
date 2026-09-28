@@ -25,6 +25,9 @@ const ResetPasswordPage    = lazy(() => import("./pages/ResetPasswordPage"));
 const JoinPage             = lazy(() => import("./pages/JoinPage"));
 const TermsPage            = lazy(() => import("./pages/legal/TermsPage"));
 const PrivacyPage          = lazy(() => import("./pages/legal/PrivacyPage"));
+const DataProcessingPage   = lazy(() => import("./pages/legal/DataProcessingPage"));
+const CookiesPage          = lazy(() => import("./pages/legal/CookiesPage"));
+const CustomerAuthorizationPage = lazy(() => import("./pages/legal/CustomerAuthorizationPage"));
 const OnboardingPage   = lazy(() => import("./pages/OnboardingPage"));
 const BillingPage      = lazy(() => import("./pages/BillingPage"));
 
@@ -91,6 +94,9 @@ const App = () => {
                   <Route path="/firmar/:token" element={<SignContractPage />} />
                   <Route path="/terminos" element={<TermsPage />} />
                   <Route path="/privacidad" element={<PrivacyPage />} />
+                  <Route path="/transmision-datos" element={<DataProcessingPage />} />
+                  <Route path="/cookies" element={<CookiesPage />} />
+                  <Route path="/autorizacion-clientes" element={<CustomerAuthorizationPage />} />
 
                   {/* Auth required, no org needed */}
                   <Route element={<ProtectedRoute />}>

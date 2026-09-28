@@ -1,3 +1,15 @@
+## DESPLEGADO 2026-09-27 (PR #1, merge 0b0ab17)
+
+Migraciones 0916×4, 0924, 0925, 0926×2, 0928 aplicadas en producción; Edge
+Functions desplegadas (handle-ls-webhook con --no-verify-jwt); frontend en
+Vercel. Las secciones de abajo sobre "desplegar" quedan como referencia de QA.
+Pendiente: QA manual de roles/planes/rutas, variants de LemonSqueezy + URLs en
+Vercel, secrets de Twilio/Mapbox, borrar scripts/crear-usuarios-colina.mjs
+cuando el dominio esté verificado. "Confirm email" en Supabase Auth: ACTIVO
+(confirmado por el usuario 2026-09-27).
+
+---
+
 ## Ensayo con copia de producción (2026-09-27)
 
 Respaldo en ~/Desktop/backup-prod-esquema.sql y backup-prod-datos.sql.

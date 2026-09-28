@@ -275,6 +275,11 @@ export default function CustomersPage() {
                             {customer.first_name} {customer.last_name}
                           </p>
                           {!customer.is_active && <Badge variant="secondary" className="text-[10px] px-1.5">Inactivo</Badge>}
+                          {!customer.data_consent_at && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 border-amber-500 text-amber-700" title="No hay autorización de tratamiento de datos registrada (Ley 1581). Edita el cliente para registrarla.">
+                              Sin autorización
+                            </Badge>
+                          )}
                         </div>
                         {customer.notes && (
                           <Badge variant="secondary" className="text-[10px] mt-1">
@@ -390,6 +395,11 @@ export default function CustomersPage() {
                           {customer.first_name} {customer.last_name}
                         </p>
                         {!customer.is_active && <Badge variant="secondary" className="text-[10px] px-1.5 shrink-0">Inactivo</Badge>}
+                        {!customer.data_consent_at && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 shrink-0 border-amber-500 text-amber-700">
+                            Sin autorización
+                          </Badge>
+                        )}
                       </div>
                       {customer.notes && (
                         <Badge variant="secondary" className="text-[10px] mt-1">

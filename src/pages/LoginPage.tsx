@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { friendlyPlanLimitMessage } from "@/lib/query-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 
 async function getFirstOrgSlug(_userId: string): Promise<string | null> {
   const { data, error } = await supabase.rpc("get_my_first_org_slug");
@@ -15,15 +15,6 @@ async function getFirstOrgSlug(_userId: string): Promise<string | null> {
     return null;
   }
   return (data as string | null) ?? null;
-}
-
-async function acceptInviteAndNavigate(token: string, navigate: ReturnType<typeof useNavigate>) {
-  const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
-  if (error) {
-    toast.error("Error al aceptar la invitación: " + friendlyPlanLimitMessage(error.message));
-    return null;
-  }
-  return (data as { slug: string; role: string }) ?? null;
 }
 
 export default function LoginPage() {
@@ -47,12 +38,10 @@ export default function LoginPage() {
         navigate(from, { replace: true });
         return;
       }
+      // La invitación se acepta en /join, que pide la aceptación legal explícita.
       if (invite) {
-        const result = await acceptInviteAndNavigate(invite, navigate);
-        if (result) {
-          navigate(`/${result.slug}`, { replace: true });
-          return;
-        }
+        navigate(`/join?token=${encodeURIComponent(invite)}`, { replace: true });
+        return;
       }
       const slug = await getFirstOrgSlug(session.user.id);
       navigate(slug ? `/${slug}` : "/onboarding", { replace: true });
@@ -69,12 +58,9 @@ export default function LoginPage() {
       return;
     }
     if (invite) {
-      const result = await acceptInviteAndNavigate(invite, navigate);
-      if (result) {
-        navigate(`/${result.slug}`, { replace: true });
-        setLoading(false);
-        return;
-      }
+      navigate(`/join?token=${encodeURIComponent(invite)}`, { replace: true });
+      setLoading(false);
+      return;
     }
     const slug = await getFirstOrgSlug(data.user.id);
     navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
@@ -188,6 +174,7 @@ export default function LoginPage() {
               Crear cuenta gratis
             </Link>
           </p>
+          <LegalLinks />
         </div>
       </div>
     </div>

@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CUSTOMER_AUTHORIZATION_PATH } from "@/lib/legal";
 import {
   type RawRow, normalizeRow, decodeCsvBytes, toIsoDate, parseImportDate, isDescriptionRow,
   looksLikeEmail, parseBool, parseDecimal, digitsOnly, parseAllergies, parseMedications,
@@ -127,6 +129,8 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  // Ley 1581: confirmación de que los titulares del archivo autorizaron sus datos.
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   const headers = useMemo(() => (mode === "customers" ? CUSTOMER_HEADERS : DOG_HEADERS), [mode]);
 
@@ -134,6 +138,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
     setRows([]);
     setFileName("");
     setResult(null);
+    setConsentConfirmed(false);
   };
 
   const handleFile = async (file: File) => {
@@ -218,7 +223,11 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
         if (error) out.errors.push({ row: i + 2, reason: error.message });
         else out.updated++;
       } else {
-        const { data: created, error } = await supabase.from("customers").insert(payload).select("id").single();
+        const { data: created, error } = await supabase
+          .from("customers")
+          .insert({ ...payload, data_consent_at: new Date().toISOString() })
+          .select("id")
+          .single();
         if (error || !created) out.errors.push({ row: i + 2, reason: error?.message ?? "No se pudo crear el cliente" });
         else {
           existingMap.set(payload.email, created.id);
@@ -300,6 +309,7 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
           last_name: "(Importado)",
           email: r.owner_email.toLowerCase(),
           phone: r.owner_phone || "",
+          data_consent_at: new Date().toISOString(),
         };
         const { data: newCust, error } = await supabase
           .from("customers")
@@ -433,6 +443,10 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
   const handleImport = async () => {
     if (rows.length === 0) {
       toast.error("No hay datos para importar");
+      return;
+    }
+    if (!consentConfirmed) {
+      toast.error("Confirma que tienes la autorización de los clientes del archivo");
       return;
     }
     setImporting(true);
@@ -595,12 +609,31 @@ export function ImportDataModal({ open, onOpenChange, initialTab = "customers", 
           </TabsContent>
         </Tabs>
 
+        {!result && rows.length > 0 && (
+          <div className="flex items-start gap-2 rounded-lg border p-3">
+            <Checkbox
+              id="import-data-consent"
+              checked={consentConfirmed}
+              onCheckedChange={(v) => setConsentConfirmed(v === true)}
+              className="mt-0.5"
+            />
+            <label htmlFor="import-data-consent" className="text-sm leading-snug cursor-pointer">
+              Confirmo que todos los clientes de este archivo autorizaron de forma previa y expresa el
+              tratamiento de sus datos personales y que conservamos los soportes (
+              <a href={CUSTOMER_AUTHORIZATION_PATH} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                modelo de autorización
+              </a>
+              ). Quedará registrado a tu nombre.
+            </label>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>
             {result ? "Cerrar" : "Cancelar"}
           </Button>
           {!result && (
-            <Button onClick={handleImport} disabled={rows.length === 0 || importing}>
+            <Button onClick={handleImport} disabled={rows.length === 0 || importing || !consentConfirmed}>
               {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Importar {rows.length > 0 && `(${rows.length})`}
             </Button>

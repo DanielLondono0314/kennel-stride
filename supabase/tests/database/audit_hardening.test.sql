@@ -66,7 +66,7 @@ select lives_ok(
   'un admin sí puede editar los datos normales de su org'
 );
 select throws_ok(
-  $$select public.create_organization('Squat', 'platform-admin')$$,
+  $$select public.create_organization('Squat', 'platform-admin', '2026-09-29')$$,
   'Ese URL está reservado, elige otro',
   'platform-admin es un slug reservado'
 );
