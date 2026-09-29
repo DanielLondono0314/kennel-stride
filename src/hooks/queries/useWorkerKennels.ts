@@ -9,6 +9,7 @@ export interface WorkerKennel {
   id: string;
   name: string;
   zoneId: string;
+  positionIndex: number;
   status: KennelStatus;
   notes: string | null;
   dogId: string | null;
@@ -30,8 +31,11 @@ function keys(orgId: string | undefined) {
   return { all: ["worker-kennels", orgId] as const };
 }
 
-/** Perreras de la org agrupadas por zona, con el perro que ocupa cada una. */
-export function useWorkerKennels() {
+/**
+ * Perreras de la org agrupadas por zona, con el perro que ocupa cada una.
+ * Con `includeEmptyZones` se incluyen zonas sin perreras (para poder crearlas).
+ */
+export function useWorkerKennels({ includeEmptyZones = false } = {}) {
   const { organization } = useOrganization();
   const orgId = organization?.id;
 
@@ -75,6 +79,7 @@ export function useWorkerKennels() {
           id: u.id,
           name: u.name,
           zoneId: u.zone_id,
+          positionIndex: u.position_index ?? 0,
           status: (u.status as KennelStatus) ?? "available",
           notes: u.notes?.trim() || null,
           dogId: u.assigned_dog_id,
@@ -88,7 +93,7 @@ export function useWorkerKennels() {
       }
       return zones
         .map((z) => ({ id: z.id, name: z.name, kennels: byZone.get(z.id) ?? [] }))
-        .filter((z) => z.kennels.length > 0);
+        .filter((z) => includeEmptyZones || z.kennels.length > 0);
     },
   });
 }
@@ -166,5 +171,41 @@ export function useKennelActions() {
     onSuccess: invalidate,
   });
 
-  return { setStatus, setNotes, assign, release, move };
+  /** Nueva perrera al final de la zona, con el siguiente nombre libre. */
+  const create = useMutation({
+    mutationFn: async (zone: WorkerKennelZone) => {
+      const nextIndex = zone.kennels.reduce((m, k) => Math.max(m, k.positionIndex), -1) + 1;
+      const taken = new Set(zone.kennels.map((k) => k.name.trim().toLowerCase()));
+      let n = zone.kennels.length + 1;
+      let name = `Perrera ${String(n).padStart(2, "0")}`;
+      while (taken.has(name.toLowerCase())) name = `Perrera ${String(++n).padStart(2, "0")}`;
+      const { error } = await supabase.from("facility_units").insert({
+        zone_id: zone.id,
+        name,
+        unit_type: "kennel",
+        position_index: nextIndex,
+        status: "available",
+        organization_id: organization!.id,
+      });
+      if (error) throw error;
+      return name;
+    },
+    onSuccess: invalidate,
+  });
+
+  const rename = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => update(id, { name }),
+    onSuccess: invalidate,
+  });
+
+  /** Solo perreras sin perro: una ocupada se libera o se mueve primero. */
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("facility_units").delete().eq("id", id).is("assigned_dog_id", null);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { setStatus, setNotes, assign, release, move, create, rename, remove };
 }

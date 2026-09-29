@@ -21,7 +21,8 @@ export interface Organization {
   city: string | null;
   phone: string | null;
   email: string | null;
-  service_types: Array<{ value: string; label: string; category?: string }>;
+  /** Catálogo de servicios (ver src/lib/serviceCatalog.ts): JSONB con campos opcionales. */
+  service_types: Array<{ value: string; label: string; category?: string } & Record<string, unknown>>;
   route_notifications_enabled: boolean;
   route_notification_channel: "sms" | "whatsapp";
 }

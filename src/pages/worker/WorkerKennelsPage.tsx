@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { StickyNote } from "lucide-react";
+import { Loader2, Plus, StickyNote } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/usePermission";
-import { useWorkerKennels, type KennelStatus, type WorkerKennel } from "@/hooks/queries/useWorkerKennels";
+import { useKennelActions, useWorkerKennels, type KennelStatus, type WorkerKennel, type WorkerKennelZone } from "@/hooks/queries/useWorkerKennels";
 import { cn } from "@/lib/utils";
 import { KennelSheet } from "@/components/worker/kennels/KennelSheet";
 import { DogAvatar } from "@/components/worker/dogs/DogBits";
@@ -17,12 +18,23 @@ const TILE: Record<KennelStatus, string> = {
 
 /**
  * Perreras en la app del trabajador: ver ocupación y, con el permiso
- * "Gestionar perreras", asignar, mover, liberar y poner en mantenimiento.
+ * "Gestionar perreras", crear, renombrar, eliminar, asignar, mover, liberar y
+ * poner en mantenimiento.
  * Quien se encarga de las perreras no tiene acceso al panel administrativo.
  */
 export default function WorkerKennelsPage() {
-  const { data: zones = [], isLoading } = useWorkerKennels();
   const canManage = usePermission("manage_facility");
+  const { data: zones = [], isLoading } = useWorkerKennels({ includeEmptyZones: canManage });
+  const { create } = useKennelActions();
+
+  async function addKennel(zone: WorkerKennelZone) {
+    try {
+      const name = await create.mutateAsync(zone);
+      toast.success(`${name} creada en ${zone.name}`);
+    } catch (e) {
+      toast.error("No se pudo crear la perrera", { description: (e as { message?: string })?.message });
+    }
+  }
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -66,15 +78,35 @@ export default function WorkerKennelsPage() {
         <div className="grid grid-cols-2 gap-2">
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}
         </div>
-      ) : all.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">El centro no tiene perreras configuradas.</p>
+      ) : zones.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {canManage
+            ? "El centro no tiene zonas de perreras. Un administrador debe crear la zona en Instalaciones."
+            : "El centro no tiene perreras configuradas."}
+        </p>
       ) : (
         zones.map((zone) => {
           const kennels = zone.kennels.filter((k) => filter === "all" || k.status === filter);
-          if (kennels.length === 0) return null;
+          if (kennels.length === 0 && !(canManage && filter === "all")) return null;
+          const adding = create.isPending && create.variables?.id === zone.id;
           return (
             <section key={zone.id} className="space-y-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{zone.name}</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{zone.name}</h2>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => addKennel(zone)}
+                    disabled={create.isPending}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+                  >
+                    {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Perrera
+                  </button>
+                )}
+              </div>
+              {kennels.length === 0 && (
+                <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">Sin perreras en esta zona.</p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 {kennels.map((k) => (
                   <button

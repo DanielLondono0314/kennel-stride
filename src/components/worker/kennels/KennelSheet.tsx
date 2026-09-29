@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowRightLeft, ChevronRight, Loader2, LogOut, Search, Wrench, CheckCircle2, Dog } from "lucide-react";
+import { ArrowRightLeft, ChevronRight, Loader2, LogOut, Search, Wrench, CheckCircle2, Dog, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { useWorkerDogs } from "@/hooks/queries/useWorkerDogs";
 import { useKennelActions, type WorkerKennel, type WorkerKennelZone } from "@/hooks/queries/useWorkerKennels";
 import { DogAlertChips, DogAvatar } from "@/components/worker/dogs/DogBits";
 
-type Mode = "view" | "assign" | "move";
+type Mode = "view" | "assign" | "move" | "delete";
 
 const STATUS_LABELS = { available: "Disponible", occupied: "Ocupada", maintenance: "En mantenimiento" } as const;
 
@@ -22,7 +22,7 @@ function errorMessage(e: unknown) {
   return e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Inténtalo de nuevo.";
 }
 
-/** Detalle de una perrera y sus acciones (asignar, mover, liberar, mantenimiento, notas). */
+/** Detalle de una perrera y sus acciones (asignar, mover, liberar, mantenimiento, notas, renombrar, eliminar). */
 export function KennelSheet({
   kennel, zones, canManage, onOpenChange,
 }: {
@@ -37,12 +37,14 @@ export function KennelSheet({
   const [mode, setMode] = useState<Mode>("view");
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
     setMode("view");
     setSearch("");
     setNotes(kennel?.notes ?? "");
-  }, [kennel?.id, kennel?.notes]);
+    setName(kennel?.name ?? "");
+  }, [kennel?.id, kennel?.notes, kennel?.name]);
 
   const freeKennels = useMemo(
     () => zones.flatMap((z) => z.kennels.filter((k) => k.status === "available" && k.id !== kennel?.id).map((k) => ({ ...k, zoneName: z.name }))),
@@ -175,11 +177,35 @@ export function KennelSheet({
                       </Button>
                     )}
                   </div>
+
+                  <div className="space-y-1.5 pt-2">
+                    <Label htmlFor="kennel-name">Nombre</Label>
+                    <div className="flex gap-2">
+                      <Input id="kennel-name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+                      {name.trim() !== kennel.name && (
+                        <Button
+                          variant="secondary"
+                          disabled={busy || !name.trim()}
+                          onClick={() => run(() => actions.rename.mutateAsync({ id: kennel.id, name: name.trim() }), "Nombre guardado")}
+                        >
+                          Guardar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {kennel.status === "occupied" ? (
+                    <p className="pt-2 text-xs text-muted-foreground">Para eliminar esta perrera, primero libérala o mueve al perro.</p>
+                  ) : (
+                    <Button variant="ghost" className="mt-2 justify-start gap-2 text-destructive hover:text-destructive" onClick={() => setMode("delete")} disabled={busy}>
+                      <Trash2 className="h-4 w-4" /> Eliminar perrera
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                   {kennel.notes ? <>{kennel.notes}<br /><br /></> : null}
-                  Para asignar, mover o cambiar el estado de perreras, pide a un administrador el permiso
+                  Para crear, editar, asignar o mover perreras, pide a un administrador el permiso
                   <span className="font-medium text-foreground"> Gestionar perreras</span>.
                 </p>
               )}
@@ -246,6 +272,23 @@ export function KennelSheet({
                   ))}
                 </div>
               )}
+              <Button variant="ghost" className="w-full" onClick={() => setMode("view")}>Cancelar</Button>
+            </div>
+          )}
+
+          {mode === "delete" && (
+            <div className="space-y-3">
+              <p className="text-sm">
+                ¿Eliminar <span className="font-semibold">{kennel.name}</span>? Esta acción no se puede deshacer.
+              </p>
+              <Button
+                variant="destructive"
+                className="w-full"
+                disabled={busy}
+                onClick={() => run(() => actions.remove.mutateAsync(kennel.id), `${kennel.name} eliminada`)}
+              >
+                Sí, eliminar
+              </Button>
               <Button variant="ghost" className="w-full" onClick={() => setMode("view")}>Cancelar</Button>
             </div>
           )}
