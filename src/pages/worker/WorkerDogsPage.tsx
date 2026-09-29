@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ChevronRight, Home, Search, UtensilsCrossed } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,10 +16,15 @@ type View = "center" | "all";
 export default function WorkerDogsPage() {
   const base = useOrgBasePath();
   const { data: dogs = [], isLoading } = useWorkerDogs();
-  const [view, setView] = useUrlState<View>("vista", "center", { replace: true });
+  const [searchParams] = useSearchParams();
+  const [urlView, setView] = useUrlState<View>("vista", "center", { replace: true });
   const [search, setSearch] = useState("");
 
   const inCenter = useMemo(() => dogs.filter((d) => d.inCenter), [dogs]);
+  // Si nadie eligió pestaña y no hay perros con check-in (ninguno ocupa perrera),
+  // se abre en "Todos": una lista vacía hacía pensar que no había perros.
+  const view: View =
+    !searchParams.has("vista") && !isLoading && inCenter.length === 0 && dogs.length > 0 ? "all" : urlView;
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = view === "center" ? inCenter : dogs;
@@ -72,8 +77,17 @@ export default function WorkerDogsPage() {
           {search.trim()
             ? `Sin resultados para "${search.trim()}".`
             : view === "center"
-              ? "No hay perros en el centro en este momento."
+              ? "Aún no hay perros con check-in: ninguno ocupa una perrera."
               : "No hay perros registrados."}
+          {!search.trim() && view === "center" && dogs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setView("all")}
+              className="mt-3 block w-full rounded-lg border bg-card py-2.5 font-medium text-foreground hover:bg-muted/50"
+            >
+              Ver los {dogs.length} perros registrados
+            </button>
+          )}
         </p>
       ) : (
         <ul className="space-y-2">
