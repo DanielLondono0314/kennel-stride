@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { saveDog } from "@/lib/saveDog";
 import { isUuid } from "@/lib/ids";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
+import { usePermission } from "@/hooks/usePermission";
 
 interface DbDog {
   id: string;
@@ -129,6 +130,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function DogProfilePage() {
+  const canClinical = usePermission("clinical");
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -602,19 +604,19 @@ export default function DogProfilePage() {
 
         {/* Clinic tabs — reuse existing components */}
         <TabsContent value="vaccinations" className="mt-6" forceMount>
-          <VaccinationTab dogId={dog.id} dogName={dog.name} />
+          <VaccinationTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
         </TabsContent>
         <TabsContent value="medical" className="mt-6" forceMount>
-          <MedicalHistoryTab dogId={dog.id} dogName={dog.name} />
+          <MedicalHistoryTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
         </TabsContent>
         <TabsContent value="weight" className="mt-6" forceMount>
           <WeightTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
         <TabsContent value="deworming" className="mt-6" forceMount>
-          <DewormingTab dogId={dog.id} dogName={dog.name} />
+          <DewormingTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
         </TabsContent>
         <TabsContent value="conditions" className="mt-6" forceMount>
-          <ConditionsTab dogId={dog.id} dogName={dog.name} />
+          <ConditionsTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
         </TabsContent>
         <TabsContent value="temperament" className="mt-6" forceMount>
           <TemperamentTab dogId={dog.id} dogName={dog.name} />

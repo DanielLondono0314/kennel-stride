@@ -19,6 +19,7 @@ import { VaccinationTab } from "@/components/clinic/VaccinationTab";
 import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
+import { usePermission } from "@/hooks/usePermission";
 
 interface DbDog {
   id: string;
@@ -33,6 +34,7 @@ interface DbDog {
 }
 
 export default function ClinicPage() {
+  const canClinical = usePermission("clinical");
   const basePath = useOrgBasePath();
   const { organization } = useOrganization();
   const [selectedDogId, setSelectedDogId] = useState<string>("");
@@ -200,16 +202,16 @@ export default function ClinicPage() {
               </TabsList>
 
               <TabsContent value="history">
-                <MedicalHistoryTab dogId={selectedDog.id} dogName={selectedDog.name} />
+                <MedicalHistoryTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
               </TabsContent>
               <TabsContent value="vaccines">
-                <VaccinationTab dogId={selectedDog.id} dogName={selectedDog.name} />
+                <VaccinationTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
               </TabsContent>
               <TabsContent value="deworming">
-                <DewormingTab dogId={selectedDog.id} dogName={selectedDog.name} />
+                <DewormingTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
               </TabsContent>
               <TabsContent value="conditions">
-                <ConditionsTab dogId={selectedDog.id} dogName={selectedDog.name} />
+                <ConditionsTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
               </TabsContent>
               <TabsContent value="temperament">
                 <TemperamentTab dogId={selectedDog.id} dogName={selectedDog.name} />

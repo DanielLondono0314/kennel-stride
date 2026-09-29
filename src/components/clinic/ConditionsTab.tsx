@@ -24,7 +24,12 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { parseDateOnly, todayLocal } from "@/lib/age";
 
-interface Props { dogId: string; dogName: string; }
+interface Props {
+  dogId: string;
+  dogName: string;
+  /** Sin el permiso "Registros clínicos": solo ver, sin registrar/editar/eliminar. */
+  readOnly?: boolean;
+}
 
 const severityMap: Record<string, { label: string; className: string }> = {
   mild: { label: "Leve", className: "bg-info/10 text-info" },
@@ -41,7 +46,7 @@ const statusMap: Record<string, { label: string; className: string }> = {
 
 const emptyForm = () => ({ condition_name: "", condition_type: "disease", diagnosed_date: todayLocal(), status: "active", severity: "moderate", treatment: "", notes: "" });
 
-export function ConditionsTab({ dogId, dogName }: Props) {
+export function ConditionsTab({ dogId, dogName, readOnly = false }: Props) {
   const { organization } = useOrganization();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +99,7 @@ export function ConditionsTab({ dogId, dogName }: Props) {
     <div className="mt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-foreground">Condiciones Médicas</h3>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" /> Registrar</Button>
+        {!readOnly && <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" /> Registrar</Button>}
       </div>
 
       {loading ? (
@@ -113,13 +118,13 @@ export function ConditionsTab({ dogId, dogName }: Props) {
                     <Badge className={severityMap[r.severity]?.className || "bg-muted"}>{severityMap[r.severity]?.label || r.severity}</Badge>
                   </div>
                   <div className="flex items-center gap-1">
-                    {r.status !== "resolved" && (
+                    {!readOnly && r.status !== "resolved" && (
                       <Button variant="ghost" size="sm" onClick={() => handleResolve(r.id)} className="text-success hover:text-success">
                         <CheckCircle className="h-4 w-4 mr-1" /> Resolver
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Editar registro"><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Eliminar registro"><Trash2 className="h-3.5 w-3.5" /></Button>
+                    {!readOnly && (<><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Editar registro"><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Eliminar registro"><Trash2 className="h-3.5 w-3.5" /></Button></>)}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-1">

@@ -24,7 +24,12 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { parseDateOnly, todayLocal } from "@/lib/age";
 
-interface Props { dogId: string; dogName: string; }
+interface Props {
+  dogId: string;
+  dogName: string;
+  /** Sin el permiso "Registros clínicos": solo ver, sin registrar/editar/eliminar. */
+  readOnly?: boolean;
+}
 
 const recordTypes: Record<string, { label: string; color: string }> = {
   admission_checkup: { label: "Chequeo de Ingreso", color: "bg-accent/10 text-accent-foreground" },
@@ -44,7 +49,7 @@ const emptyForm = () => ({
   respiratory_rate: "", blood_pressure: "", body_condition_score: "", notes: "", next_appointment: "",
 });
 
-export function MedicalHistoryTab({ dogId, dogName }: Props) {
+export function MedicalHistoryTab({ dogId, dogName, readOnly = false }: Props) {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -126,7 +131,7 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
     <div className="mt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-foreground">Historial Médico</h3>
-        <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" /> Nueva Consulta</Button>
+        {!readOnly && <Button onClick={openNew} size="sm"><Plus className="h-4 w-4 mr-1.5" /> Nueva Consulta</Button>}
       </div>
 
       {loading ? (
@@ -147,8 +152,8 @@ export function MedicalHistoryTab({ dogId, dogName }: Props) {
                   </div>
                   <div className="flex items-center gap-1">
                     {r.veterinarian && <span className="text-xs text-muted-foreground mr-2">Dr. {r.veterinarian}</span>}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Editar registro"><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Eliminar registro"><Trash2 className="h-3.5 w-3.5" /></Button>
+                    {!readOnly && (<><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)} aria-label="Editar registro"><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)} aria-label="Eliminar registro"><Trash2 className="h-3.5 w-3.5" /></Button></>)}
                   </div>
                 </div>
                 {r.reason && <p className="text-sm font-medium text-foreground mb-1">Motivo: {r.reason}</p>}
