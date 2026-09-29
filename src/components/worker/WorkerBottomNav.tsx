@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Clock, Bell, User, Truck } from "lucide-react";
+import { CalendarDays, Clock, Bell, User, Truck, Dog } from "lucide-react";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { useMyStaffMember } from "@/hooks/useMyStaffMember";
 import { useMyActiveRoute } from "@/hooks/queries/useMyRoute";
@@ -14,6 +14,7 @@ export function WorkerBottomNav() {
 
   const items = [
     { to: `${base}/worker`, label: "Mi día", icon: CalendarDays, end: true },
+    { to: `${base}/worker/dogs`, label: "Perros", icon: Dog, end: false },
     { to: `${base}/worker/schedule`, label: "Mi Horario", icon: Clock, end: false },
     ...(showRouteTab ? [{ to: `${base}/worker/route`, label: "Mi Ruta", icon: Truck, end: false }] : []),
     { to: `${base}/worker/notices`, label: "Avisos", icon: Bell, end: false },

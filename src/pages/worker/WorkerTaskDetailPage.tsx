@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { useParams, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertTriangle, Pill, Leaf, Loader2, ArrowLeft, Scale } from "lucide-react";
@@ -17,6 +19,9 @@ import { ReportRouter, type ReportTarget } from "@/components/worker/reports/Rep
 import { WeightEntryDialog } from "@/components/weight/WeightEntryDialog";
 import { useLatestDogWeight } from "@/hooks/queries/useDogWeightLog";
 import { usePermission } from "@/hooks/usePermission";
+import { useWorkerDogProfile } from "@/hooks/queries/useWorkerDogs";
+import { WorkerDogInfo } from "@/components/worker/dogs/WorkerDogInfo";
+import { DogAvatar } from "@/components/worker/dogs/DogBits";
 
 export default function WorkerTaskDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +41,8 @@ export default function WorkerTaskDetailPage() {
   const [weighing, setWeighing] = useState(false);
   const canRecordWeight = usePermission("record_weight");
   const { data: lastWeight } = useLatestDogWeight(item?.dogId);
+  // Lo que el trabajador necesita saber del perro antes de atenderlo.
+  const { data: dog } = useWorkerDogProfile(item?.dogId);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Cargando…</p>;
   if (!item) {
@@ -91,14 +98,22 @@ export default function WorkerTaskDetailPage() {
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-lg">{item.dogName ?? item.title}</CardTitle>
+            <div className="flex items-center gap-3 min-w-0">
+              {dog && <DogAvatar photoUrl={dog.photoUrl} name={dog.name} />}
+              <div className="min-w-0">
+                <CardTitle className="text-lg truncate">{item.dogName ?? item.title}</CardTitle>
+                {dog && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {dog.breed}{dog.kennelName ? ` · ${dog.kennelName}` : ""}
+                  </p>
+                )}
+              </div>
+            </div>
             <Badge variant="secondary">{STATUS_LABELS[bucket as keyof typeof STATUS_LABELS] ?? item.status}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             {item.title}
-            {item.time
-              ? ` · ${new Date(item.time).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}`
-              : ""}
+            {item.time ? ` · ${format(new Date(item.time), "EEEE d MMM · HH:mm", { locale: es })}` : ""}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -131,17 +146,25 @@ export default function WorkerTaskDetailPage() {
         </CardContent>
       </Card>
 
+      {dog && <WorkerDogInfo dog={dog} compact />}
+
       {isDone ? (
         <p className="text-sm text-muted-foreground">Este trabajo ya está completado.</p>
-      ) : isInProgress ? (
-        <Button className="w-full" size="lg" onClick={() => setReporting(true)}>
-          Completar y reportar
-        </Button>
       ) : (
-        <Button className="w-full" size="lg" onClick={advance} disabled={advancing}>
-          {advancing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Iniciar
-        </Button>
+        // Fijo encima de la barra inferior: con la ficha del perro arriba, la
+        // acción principal no debe quedar al fondo de la página.
+        <div className="sticky bottom-16 z-10 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur">
+          {isInProgress ? (
+            <Button className="w-full" size="lg" onClick={() => setReporting(true)}>
+              Completar y reportar
+            </Button>
+          ) : (
+            <Button className="w-full" size="lg" onClick={advance} disabled={advancing}>
+              {advancing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Iniciar
+            </Button>
+          )}
+        </div>
       )}
 
       <Sheet open={reporting} onOpenChange={setReporting}>
