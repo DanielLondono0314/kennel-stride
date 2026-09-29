@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Clock, Bell, User, Truck, Dog } from "lucide-react";
+import { CalendarDays, Clock, Bell, Truck, Dog, LayoutGrid } from "lucide-react";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { useMyStaffMember } from "@/hooks/useMyStaffMember";
 import { useMyActiveRoute } from "@/hooks/queries/useMyRoute";
@@ -11,14 +12,17 @@ export function WorkerBottomNav() {
   // un tab muerto para el resto del staff o para un chofer sin ruta asignada.
   const { data: activeRoute } = useMyActiveRoute();
   const showRouteTab = staff?.specialty === "driver" && !!activeRoute;
+  // Perreras solo si el plan incluye instalaciones.
+  const { hasFeature } = useOrganization();
+  const showKennelsTab = hasFeature("facility");
 
   const items = [
     { to: `${base}/worker`, label: "Mi día", icon: CalendarDays, end: true },
     { to: `${base}/worker/dogs`, label: "Perros", icon: Dog, end: false },
-    { to: `${base}/worker/schedule`, label: "Mi Horario", icon: Clock, end: false },
-    ...(showRouteTab ? [{ to: `${base}/worker/route`, label: "Mi Ruta", icon: Truck, end: false }] : []),
+    ...(showKennelsTab ? [{ to: `${base}/worker/kennels`, label: "Perreras", icon: LayoutGrid, end: false }] : []),
+    { to: `${base}/worker/schedule`, label: "Horario", icon: Clock, end: false },
+    ...(showRouteTab ? [{ to: `${base}/worker/route`, label: "Ruta", icon: Truck, end: false }] : []),
     { to: `${base}/worker/notices`, label: "Avisos", icon: Bell, end: false },
-    { to: `${base}/worker/profile`, label: "Perfil", icon: User, end: false },
   ];
   return (
     <nav className={`fixed inset-x-0 bottom-0 z-20 grid border-t bg-background`}
