@@ -28,7 +28,7 @@ export interface OrgRoleInfo {
 
 export const PERMISSION_CATALOG: { key: OrgPermission; label: string; description: string }[] = [
   { key: "schedule", label: "Agendar reservas y tareas", description: "Crear y editar reservas, hacer check-in/check-out, asignar tareas y rutas." },
-  { key: "billing", label: "Cobrar y facturar", description: "Crear facturas, registrar pagos y vender paquetes." },
+  { key: "billing", label: "Cobrar y facturar", description: "Crear facturas, registrar pagos y vender planes." },
   { key: "cancel_invoice", label: "Anular facturas", description: "Anular facturas ya emitidas." },
   { key: "clinical", label: "Registros clínicos", description: "Historial médico, vacunas, desparasitación y corregir pesos." },
   { key: "report_cards", label: "Reportes de perros", description: "Crear y enviar report cards a los dueños." },

@@ -36,10 +36,11 @@ export function useReportsData(range: DateRange) {
 
       // Paginado: con más de 1000 filas en el rango, PostgREST truncaba y los
       // ingresos/contadores salían por debajo del real sin avisar.
-      const [invoices, newCustomers, packages, units, reportCards, reservations] = await Promise.all([
-        fetchAll((f, t) => supabase.from("invoices").select("id, total, status, created_at, customer_id, payment_method").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
+      const [invoices, newCustomers, plans, units, reportCards, reservations] = await Promise.all([
+        fetchAll((f, t) => supabase.from("invoices").select("id, total, status, created_at, customer_id, payment_method, customers(first_name, last_name)").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("customers").select("id, created_at, city").eq("organization_id", orgId).gte("created_at", dateFrom).order("id").range(f, t)),
-        fetchAll((f, t) => supabase.from("packages").select("id, status, total_credits, remaining_credits, price, created_at, expires_at").eq("organization_id", orgId).order("id").range(f, t)),
+        // Planes: todos (el estado vigente no depende del rango); el ingreso se filtra por sold_on.
+        fetchAll((f, t) => supabase.from("dog_plans").select("*, customers(first_name, last_name)").eq("organization_id", orgId).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("facility_units").select("id, unit_type, status").eq("organization_id", orgId).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("report_cards").select("id, overall_score, session_date").eq("organization_id", orgId).gte("session_date", dateFrom).order("id").range(f, t)),
         fetchAll((f, t) => supabase.from("reservations").select("id, service_type, status, start_date, total_price, customer_id").eq("organization_id", orgId).gte("start_date", dateFrom).order("id").range(f, t)),
@@ -48,7 +49,7 @@ export function useReportsData(range: DateRange) {
       return {
         invoices,
         newCustomers,
-        packages,
+        plans,
         units,
         reportCards,
         reservations,

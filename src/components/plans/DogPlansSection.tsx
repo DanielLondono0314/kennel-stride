@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCheck, ClipboardList, Plus, RefreshCw, XCircle } from "lucide-react";
+import { CheckCheck, ClipboardList, History, MessageCircle, Plus, RefreshCw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,15 +13,25 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDogPlans, usePlanActions } from "@/hooks/queries/useDogPlans";
+import { useDogPlans, usePlanActions, usePlanUsage } from "@/hooks/queries/useDogPlans";
 import { usePermission } from "@/hooks/usePermission";
 import { parseDateOnly, todayLocal } from "@/lib/age";
-import { isCurrent, planState, remainingUnits, type DogPlan } from "@/lib/dogPlans";
+import { whatsappHref } from "@/lib/contact";
+import { planReminderMessage, planState, remainingUnits, type DogPlan, type DogPlanUsage } from "@/lib/dogPlans";
 import { AssignPlanDialog } from "./AssignPlanDialog";
 import { PlanCard } from "./PlanCard";
 
-/** Planes del perro: el actual con sus acciones y el historial. */
-export function DogPlansSection({ dogId, dogName }: { dogId: string; dogName: string }) {
+/** Situaciones en las que conviene avisarle al dueño. */
+const REMIND_STATES = new Set(["expiring", "expired", "depleted"]);
+
+interface Props {
+  dogId: string;
+  dogName: string;
+  owner?: { first_name: string; phone: string | null } | null;
+}
+
+/** Planes del perro: los activos con sus acciones y el historial. */
+export function DogPlansSection({ dogId, dogName, owner }: Props) {
   const { data: plans = [], isLoading } = useDogPlans(dogId);
   const { end, registerUsage } = usePlanActions();
   const canSchedule = usePermission("schedule");
@@ -33,8 +43,12 @@ export function DogPlansSection({ dogId, dogName }: { dogId: string; dogName: st
   const [usage, setUsage] = useState({ quantity: "1", date: todayLocal(), note: "" });
   const [ending, setEnding] = useState<{ plan: DogPlan; status: "finished" | "cancelled" } | null>(null);
 
-  const current = plans.filter((p) => isCurrent(planState(p)));
-  const past = plans.filter((p) => !isCurrent(planState(p)));
+  // Activos = sin finalizar ni cancelar, también los vencidos o agotados:
+  // siguen aquí hasta que alguien los renueve o los finalice.
+  const current = plans.filter((p) => p.status === "active");
+  const past = plans.filter((p) => p.status !== "active");
+  const { data: usageLog = [] } = usePlanUsage(current.filter((p) => p.billing === "quantity").map((p) => p.id));
+  const waBase = whatsappHref(owner?.phone);
 
   async function saveUsage() {
     if (!usagePlan) return;
@@ -91,9 +105,10 @@ export function DogPlansSection({ dogId, dogName }: { dogId: string; dogName: st
               <CardContent className="space-y-3 p-4">
                 <PlanCard plan={plan} />
                 {plan.notes && <p className="rounded bg-muted/60 p-2 text-xs text-muted-foreground">{plan.notes}</p>}
+                {plan.billing === "quantity" && <UsageHistory usage={usageLog.filter((u) => u.plan_id === plan.id)} unit={plan.unit_label} />}
                 {canManage && (
                   <div className="flex flex-wrap gap-2 border-t pt-3 print:hidden">
-                    {plan.billing === "quantity" && remainingUnits(plan)! > 0 && state !== "upcoming" && (
+                    {plan.billing === "quantity" && remainingUnits(plan)! > 0 && state !== "upcoming" && state !== "expired" && (
                       <Button size="sm" onClick={() => { setUsage({ quantity: "1", date: todayLocal(), note: "" }); setUsagePlan(plan); }} className="gap-1.5">
                         <CheckCheck className="h-4 w-4" /> Registrar uso
                       </Button>
@@ -101,6 +116,17 @@ export function DogPlansSection({ dogId, dogName }: { dogId: string; dogName: st
                     <Button size="sm" variant="outline" onClick={() => { setRenewFrom(plan); setAssignOpen(true); }} className="gap-1.5">
                       <RefreshCw className="h-4 w-4" /> Renovar
                     </Button>
+                    {waBase && REMIND_STATES.has(state) && (
+                      <Button size="sm" variant="outline" asChild className="gap-1.5">
+                        <a
+                          href={`${waBase}?text=${encodeURIComponent(planReminderMessage(plan, dogName, owner?.first_name))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="h-4 w-4" /> Avisar por WhatsApp
+                        </a>
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => setEnding({ plan, status: "finished" })}>Finalizar</Button>
                     <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive gap-1.5" onClick={() => setEnding({ plan, status: "cancelled" })}>
                       <XCircle className="h-4 w-4" /> Cancelar
@@ -186,5 +212,28 @@ export function DogPlansSection({ dogId, dogName }: { dogId: string; dogName: st
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/** Usos del plan (a mano o descontados en el check-out), plegable. */
+function UsageHistory({ usage, unit }: { usage: DogPlanUsage[]; unit: string | null }) {
+  if (usage.length === 0) return null;
+  return (
+    <details className="group rounded-md border px-3 py-2 text-sm">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <History className="h-3.5 w-3.5" aria-hidden /> Usos registrados ({usage.length})
+      </summary>
+      <ul className="mt-2 divide-y">
+        {usage.map((u) => (
+          <li key={u.id} className="flex items-baseline justify-between gap-3 py-1.5 text-xs">
+            <span className="min-w-0 truncate">
+              {format(parseDateOnly(u.used_on), "d MMM yyyy", { locale: es })}
+              {u.note ? <span className="text-muted-foreground"> · {u.note}</span> : null}
+            </span>
+            <span className="shrink-0 font-medium tabular-nums">−{u.quantity} {unit ?? ""}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

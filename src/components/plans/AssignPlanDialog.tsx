@@ -36,10 +36,14 @@ interface Form {
   quantityTotal: string;
   quantityUsed: string;
   price: string;
+  soldOn: string;
   includes: string[];
   conditions: string;
   notes: string;
 }
+
+/** Venta sugerida: hoy, o el inicio si el plan empezó antes (plan ya en curso). */
+const suggestedSoldOn = (start: string) => (start && start < todayLocal() ? start : todayLocal());
 
 export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renewFrom }: Props) {
   const base = useOrgBasePath();
@@ -48,6 +52,7 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
   const [form, setForm] = useState<Form>(() => blank(defaultDogId ?? dogs[0]?.id ?? ""));
   const [customInclude, setCustomInclude] = useState("");
   const [endTouched, setEndTouched] = useState(false);
+  const [soldTouched, setSoldTouched] = useState(false);
 
   // Solo servicios que se venden como plan (por duración o cantidad).
   const planServices = useMemo(() => catalog.filter((s) => s.active && s.billing !== "per_use"), [catalog]);
@@ -58,6 +63,7 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
     if (!open) return;
     setCustomInclude("");
     setEndTouched(false);
+    setSoldTouched(false);
     if (renewFrom) {
       const start = renewFrom.end_date ? format(addDays(parseDateOnly(renewFrom.end_date), 1), "yyyy-MM-dd") : todayLocal();
       const svc = catalog.find((s) => s.value === renewFrom.service_type);
@@ -69,6 +75,7 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
         quantityTotal: renewFrom.quantity_total ? String(renewFrom.quantity_total) : "",
         quantityUsed: "0",
         price: String(renewFrom.price ?? ""),
+        soldOn: todayLocal(),
         includes: renewFrom.includes,
         conditions: renewFrom.conditions,
         notes: "",
@@ -96,12 +103,13 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
   }
 
   function changeStart(startDate: string) {
-    // La fecha de fin sigue al inicio mientras no la hayan editado a mano.
+    // La fecha de fin y la de venta siguen al inicio mientras no las editen a mano.
+    const patch: Partial<Form> = { startDate };
     if (service?.duration && !endTouched && startDate) {
-      set({ startDate, endDate: computeEndDate(startDate, service.duration.amount, service.duration.unit) });
-    } else {
-      set({ startDate });
+      patch.endDate = computeEndDate(startDate, service.duration.amount, service.duration.unit);
     }
+    if (!soldTouched && !renewFrom) patch.soldOn = suggestedSoldOn(startDate);
+    set(patch);
   }
 
   const suggestions = useMemo(
@@ -114,7 +122,8 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
   }
 
   async function handleSave() {
-    if (!form.dogId) return toast.error("Elige el perro");
+    const dogId = form.dogId || (dogs.length === 1 ? dogs[0].id : "");
+    if (!dogId) return toast.error("Elige el perro");
     if (!service) return toast.error("Elige el servicio del plan");
     if (!form.startDate) return toast.error("Indica la fecha de inicio");
     if (!isQuantity && !form.endDate) return toast.error("Indica la fecha de fin");
@@ -127,10 +136,12 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
     }
     const price = form.price === "" ? 0 : Number(form.price);
     if (!(price >= 0)) return toast.error("El precio no es válido");
+    if (!form.soldOn) return toast.error("Indica la fecha de venta");
+    if (form.soldOn > todayLocal()) return toast.error("La fecha de venta no puede ser futura");
 
     try {
       await create.mutateAsync({
-        dog_id: form.dogId,
+        dog_id: dogId,
         service_type: service.value,
         service_label: service.label,
         category: categoryForService(service),
@@ -142,6 +153,7 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
         unit_label: isQuantity ? service.quantity?.unitLabel ?? null : null,
         consumption: isQuantity ? service.quantity?.consumption ?? null : null,
         price,
+        sold_on: form.soldOn,
         includes: form.includes,
         conditions: form.conditions.trim(),
         notes: form.notes.trim() || null,
@@ -235,9 +247,22 @@ export function AssignPlanDialog({ open, onOpenChange, dogs, defaultDogId, renew
                   </div>
                 )}
 
-                <div className="space-y-1.5 sm:w-1/2">
-                  <Label htmlFor="plan-price">Precio (COP)</Label>
-                  <Input id="plan-price" type="number" min={0} step={1000} inputMode="numeric" value={form.price} onChange={(e) => set({ price: e.target.value })} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plan-price">Precio (COP)</Label>
+                    <Input id="plan-price" type="number" min={0} step={1000} inputMode="numeric" value={form.price} onChange={(e) => set({ price: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plan-sold">Fecha de venta *</Label>
+                    <Input
+                      id="plan-sold"
+                      type="date"
+                      max={todayLocal()}
+                      value={form.soldOn}
+                      onChange={(e) => { set({ soldOn: e.target.value }); setSoldTouched(true); }}
+                    />
+                    <p className="text-xs text-muted-foreground">El precio cuenta como ingreso este día en Reportes.</p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -334,6 +359,7 @@ function blank(dogId: string): Form {
     quantityTotal: "",
     quantityUsed: "0",
     price: "",
+    soldOn: todayLocal(),
     includes: [],
     conditions: "",
     notes: "",

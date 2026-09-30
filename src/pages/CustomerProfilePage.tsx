@@ -16,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft, Phone, Mail, MapPin, User, Dog, Package,
+  ArrowLeft, Phone, Mail, MapPin, User, Dog,
   FileText, Edit, CreditCard, Calendar, AlertTriangle,
   CheckCircle2, Clock, Loader2, Printer, ChevronRight, Plus, MessageCircle, ClipboardList,
 } from "lucide-react";
@@ -32,7 +32,6 @@ import { telHref, whatsappHref, normalizePhone } from "@/lib/contact";
 import { findContactDuplicates } from "@/hooks/queries/useCustomers";
 import type { DbCustomer } from "@/pages/CustomersPage";
 import { formatCurrency } from "@/lib/currency";
-import { getEffectivePackageStatus } from "@/lib/packageStatus";
 
 interface DbDog {
   id: string;
@@ -54,17 +53,6 @@ interface DbReservation {
   end_date: string;
   total_price: number;
   dogs: { id: string; name: string } | null;
-}
-
-interface DbPackage {
-  id: string;
-  name: string;
-  service_type: string;
-  total_credits: number;
-  remaining_credits: number;
-  status: string;
-  expires_at: string;
-  price: number;
 }
 
 interface DbInvoice {
@@ -107,7 +95,6 @@ export default function CustomerProfilePage() {
   const [customer, setCustomer] = useState<DbCustomer | null>(null);
   const [dogs, setDogs] = useState<DbDog[]>([]);
   const [reservations, setReservations] = useState<DbReservation[]>([]);
-  const [packages, setPackages] = useState<DbPackage[]>([]);
   const [invoices, setInvoices] = useState<DbInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -126,7 +113,7 @@ export default function CustomerProfilePage() {
     }
     setLoading(true);
 
-    const [custRes, dogsRes, reservRes, pkgRes, invRes] = await Promise.all([
+    const [custRes, dogsRes, reservRes, invRes] = await Promise.all([
       supabase.from("customers").select("*").eq("id", id).eq("organization_id", organization!.id).single(),
       supabase.from("dogs").select("*").eq("customer_id", id).eq("organization_id", organization!.id).order("name"),
       supabase
@@ -136,12 +123,6 @@ export default function CustomerProfilePage() {
         .eq("organization_id", organization!.id)
         .order("start_date", { ascending: false })
         .limit(20),
-      supabase
-        .from("packages")
-        .select("id, name, service_type, total_credits, remaining_credits, status, expires_at, price")
-        .eq("customer_id", id)
-        .eq("organization_id", organization!.id)
-        .order("created_at", { ascending: false }),
       supabase
         .from("invoices")
         .select("id, invoice_number, total, status, due_date, paid_at")
@@ -154,7 +135,6 @@ export default function CustomerProfilePage() {
     if (custRes.data) setCustomer(custRes.data as DbCustomer);
     if (dogsRes.data) setDogs(dogsRes.data);
     if (reservRes.data) setReservations(reservRes.data);
-    if (pkgRes.data) setPackages(pkgRes.data);
     if (invRes.data) setInvoices(invRes.data);
 
     setLoading(false);
@@ -230,7 +210,6 @@ export default function CustomerProfilePage() {
   const totalSpent = invoices
     .filter((i) => i.status === "paid")
     .reduce((sum, i) => sum + i.total, 0);
-  const activePackages = packages.filter((p) => p.status === "active");
   const pendingInvoices = invoices.filter((i) => i.status === "pending" || i.status === "overdue");
 
   return (
@@ -338,10 +317,6 @@ export default function CustomerProfilePage() {
           <TabsTrigger value="reservations" className="gap-2">
             <Calendar className="h-4 w-4" />
             Reservas ({reservations.length})
-          </TabsTrigger>
-          <TabsTrigger value="packages" className="gap-2">
-            <Package className="h-4 w-4" />
-            Paquetes ({packages.length})
           </TabsTrigger>
           <TabsTrigger value="invoices" className="gap-2">
             <CreditCard className="h-4 w-4" />
@@ -477,54 +452,6 @@ export default function CustomerProfilePage() {
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-
-        {/* Packages Tab */}
-        <TabsContent value="packages" className="mt-4" forceMount>
-          {packages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-              <Package className="h-10 w-10" />
-              <p>Sin paquetes registrados</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {packages.map((pkg) => {
-                const pct = Math.round((pkg.remaining_credits / pkg.total_credits) * 100);
-                const effectiveStatus = getEffectivePackageStatus(pkg);
-                const isActive = effectiveStatus === "active";
-                return (
-                  <Card key={pkg.id} className={isActive ? "" : "opacity-60"}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{pkg.name}</CardTitle>
-                        <Badge variant={isActive ? "default" : "secondary"}>
-                          {isActive ? "Activo" : effectiveStatus === "expired" ? "Vencido" : "Agotado"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Créditos</span>
-                        <span className="font-medium">
-                          {pkg.remaining_credits} / {pkg.total_credits}
-                        </span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Vence: {format(parseDateOnly(pkg.expires_at), "d MMM yyyy", { locale: es })}</span>
-                        <span>{formatCurrency(pkg.price)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
         </TabsContent>
 
         {/* Invoices Tab */}

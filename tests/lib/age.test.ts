@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getAge, parseDateOnly } from "@/lib/age";
-import { getEffectivePackageStatus } from "@/lib/packageStatus";
+import { planState, type DogPlan } from "@/lib/dogPlans";
 import { format as fmt, addDays as add } from "date-fns";
 
 describe("parseDateOnly", () => {
@@ -55,13 +55,15 @@ describe("getAge", () => {
 });
 
 
-describe("vencimiento de paquetes con fecha sin hora", () => {
-  it("un paquete que vence hoy sigue activo todo el día", () => {
+describe("vencimiento de planes con fecha sin hora", () => {
+  const plan = (end_date: string) =>
+    ({ status: "active", billing: "duration", start_date: "2020-01-01", end_date, quantity_total: null, quantity_used: 0 }) as DogPlan;
+  it("un plan que vence hoy sigue vigente todo el día", () => {
     const today = fmt(new Date(), "yyyy-MM-dd");
-    expect(getEffectivePackageStatus({ status: "active", expires_at: today })).toBe("active");
+    expect(planState(plan(today))).toBe("expiring");
   });
   it("vencido desde el día siguiente", () => {
     const yesterday = fmt(add(new Date(), -1), "yyyy-MM-dd");
-    expect(getEffectivePackageStatus({ status: "active", expires_at: yesterday })).toBe("expired");
+    expect(planState(plan(yesterday))).toBe("expired");
   });
 });

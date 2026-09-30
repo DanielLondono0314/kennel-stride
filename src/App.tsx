@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { createQueryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -39,7 +39,7 @@ const CalendarPage         = lazy(() => import("./pages/CalendarPage"));
 const SettingsPage         = lazy(() => import("./pages/SettingsPage"));
 const ReportCardsPage      = lazy(() => import("./pages/ReportCardsPage"));
 const TasksPage            = lazy(() => import("./pages/TasksPage"));
-const PackagesPage         = lazy(() => import("./pages/PackagesPage"));
+const PlansPage            = lazy(() => import("./pages/PlansPage"));
 const InvoicesPage         = lazy(() => import("./pages/InvoicesPage"));
 const ContractsPage        = lazy(() => import("./pages/ContractsPage"));
 const NewContractPage      = lazy(() => import("./pages/NewContractPage"));
@@ -91,7 +91,7 @@ const ORG_ROUTE_PRELOAD: Record<string, () => Promise<unknown>> = {
   notices: () => import("./pages/NoticesPage"),
   facility: () => import("./pages/FacilityPage"),
   "report-cards": () => import("./pages/ReportCardsPage"),
-  packages: () => import("./pages/PackagesPage"),
+  plans: () => import("./pages/PlansPage"),
   invoices: () => import("./pages/InvoicesPage"),
   contracts: () => import("./pages/ContractsPage"),
   reports: () => import("./pages/ReportsPage"),
@@ -191,7 +191,9 @@ const App = () => {
                       <Route element={<FeatureRoute feature="report_cards" />}>
                         <Route path="report-cards" element={<ReportCardsPage />} />
                       </Route>
-                      <Route path="packages"         element={<PackagesPage />} />
+                      <Route path="plans"            element={<PlansPage />} />
+                      {/* Los paquetes de créditos se reemplazaron por planes. */}
+                      <Route path="packages"         element={<Navigate to="../plans" replace />} />
                       <Route path="invoices"         element={<InvoicesPage />} />
                       <Route path="contracts"        element={<ContractsPage />} />
                       <Route path="contracts/new"    element={<NewContractPage />} />

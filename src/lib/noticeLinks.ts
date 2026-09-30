@@ -9,7 +9,7 @@ export function noticeHref(entityType: string | null | undefined, entityId: stri
     case "dog":         return `/dogs/${entityId}`;
     case "customer":    return `/customers/${entityId}`;
     case "invoice":     return "/invoices";
-    case "package":     return "/packages";
+    case "package":     return "/plans";
     case "task":        return `/tasks?task=${entityId}`;
     default:            return null;
   }

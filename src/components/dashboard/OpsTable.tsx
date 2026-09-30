@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Reservation, ReservationStatus, ServiceType } from "@/types";
 import { format, isToday, startOfToday } from "date-fns";
 import { es } from "date-fns/locale";
@@ -117,9 +117,8 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
             const primaryAction = getPrimaryAction(reservation.status);
 
             return (
-              <>
+              <Fragment key={reservation.id}>
                 <TableRow
-                  key={reservation.id}
                   className={cn(
                     "cursor-pointer transition-colors",
                     isExpanded && "bg-muted/30 border-l-2 border-l-primary"
@@ -277,7 +276,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             );
           })}
           {reservations.length === 0 && (

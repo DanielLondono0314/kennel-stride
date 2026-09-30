@@ -18,8 +18,11 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency";
-import { getEffectivePackageStatus } from "@/lib/packageStatus";
+import { parseDateOnly } from "@/lib/age";
+import { PLAN_STATE_LABELS, isCurrent, planState, type DogPlan } from "@/lib/dogPlans";
 import { STAFF_ROLE_LABELS } from "@/lib/worker";
+
+type ReportPlan = DogPlan & { customers: { first_name: string; last_name: string } | null };
 
 const COLORS = [
   "hsl(38, 92%, 50%)", "hsl(222, 47%, 20%)", "hsl(142, 76%, 36%)",
@@ -35,7 +38,7 @@ export default function ReportsPage() {
 
   const invoices = data?.invoices ?? [];
   const newCustomers = data?.newCustomers ?? [];
-  const packages = useMemo(() => data?.packages ?? [], [data?.packages]);
+  const plans = useMemo(() => (data?.plans ?? []) as unknown as ReportPlan[], [data?.plans]);
   const units = data?.units ?? [];
   const reportCards = data?.reportCards ?? [];
   const reservations = data?.reservations ?? [];
@@ -72,18 +75,21 @@ export default function ReportsPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredReservations]);
 
-  // KPIs — los ingresos cobrados incluyen facturas pagadas Y bonos vendidos
-  // en el período (un check-out con bono no factura: el cobro fue la venta).
+  // KPIs — los ingresos cobrados incluyen facturas pagadas Y planes vendidos
+  // en el período (un check-out cubierto por un plan no factura: el cobro fue la venta).
   const RANGE_DAYS: Record<string, number> = { "30d": 30, "90d": 90, "6m": 183, "1y": 365 };
   const rangeCutoff = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - (RANGE_DAYS[range] ?? 30));
     return d;
   }, [range]);
-  const packageRevenue = packages
-    .filter((p) => new Date(p.created_at) >= rangeCutoff)
-    .reduce((s, p) => s + Number(p.price ?? 0), 0);
-  const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0) + packageRevenue;
+  const cutoffDay = format(rangeCutoff, "yyyy-MM-dd");
+  const soldPlans = useMemo(
+    () => plans.filter((p) => p.status !== "cancelled" && p.sold_on >= cutoffDay && Number(p.price) > 0),
+    [plans, cutoffDay]
+  );
+  const planRevenue = soldPlans.reduce((s, p) => s + Number(p.price), 0);
+  const totalRevenue = filteredInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0) + planRevenue;
   const totalPending = filteredInvoices.filter((i) => i.status === "pending" || i.status === "overdue").reduce((s, i) => s + Number(i.total), 0);
   const activeCustomers = newCustomers.length;
   const occupiedKennels = units.filter((u: any) => u.status === "occupied").length;
@@ -97,15 +103,18 @@ export default function ReportsPage() {
 
   // Revenue by month chart
   const revenueByMonth = useMemo(() => {
-    const months: Record<string, number> = {};
-    filteredInvoices
-      .filter((i) => i.status === "paid")
-      .forEach((inv) => {
-        const key = format(new Date(inv.created_at), "MMM yy", { locale: es });
-        months[key] = (months[key] || 0) + Number(inv.total);
-      });
-    return Object.entries(months).map(([name, ingresos]) => ({ name, ingresos }));
-  }, [filteredInvoices]);
+    // Clave ordenable (yyyy-MM) y etiqueta legible; facturas pagadas + planes vendidos.
+    const months = new Map<string, { name: string; ingresos: number }>();
+    const add = (d: Date, amount: number) => {
+      const key = format(d, "yyyy-MM");
+      const m = months.get(key) ?? { name: format(d, "MMM yy", { locale: es }), ingresos: 0 };
+      m.ingresos += amount;
+      months.set(key, m);
+    };
+    filteredInvoices.filter((i) => i.status === "paid").forEach((inv) => add(new Date(inv.created_at), Number(inv.total)));
+    soldPlans.forEach((p) => add(parseDateOnly(p.sold_on), Number(p.price)));
+    return [...months.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
+  }, [filteredInvoices, soldPlans]);
 
   // Invoice status breakdown
   const statusBreakdown = useMemo(() => {
@@ -117,30 +126,31 @@ export default function ReportsPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredInvoices]);
 
-  // Package status
-  const pkgBreakdown = useMemo(() => {
+  // Estado de los planes (vigente, por vencer, vencido, agotado…)
+  const planBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
-    packages.forEach((p) => {
-      const effectiveStatus = getEffectivePackageStatus(p);
-      const label = effectiveStatus === "active" ? "Activos" : effectiveStatus === "depleted" ? "Agotados" : effectiveStatus === "expired" ? "Expirados" : "Cancelados";
+    plans.forEach((p) => {
+      const label = PLAN_STATE_LABELS[planState(p)];
       counts[label] = (counts[label] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [packages]);
+  }, [plans]);
+  const activePlans = plans.filter((p) => isCurrent(planState(p))).length;
 
   // Top customers — built from invoices with customer_id
   const topCustomers = useMemo(() => {
     const spending: Record<string, { name: string; total: number }> = {};
+    const add = (id: string | null, who: { first_name: string; last_name: string } | null, amount: number) => {
+      if (!id) return;
+      spending[id] ??= { name: who ? `${who.first_name} ${who.last_name}`.trim() : "Cliente", total: 0 };
+      spending[id].total += amount;
+    };
     filteredInvoices
       .filter((i) => i.status === "paid")
-      .forEach((inv) => {
-        const key = inv.customer_id;
-        if (!key) return;
-        if (!spending[key]) spending[key] = { name: inv.customer_id, total: 0 };
-        spending[key].total += Number(inv.total);
-      });
+      .forEach((inv) => add(inv.customer_id, inv.customers, Number(inv.total)));
+    soldPlans.forEach((p) => add(p.customer_id, p.customers, Number(p.price)));
     return Object.values(spending).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [filteredInvoices]);
+  }, [filteredInvoices, soldPlans]);
 
   if (isLoading) {
     return (
@@ -509,8 +519,8 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{packages.filter((p) => getEffectivePackageStatus(p) === "active").length}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Paquetes Activos</p>
+                  <p className="text-3xl font-bold">{activePlans}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Planes vigentes</p>
                 </div>
               </CardContent>
             </Card>
@@ -548,16 +558,16 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Estado de Paquetes</CardTitle>
+                <CardTitle className="text-base">Estado de los planes</CardTitle>
               </CardHeader>
               <CardContent>
-                {pkgBreakdown.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">Sin paquetes</p>
+                {planBreakdown.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Sin planes</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
-                      <Pie data={pkgBreakdown} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                        {pkgBreakdown.map((_, i) => (
+                      <Pie data={planBreakdown} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                        {planBreakdown.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>

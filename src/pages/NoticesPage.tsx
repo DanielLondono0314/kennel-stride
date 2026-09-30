@@ -116,7 +116,7 @@ export default function NoticesPage() {
         break;
       }
       case "renewPackage":
-        navigate("/packages");
+        navigate("/plans");
         break;
       default:
         toast.info(`Acción: ${action}`);

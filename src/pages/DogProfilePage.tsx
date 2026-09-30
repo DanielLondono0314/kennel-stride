@@ -633,7 +633,7 @@ export default function DogProfilePage() {
 
         {/* Plan contratado (catálogo de servicios del centro) */}
         <TabsContent value="plan" className="mt-6" forceMount>
-          <DogPlansSection dogId={dog.id} dogName={dog.name} />
+          <DogPlansSection dogId={dog.id} dogName={dog.name} owner={dog.customers} />
         </TabsContent>
 
         {/* Servicios recibidos: historial trazable de report cards por tipo de servicio */}

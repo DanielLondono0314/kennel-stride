@@ -33,7 +33,7 @@ import {
   LogOut,
   Loader2,
   CreditCard,
-  Package,
+  CalendarCheck,
   Receipt,
   Wallet,
   CheckCircle2,
@@ -42,7 +42,8 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseDateOnly, todayLocal } from "@/lib/age";
+import { useServiceTypes } from "@/hooks/useServiceTypes";
+import { planProgressText, plansCoveringReservation, type DogPlan } from "@/lib/dogPlans";
 
 interface CheckOutModalProps {
   reservation: Reservation | null;
@@ -51,17 +52,8 @@ interface CheckOutModalProps {
   onConfirm: (data: { reservationId: string }) => void | Promise<void>;
 }
 
-type PaymentMethod = "package" | "cash" | "card" | "invoice";
-
-interface DbPackage {
-  id: string;
-  name: string;
-  remaining_credits: number;
-  total_credits: number;
-  expires_at: string;
-  service_type: string;
-  status: string;
-}
+/** "plan:<id>" = cubierto por ese plan del perro (no se factura). */
+type PaymentMethod = "cash" | "card" | "invoice" | `plan:${string}`;
 
 export function CheckOutModal({
   reservation,
@@ -70,45 +62,61 @@ export function CheckOutModal({
   onConfirm,
 }: CheckOutModalProps) {
   const { organization } = useOrganization();
+  const { categoryFor } = useServiceTypes();
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availablePackage, setAvailablePackage] = useState<DbPackage | null>(null);
-  const [loadingPackage, setLoadingPackage] = useState(false);
+  const [dogPlans, setDogPlans] = useState<DogPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
 
-  // Load available package from Supabase when modal opens
+  // Planes del perro: si alguno cubre este servicio, el check-out no se cobra
+  // aparte (el cobro fue la venta del plan).
   useEffect(() => {
     if (!open || !reservation) {
-      setAvailablePackage(null);
+      setDogPlans([]);
       return;
     }
-
-    const fetchPackage = async () => {
-      setLoadingPackage(true);
-      if (!organization) { setLoadingPackage(false); return; }
+    let cancelled = false;
+    const fetchPlans = async () => {
+      if (!organization || !reservation.dogId) return;
+      setLoadingPlans(true);
       const { data } = await supabase
-        .from("packages")
-        .select("id, name, remaining_credits, total_credits, expires_at, service_type, status")
-        .eq("customer_id", reservation.customer!.id)
-        .eq("service_type", reservation.service!.type)
-        .eq("status", "active")
+        .from("dog_plans")
+        .select("*")
         .eq("organization_id", organization.id)
-        .gt("remaining_credits", 0)
-        .gte("expires_at", todayLocal())
-        .order("expires_at")
-        .limit(1)
-        .maybeSingle();
-
-      setAvailablePackage(data ?? null);
-      setPaymentMethod(data ? "package" : "cash");
-      setLoadingPackage(false);
+        .eq("dog_id", reservation.dogId)
+        .eq("status", "active");
+      if (cancelled) return;
+      setDogPlans((data ?? []) as DogPlan[]);
+      setLoadingPlans(false);
     };
-
-    fetchPackage();
+    fetchPlans();
+    return () => { cancelled = true; };
     // Keyed a propósito por id: reservation cambia de identidad en cada
-    // refetch del Dashboard y re-consultaría el paquete sin necesidad.
+    // refetch del Dashboard y re-consultaría sin necesidad.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reservation?.id, organization?.id]);
+
+  const coverage = useMemo(() => {
+    if (!reservation?.service?.type) return [];
+    return plansCoveringReservation(dogPlans, {
+      serviceType: reservation.service.type,
+      category: categoryFor(reservation.service.type),
+      startDate: reservation.startDate,
+      checkIn: reservation.checkInTime ?? reservation.startDate,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dogPlans, reservation?.id, categoryFor]);
+
+  // Por defecto, el primer plan al que le alcanza.
+  useEffect(() => {
+    const best = coverage.find((c) => c.ok);
+    setPaymentMethod(best ? `plan:${best.plan.id}` : "cash");
+  }, [coverage]);
+
+  const selectedPlan = paymentMethod.startsWith("plan:")
+    ? coverage.find((c) => `plan:${c.plan.id}` === paymentMethod) ?? null
+    : null;
 
   // Calculate stay duration
   const stayInfo = useMemo(() => {
@@ -142,8 +150,8 @@ export function CheckOutModal({
       // quedaba una factura huérfana con la reserva aún en curso.
       const { error } = await supabase.rpc("complete_checkout", {
         p_reservation_id: reservation.id,
-        p_payment_method: paymentMethod,
-        p_package_id: paymentMethod === "package" ? availablePackage?.id : undefined,
+        p_payment_method: selectedPlan ? "plan" : paymentMethod,
+        p_plan_id: selectedPlan?.plan.id,
         p_notes: notes,
       });
 
@@ -269,9 +277,16 @@ export function CheckOutModal({
                     {service?.description}
                   </p>
                 </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(reservation.totalPrice)}
-                </p>
+                {selectedPlan ? (
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-success">Incluido en el plan</p>
+                    <p className="text-xs text-muted-foreground line-through">{formatCurrency(reservation.totalPrice)}</p>
+                  </div>
+                ) : (
+                  <p className="text-xl font-bold">
+                    {formatCurrency(reservation.totalPrice)}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -285,10 +300,10 @@ export function CheckOutModal({
               Método de Pago
             </Label>
 
-            {loadingPackage ? (
+            {loadingPlans ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Verificando paquetes disponibles...
+                Buscando el plan del perro...
               </div>
             ) : (
               <RadioGroup
@@ -296,34 +311,35 @@ export function CheckOutModal({
                 onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
                 className="grid gap-3"
               >
-                {/* Package option */}
-                {availablePackage && (
-                  <label
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                      paymentMethod === "package"
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-muted-foreground/30"
-                    )}
-                  >
-                    <RadioGroupItem value="package" />
-                    <Package className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-medium">{availablePackage.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {availablePackage.remaining_credits} créditos disponibles
-                        {" · "}
-                        Vence{" "}
-                        {format(parseDateOnly(availablePackage.expires_at), "d 'de' MMM", {
-                          locale: es,
-                        })}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="bg-success/10 text-success">
-                      -1 crédito
-                    </Badge>
-                  </label>
-                )}
+                {/* Planes del perro que cubren este servicio */}
+                {coverage.map(({ plan, units, ok, reason }) => {
+                  const value = `plan:${plan.id}` as const;
+                  return (
+                    <label
+                      key={plan.id}
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-lg border-2 transition-all",
+                        !ok && "cursor-not-allowed opacity-60",
+                        ok && "cursor-pointer",
+                        paymentMethod === value
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <RadioGroupItem value={value} disabled={!ok} />
+                      <CalendarCheck className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <p className="font-medium">Plan: {plan.service_label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {reason ?? planProgressText(plan)}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="bg-success/10 text-success">
+                        {units > 0 ? `−${units} ${plan.unit_label ?? "unidades"}` : "Incluido"}
+                      </Badge>
+                    </label>
+                  );
+                })}
 
                 {/* Cash option */}
                 <label
@@ -413,7 +429,7 @@ export function CheckOutModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isSubmitting || loadingPackage}
+            disabled={isSubmitting || loadingPlans}
             className="min-w-[140px] bg-success hover:bg-success/90 text-success-foreground"
           >
             {isSubmitting ? (

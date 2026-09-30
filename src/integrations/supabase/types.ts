@@ -243,6 +243,7 @@ export type Database = {
           id: string
           include_signatures: boolean
           organization_id: string
+          dog_plan_id: string | null
           package_id: string | null
           reservation_id: string | null
           sent_at: string | null
@@ -276,6 +277,7 @@ export type Database = {
           id?: string
           include_signatures?: boolean
           organization_id: string
+          dog_plan_id?: string | null
           package_id?: string | null
           reservation_id?: string | null
           sent_at?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           id?: string
           include_signatures?: boolean
           organization_id?: string
+          dog_plan_id?: string | null
           package_id?: string | null
           reservation_id?: string | null
           sent_at?: string | null
@@ -705,6 +708,7 @@ export type Database = {
           quantity_used: number
           service_label: string
           service_type: string
+          sold_on: string
           start_date: string
           status: string
           unit_label: string | null
@@ -730,6 +734,7 @@ export type Database = {
           quantity_used?: number
           service_label: string
           service_type: string
+          sold_on?: string
           start_date: string
           status?: string
           unit_label?: string | null
@@ -755,6 +760,7 @@ export type Database = {
           quantity_used?: number
           service_label?: string
           service_type?: string
+          sold_on?: string
           start_date?: string
           status?: string
           unit_label?: string | null
@@ -2617,6 +2623,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      org_today: { Args: { p_org: string }; Returns: string }
       register_plan_usage: {
         Args: { p_note?: string; p_plan_id: string; p_quantity?: number; p_used_on?: string }
         Returns: number
@@ -2631,6 +2638,7 @@ export type Database = {
       }
       check_expiring_packages: { Args: never; Returns: undefined }
       check_expiring_packages_all_orgs: { Args: never; Returns: undefined }
+      check_expiring_dog_plans_all_orgs: { Args: never; Returns: number }
       check_in_reservation: {
         Args: { p_notes?: string; p_reservation_id: string; p_unit_id: string }
         Returns: undefined
@@ -2646,6 +2654,7 @@ export type Database = {
           p_notes?: string
           p_package_id?: string
           p_payment_method: string
+          p_plan_id?: string
           p_reservation_id: string
         }
         Returns: Json

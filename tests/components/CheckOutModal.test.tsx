@@ -9,6 +9,7 @@ import { CheckOutModal } from "@/components/checkin/CheckOutModal";
 const rpcCalls: Array<{ fn: string; args: any }> = [];
 const writeCalls: Array<{ table: string; op: string; payload?: any }> = [];
 let rpcResult: { data: any; error: any } = { data: { invoice_id: "inv-1" }, error: null };
+let planRows: any[] = [];
 
 function makeChain(table: string) {
   const chain: any = {
@@ -26,7 +27,7 @@ function makeChain(table: string) {
     single: vi.fn(() => Promise.resolve({ data: { id: "inv-1" }, error: null })),
     insert: vi.fn((payload: any) => { writeCalls.push({ table, op: "insert", payload }); return chain; }),
     update: vi.fn((payload: any) => { writeCalls.push({ table, op: "update", payload }); return chain; }),
-    then: (resolve: any) => resolve({ data: [], error: null }),
+    then: (resolve: any) => resolve({ data: table === "dog_plans" ? planRows : [], error: null }),
   };
   return chain;
 }
@@ -62,6 +63,7 @@ describe("CheckOutModal — check-out atómico vía complete_checkout", () => {
     rpcCalls.length = 0;
     writeCalls.length = 0;
     rpcResult = { data: { invoice_id: "inv-1" }, error: null };
+    planRows = [];
     vi.clearAllMocks();
   });
 
@@ -118,5 +120,30 @@ describe("CheckOutModal — check-out atómico vía complete_checkout", () => {
 
     expect(rpcCalls[0].args).toMatchObject({ p_notes: "Se portó excelente" });
     expect(writeCalls.filter((c) => c.table === "reservations")).toHaveLength(0);
+  });
+
+  it("si el perro tiene un plan que cubre el servicio, cobra con el plan (sin factura)", async () => {
+    planRows = [{
+      id: "plan-1", dog_id: "dog-1", customer_id: "cust-1", service_type: "daycare", service_label: "Guardería 10 días",
+      category: "daycare", billing: "quantity", start_date: "2020-01-01", end_date: null, quantity_total: 10,
+      quantity_used: 2, unit_label: "días", consumption: "per_visit", price: 500, sold_on: "2020-01-01",
+      includes: [], conditions: "", notes: null, status: "active", ended_at: null, created_at: "2020-01-01",
+    }];
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    render(
+      <CheckOutModal
+        reservation={{ ...reservation, dogId: "dog-1", service: { name: "Guardería", type: "daycare" }, checkInTime: new Date() }}
+        open
+        onOpenChange={() => {}}
+        onConfirm={onConfirm}
+      />
+    );
+
+    expect(await screen.findByText("Incluido en el plan")).toBeInTheDocument();
+    expect(screen.getByText("−1 días")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /confirmar check-out/i }));
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalled());
+    expect(rpcCalls[0].args).toMatchObject({ p_payment_method: "plan", p_plan_id: "plan-1" });
   });
 });

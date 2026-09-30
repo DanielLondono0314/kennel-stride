@@ -138,7 +138,7 @@ export function PlanCoverageCard({ dogs, active, onSelect }: {
   }, [dogs]);
 
   return (
-    <SectionCard title="Planes activos" description="Plan del perro o bono del dueño · por vencer = ≤7 días o ≤2 unidades">
+    <SectionCard title="Planes activos" description="Plan vigente de cada perro · por vencer = ≤7 días o ≤2 unidades">
       <SegmentedMeter segments={segments} total={dogs.length} active={active} onSelect={onSelect} ariaLabel="Cobertura de planes" />
       {topPlans.length > 0 && (
         <div className="mt-4 border-t pt-3">

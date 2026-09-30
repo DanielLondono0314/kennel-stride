@@ -638,7 +638,7 @@ export function NewReservationModal({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Guardar la reserva sin precio?</AlertDialogTitle>
             <AlertDialogDescription>
-              El precio total es $0. Confírmalo si el servicio es gratuito o se cobra con un paquete.
+              El precio total es $0. Confírmalo si el servicio es gratuito o lo cubre el plan del perro.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

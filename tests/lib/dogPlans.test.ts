@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { computeEndDate, currentPlan, planProgressPct, planProgressText, planState, type DogPlan } from "@/lib/dogPlans";
+import {
+  checkoutUnits, computeEndDate, currentPlan, planProgressPct, planProgressText, planReminderMessage, planState,
+  plansCoveringReservation, type DogPlan,
+} from "@/lib/dogPlans";
 
 const today = new Date(2026, 8, 30); // 30 sep 2026
 
@@ -7,7 +10,7 @@ const plan = (p: Partial<DogPlan>): DogPlan => ({
   id: "1", dog_id: "d", customer_id: null, service_type: "x", service_label: "X", category: null,
   billing: "duration", start_date: "2026-09-02", end_date: "2026-10-31", quantity_total: null, quantity_used: 0,
   unit_label: null, consumption: null, price: 0, includes: [], conditions: "", notes: null,
-  status: "active", ended_at: null, created_at: "2026-09-02", ...p,
+  status: "active", ended_at: null, created_at: "2026-09-02", sold_on: "2026-09-02", ...p,
 });
 
 describe("planes de perros", () => {
@@ -47,3 +50,43 @@ describe("planes de perros", () => {
     expect(currentPlan([c], today)).toBeNull();
   });
 });
+
+describe("planes en el check-out", () => {
+  const perDay = plan({ billing: "quantity", end_date: null, quantity_total: 5, quantity_used: 3, unit_label: "días", consumption: "per_day", service_type: "daycare", category: "daycare" });
+  const perVisit = plan({ id: "2", billing: "quantity", end_date: null, quantity_total: 10, quantity_used: 0, unit_label: "clases", consumption: "per_visit", service_type: "clases", category: "training" });
+
+  it("unidades: por día cuenta desde el check-in; por visita, 1; por duración, 0", () => {
+    expect(checkoutUnits(perDay, new Date(2026, 8, 28, 9), today)).toBe(3);
+    expect(checkoutUnits(perDay, new Date(2026, 8, 30, 7), today)).toBe(1);
+    expect(checkoutUnits(perVisit, new Date(2026, 8, 25), today)).toBe(1);
+    expect(checkoutUnits(plan({}), new Date(2026, 8, 25), today)).toBe(0);
+  });
+
+  it("cubre por servicio o por categoría, y avisa si no alcanza", () => {
+    const boarding = plan({ id: "3", service_type: "internado_2m", category: "boarding" });
+    const res = { serviceType: "board_and_train", category: "boarding", startDate: new Date(2026, 8, 29), checkIn: new Date(2026, 8, 29) };
+    expect(plansCoveringReservation([perDay, perVisit, boarding], res, today).map((c) => c.plan.id)).toEqual(["3"]);
+
+    const daycare = { serviceType: "daycare", category: "daycare", startDate: new Date(2026, 8, 27), checkIn: new Date(2026, 8, 27) };
+    const [c] = plansCoveringReservation([perDay], daycare, today);
+    expect(c.units).toBe(4);
+    expect(c.ok).toBe(false);
+    expect(c.reason).toBe("Solo le quedan 2 días y esta estadía usa 4");
+  });
+
+  it("no cubre con planes vencidos antes de la reserva, por iniciar o finalizados", () => {
+    const res = { serviceType: "x", category: null, startDate: new Date(2026, 8, 30), checkIn: new Date(2026, 8, 30) };
+    expect(plansCoveringReservation([plan({ end_date: "2026-09-29" })], res, today)).toHaveLength(0);
+    expect(plansCoveringReservation([plan({ start_date: "2026-10-02" })], res, today)).toHaveLength(0);
+    expect(plansCoveringReservation([plan({ status: "finished" })], res, today)).toHaveLength(0);
+    expect(plansCoveringReservation([plan({})], res, today)).toHaveLength(1);
+  });
+
+  it("mensaje de WhatsApp para renovar", () => {
+    expect(planReminderMessage(plan({ end_date: "2026-10-03" }), "Kaelis", "Dani", today))
+      .toBe("Hola Dani, te contamos que el plan X de Kaelis vence el 3 de octubre. ¿Quieres renovarlo?");
+    expect(planReminderMessage(perDay, "Kaelis", null, today))
+      .toBe("Hola, te contamos que al plan X de Kaelis le quedan 2 días. ¿Quieres renovarlo?");
+  });
+});
+

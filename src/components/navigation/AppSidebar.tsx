@@ -11,7 +11,7 @@ import {
   Users,
   Dog,
   FileText,
-  Package,
+  CalendarCheck,
   CreditCard,
   BarChart3,
   Megaphone,
@@ -109,7 +109,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
             Finanzas
           </p>
         )}
-        <AppNavLink to={`${base}/packages`}     icon={Package}    label="Paquetes"    collapsed={collapsed} onClick={onMobileClose} />
+        <AppNavLink to={`${base}/plans`}        icon={CalendarCheck} label="Planes"   collapsed={collapsed} onClick={onMobileClose} />
         <AppNavLink to={`${base}/invoices`}     icon={CreditCard} label="Facturación" collapsed={collapsed} onClick={onMobileClose} />
         {(canManageTasks || canBill) && (
           <AppNavLink to={`${base}/contracts`}  icon={FileSignature} label="Contratos" collapsed={collapsed} onClick={onMobileClose} />

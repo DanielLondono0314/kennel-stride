@@ -199,7 +199,7 @@ export default function ReservationDetailPage() {
                 {["cancelled", "no_show", "rejected"].includes(r.status)
                   ? "Sin factura."
                   : r.status === "completed"
-                    ? "Sin factura (se cobró con paquete o fuera del sistema)."
+                    ? "Sin factura (lo cubrió el plan del perro o se cobró fuera del sistema)."
                     : "Sin factura todavía: se genera al hacer el check-out."}
               </p>
             )}

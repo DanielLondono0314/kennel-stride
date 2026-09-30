@@ -60,7 +60,7 @@ const FEATURES = [
   {
     Icon: CreditCard,
     title: 'Facturación y Cobros',
-    body: 'Facturas automáticas, paquetes de sesiones y cobros con LemonSqueezy. Compatible con facturación recurrente para suscripciones de adiestramiento.',
+    body: 'Facturas automáticas, planes por duración o por sesiones y cobros con LemonSqueezy. Compatible con facturación recurrente para suscripciones de adiestramiento.',
     bg: c.blueLight, ic: c.blue,
   },
   {
@@ -106,7 +106,7 @@ const PLANS = [
       'Hasta 200 perros con sus clientes',
       'Agenda y calendario',
       'Rutas de recogida y entrega',
-      'Paquetes y bonos de sesiones',
+      'Planes por duración o por sesiones',
       'Facturación',
       'Reportes de tu negocio',
       '2 usuarios',

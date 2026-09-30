@@ -46,7 +46,9 @@ function exportCsv(dogs: DashboardDog[]) {
     "Estado de peso": WEIGHT_STATUS_LABELS[d.weight.status],
     "Pesaje vencido": d.weight.isOverdue ? "Sí" : "No",
     "Plan activo": d.plan.name ?? PLAN_STATE_LABELS.none,
-    "Créditos restantes": d.plan.state === "none" ? "" : `${d.plan.remaining}/${d.plan.total}`,
+    "Uso del plan": d.plan.state === "none" ? "" : d.plan.total > 0
+      ? `${d.plan.remaining}/${d.plan.total} ${d.plan.unitLabel ?? ""}`.trim()
+      : d.plan.daysLeft !== null ? `${Math.max(0, d.plan.daysLeft)} días restantes` : "",
     "Plan vence": d.plan.expiresAt?.slice(0, 10) ?? "",
     Alimentación: d.feeding?.foodType ? FOOD_TYPE_LABELS[d.feeding.foodType] ?? d.feeding.foodType : "",
     Marca: d.feeding?.brand ?? "",

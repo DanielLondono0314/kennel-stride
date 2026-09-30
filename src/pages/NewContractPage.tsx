@@ -5,7 +5,7 @@ import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  ArrowLeft, ArrowRight, Check, CalendarDays, Dog, FileSignature, Loader2, Package,
+  ArrowLeft, ArrowRight, Check, CalendarDays, Dog, FileSignature, Loader2, CalendarCheck,
   Printer, Search, User, AlertTriangle, RotateCcw, Send, IdCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,17 +72,21 @@ interface ReservationLite {
   status: string;
 }
 
-interface PackageLite {
+interface PlanLite {
   id: string;
-  name: string;
+  dog_id: string;
   service_type: string;
-  total_credits: number;
+  service_label: string;
+  billing: "duration" | "quantity";
+  quantity_total: number | null;
+  unit_label: string | null;
+  includes: string[];
   price: number;
-  purchase_date: string;
-  expires_at: string;
+  start_date: string;
+  end_date: string | null;
 }
 
-type Source = { kind: "reservation"; id: string } | { kind: "package"; id: string } | null;
+type Source = { kind: "reservation"; id: string } | { kind: "plan"; id: string } | null;
 
 interface DetailsForm {
   servicio: string;
@@ -193,17 +197,17 @@ export default function NewContractPage() {
           .eq("organization_id", orgId).eq("customer_id", customerId!)
           .not("status", "in", "(cancelled,rejected)")
           .order("start_date", { ascending: false }).limit(8),
-        supabase.from("packages")
-          .select("id, name, service_type, total_credits, price, purchase_date, expires_at")
-          .eq("organization_id", orgId).eq("customer_id", customerId!)
-          .order("created_at", { ascending: false }).limit(8),
+        supabase.from("dog_plans")
+          .select("id, dog_id, service_type, service_label, billing, quantity_total, unit_label, includes, price, start_date, end_date")
+          .eq("organization_id", orgId).eq("customer_id", customerId!).neq("status", "cancelled")
+          .order("start_date", { ascending: false }).limit(8),
       ]);
       if (c.error) throw c.error;
       return {
         customer: c.data as CustomerFull,
         dogs: (d.data ?? []) as DogLite[],
         reservations: (r.data ?? []) as ReservationLite[],
-        packages: (p.data ?? []) as PackageLite[],
+        plans: (p.data ?? []) as PlanLite[],
       };
     },
   });
@@ -214,7 +218,7 @@ export default function NewContractPage() {
   const toggleDog = (id: string) =>
     setDogIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  // Reservas y paquetes del cliente, primero los del mismo servicio que la plantilla.
+  // Reservas y planes del cliente, primero los del mismo servicio que la plantilla.
   const sources = useMemo(() => {
     const data = customerQuery.data;
     if (!data) return [];
@@ -222,7 +226,9 @@ export default function NewContractPage() {
       ...data.reservations
         .filter((r) => dogIds.length === 0 || dogIds.includes(r.dog_id))
         .map((r) => ({ kind: "reservation" as const, id: r.id, serviceType: r.service_type, item: r })),
-      ...data.packages.map((p) => ({ kind: "package" as const, id: p.id, serviceType: p.service_type, item: p })),
+      ...data.plans
+        .filter((p) => dogIds.length === 0 || dogIds.includes(p.dog_id))
+        .map((p) => ({ kind: "plan" as const, id: p.id, serviceType: p.service_type, item: p })),
     ];
     const target = template?.service_type;
     return target ? [...list].sort((a, b) => Number(b.serviceType === target) - Number(a.serviceType === target)) : list;
@@ -264,13 +270,15 @@ export default function NewContractPage() {
         total_value: r.total_price ? String(r.total_price) : f.total_value,
       }));
     } else {
-      const p = s.item as PackageLite;
+      const p = s.item as PlanLite;
+      setDogIds((prev) => (prev.includes(p.dog_id) ? prev : [...prev, p.dog_id]));
       setForm((f) => ({
         ...f,
-        servicio: p.name,
-        sesiones: String(p.total_credits),
-        start_date: toDateInput(p.purchase_date),
-        end_date: toDateInput(p.expires_at),
+        servicio: p.service_label,
+        servicios_incluidos: p.includes.length ? p.includes.join(", ") : f.servicios_incluidos,
+        sesiones: p.quantity_total ? `${p.quantity_total} ${p.unit_label ?? ""}`.trim() : f.sesiones,
+        start_date: toDateInput(p.start_date),
+        end_date: toDateInput(p.end_date),
         total_value: p.price ? String(p.price) : f.total_value,
       }));
     }
@@ -383,7 +391,7 @@ export default function NewContractPage() {
         customer_id: customer.id,
         dog_ids: selectedDogs.map((d) => d.id),
         reservation_id: source?.kind === "reservation" ? source.id : null,
-        package_id: source?.kind === "package" ? source.id : null,
+        dog_plan_id: source?.kind === "plan" ? source.id : null,
         title: title.trim().slice(0, 160),
         service_type: template.service_type ?? sourceServiceType,
         body: renderedBody,
@@ -666,7 +674,7 @@ export default function NewContractPage() {
             {sources.length > 0 && (
               <Card>
                 <CardContent className="pt-6 space-y-3">
-                  <h2 className="font-semibold">Llenar con una reserva o paquete</h2>
+                  <h2 className="font-semibold">Llenar con una reserva o plan</h2>
                   <p className="text-sm text-muted-foreground">Toma fechas, valor y servicio de lo que ya está registrado.</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {sources.map((s) => {
@@ -674,7 +682,7 @@ export default function NewContractPage() {
                       const match = !!template.service_type && s.serviceType === template.service_type;
                       const isRes = s.kind === "reservation";
                       const r = s.item as ReservationLite;
-                      const p = s.item as PackageLite;
+                      const p = s.item as PlanLite;
                       return (
                         <button
                           key={`${s.kind}-${s.id}`}
@@ -687,14 +695,14 @@ export default function NewContractPage() {
                           )}
                         >
                           <span className="flex items-center gap-1.5 font-medium">
-                            {isRes ? <CalendarDays className="h-3.5 w-3.5" /> : <Package className="h-3.5 w-3.5" />}
-                            {isRes ? r.service_name || serviceLabels[r.service_type] : p.name}
+                            {isRes ? <CalendarDays className="h-3.5 w-3.5" /> : <CalendarCheck className="h-3.5 w-3.5" />}
+                            {isRes ? r.service_name || serviceLabels[r.service_type] : `Plan: ${p.service_label}`}
                             {match && <Badge variant="secondary" className="ml-auto text-[10px]">Coincide</Badge>}
                           </span>
                           <span className="block text-xs text-muted-foreground mt-0.5">
                             {isRes
                               ? `${shortDate(r.start_date)} – ${shortDate(r.end_date)} · ${formatContractValue(r.total_price)}`
-                              : `${p.total_credits} créditos · ${formatContractValue(p.price)} · vence ${shortDate(p.expires_at)}`}
+                              : `${p.quantity_total ? `${p.quantity_total} ${p.unit_label ?? ""} · ` : ""}${formatContractValue(p.price)} · ${shortDate(p.start_date)}${p.end_date ? ` – ${shortDate(p.end_date)}` : ""}`}
                           </span>
                         </button>
                       );
@@ -744,7 +752,7 @@ export default function NewContractPage() {
                   </div>
                   {showField("sesiones") && (
                     <div className="space-y-1.5">
-                      <Label htmlFor="c-ses">Sesiones / créditos</Label>
+                      <Label htmlFor="c-ses">Sesiones / cantidad</Label>
                       <Input id="c-ses" value={form.sesiones} onChange={set("sesiones")} />
                     </div>
                   )}

@@ -34,7 +34,6 @@ import {
   AlertTriangle,
   LogIn,
   Loader2,
-  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -312,22 +311,6 @@ export function CheckInModal({
               </Button>
             )}
           </div>
-
-          {/* Package Info if applicable */}
-          {reservation.usePackageCredits && reservation.package && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">{reservation.package.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {reservation.package.remainingCredits} créditos disponibles
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary">-1 crédito</Badge>
-            </div>
-          )}
 
           <Separator />
 

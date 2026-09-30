@@ -170,7 +170,7 @@ export interface CreateContractInput {
   template_id: string | null;
   customer_id: string;
   reservation_id: string | null;
-  package_id: string | null;
+  dog_plan_id: string | null;
   title: string;
   service_type: string | null;
   body: string;

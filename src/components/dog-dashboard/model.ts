@@ -81,7 +81,7 @@ export function attentionReasons(dog: DashboardDog): AttentionReason[] {
       severity: 2,
       label: d !== null && d <= 7
         ? `Plan vence en ${d} día${d === 1 ? "" : "s"}`
-        : `Quedan ${dog.plan.remaining} ${dog.plan.unitLabel ?? "créditos"}`,
+        : `Quedan ${dog.plan.remaining} ${dog.plan.unitLabel ?? "unidades"}`,
     });
   }
   return out.sort((a, b) => a.severity - b.severity);

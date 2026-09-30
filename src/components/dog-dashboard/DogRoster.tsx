@@ -65,7 +65,7 @@ export function PlanSummary({ dog, compact }: { dog: DashboardDog; compact?: boo
       {!compact && p.expiresAt && (
         <p className="mt-1 text-[11px] text-muted-foreground">
           {p.state === "expiring" ? "Por vencer · " : ""}vence {format(parseDateOnly(p.expiresAt), "d MMM yyyy", { locale: es })}
-          {p.extraCount > 0 ? ` · +${p.extraCount} bono${p.extraCount > 1 ? "s" : ""}` : ""}
+          {p.extraCount > 0 ? ` · +${p.extraCount} plan${p.extraCount > 1 ? "es" : ""}` : ""}
         </p>
       )}
     </div>

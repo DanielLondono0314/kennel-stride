@@ -89,7 +89,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   dogs: "Perros",
   calendar: "Calendario y agenda",
   tasks: "Tareas",
-  packages: "Paquetes y bonos",
+  packages: "Planes por duración o sesiones",
   invoices: "Facturación",
   reports: "Reportes",
   routes: "Rutas y transporte",

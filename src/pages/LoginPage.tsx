@@ -103,7 +103,7 @@ export default function LoginPage() {
             Control total de reservas, clientes, perros y facturación en un solo lugar.
           </p>
           <div className="flex flex-col gap-2 pt-4">
-            {["Reservas y check-in en tiempo real", "Historial clínico y vacunas", "Facturación y paquetes", "Gestión de instalaciones"].map((f) => (
+            {["Reservas y check-in en tiempo real", "Historial clínico y vacunas", "Facturación y planes", "Gestión de instalaciones"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sidebar-foreground/70 text-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                 {f}

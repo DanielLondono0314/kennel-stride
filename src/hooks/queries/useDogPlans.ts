@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { fetchAll } from "@/lib/supabaseQuery";
-import type { DogPlan } from "@/lib/dogPlans";
+import type { DogPlan, DogPlanUsage } from "@/lib/dogPlans";
 
 const keys = (orgId: string | undefined) => ({
   all: ["dog-plans", orgId] as const,
@@ -62,6 +62,52 @@ export function useActiveDogPlans() {
       (await fetchAll((f, t) =>
         supabase.from("dog_plans").select("*").eq("organization_id", orgId!).eq("status", "active").range(f, t)
       )) as DogPlan[],
+  });
+}
+
+export type OrgPlan = DogPlan & {
+  dogs: { name: string } | null;
+  customers: { first_name: string; last_name: string; phone: string | null } | null;
+};
+
+/** Todos los planes de la org con su perro y dueño (página Planes). */
+export function useOrgPlans() {
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
+  return useQuery({
+    queryKey: [...keys(orgId).all, "org"],
+    enabled: !!orgId,
+    queryFn: async (): Promise<OrgPlan[]> =>
+      (await fetchAll((f, t) =>
+        supabase
+          .from("dog_plans")
+          .select("*, dogs(name), customers(first_name, last_name, phone)")
+          .eq("organization_id", orgId!)
+          .order("start_date", { ascending: false })
+          .order("id")
+          .range(f, t)
+      )) as unknown as OrgPlan[],
+  });
+}
+
+/** Usos registrados de varios planes (a mano o por check-out), el más reciente primero. */
+export function usePlanUsage(planIds: string[]) {
+  const { organization } = useOrganization();
+  const orgId = organization?.id;
+  return useQuery({
+    queryKey: [...keys(orgId).all, "usage", planIds.join(",")],
+    enabled: !!orgId && planIds.length > 0,
+    queryFn: async (): Promise<DogPlanUsage[]> => {
+      const { data, error } = await supabase
+        .from("dog_plan_usage")
+        .select("id, plan_id, used_on, quantity, note, reservation_id, created_at")
+        .eq("organization_id", orgId!)
+        .in("plan_id", planIds)
+        .order("used_on", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DogPlanUsage[];
+    },
   });
 }
 
