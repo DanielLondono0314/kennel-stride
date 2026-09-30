@@ -18,11 +18,12 @@ import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 import { DogServiceHistory } from "@/components/dogs/DogServiceHistory";
+import { DogPlansSection } from "@/components/plans/DogPlansSection";
 import {
   ArrowLeft, Dog, Edit, Calendar, Scale, Palette,
   Syringe, ClipboardList, Activity, BookOpen, Brain,
   Loader2, User, Printer, ClipboardCheck, UtensilsCrossed,
-  AlertTriangle, Pill, FileSignature,
+  AlertTriangle, Pill, FileSignature, CalendarCheck,
 } from "lucide-react";
 import { DogContractsTab } from "@/components/contracts/DogContractsTab";
 import { format } from "date-fns";
@@ -353,6 +354,9 @@ export default function DogProfilePage() {
           <TabsTrigger value="info" className="gap-1.5">
             <Dog className="h-4 w-4" />Info
           </TabsTrigger>
+          <TabsTrigger value="plan" className="gap-1.5">
+            <CalendarCheck className="h-4 w-4" />Plan
+          </TabsTrigger>
           <TabsTrigger value="services" className="gap-1.5">
             <ClipboardCheck className="h-4 w-4" />Servicios
           </TabsTrigger>
@@ -625,6 +629,11 @@ export default function DogProfilePage() {
         {/* Contratos anexados (no se imprimen con la ficha: tienen su propio PDF) */}
         <TabsContent value="contracts" className="mt-6 print:hidden">
           <DogContractsTab dogId={dog.id} dogName={dog.name} customerId={dog.customer_id} />
+        </TabsContent>
+
+        {/* Plan contratado (catálogo de servicios del centro) */}
+        <TabsContent value="plan" className="mt-6" forceMount>
+          <DogPlansSection dogId={dog.id} dogName={dog.name} />
         </TabsContent>
 
         {/* Servicios recibidos: historial trazable de report cards por tipo de servicio */}

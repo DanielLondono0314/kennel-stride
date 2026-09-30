@@ -4,6 +4,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { fetchAll } from "@/lib/supabaseQuery";
 import { isUuid } from "@/lib/ids";
 import { readAggression, readFeeding, type Aggression, type Feeding } from "@/lib/dogCare";
+import { currentPlan, type DogPlan } from "@/lib/dogPlans";
 
 export interface WorkerDogListItem {
   id: string;
@@ -88,6 +89,8 @@ export interface WorkerDogProfile {
   medications: { id: string; name: string; dose: string | null; frequency: string | null; route: string | null; withFood: boolean; endDate: string | null }[];
   vaccines: { id: string; name: string; nextDoseDate: string | null }[];
   reports: { id: string; sessionDate: string; serviceType: string; overallScore: number; highlights: string | null; notes: string | null }[];
+  /** Plan vigente del perro (qué incluye, hasta cuándo). */
+  plan: DogPlan | null;
 }
 
 /** Ficha completa de un perro para el trabajador (todo lo que necesita para cuidarlo). */
@@ -100,7 +103,7 @@ export function useWorkerDogProfile(dogId: string | null | undefined) {
     enabled: !!orgId && isUuid(dogId),
     queryFn: async (): Promise<WorkerDogProfile | null> => {
       const id = dogId!;
-      const [dogRes, allergiesRes, medsRes, vaccRes, unitRes, reportsRes] = await Promise.all([
+      const [dogRes, allergiesRes, medsRes, vaccRes, unitRes, reportsRes, plansRes] = await Promise.all([
         supabase
           .from("dogs")
           .select("*, customers(first_name, last_name, phone)")
@@ -123,6 +126,7 @@ export function useWorkerDogProfile(dogId: string | null | undefined) {
           .eq("organization_id", orgId!)
           .order("session_date", { ascending: false })
           .limit(3),
+        supabase.from("dog_plans").select("*").eq("dog_id", id).eq("organization_id", orgId!).eq("status", "active"),
       ]);
       if (dogRes.error) throw dogRes.error;
       const d = dogRes.data;
@@ -149,6 +153,7 @@ export function useWorkerDogProfile(dogId: string | null | undefined) {
           id: m.id, name: m.name, dose: m.dose, frequency: m.frequency, route: m.route, withFood: !!m.with_food, endDate: m.end_date,
         })),
         vaccines: (vaccRes.data ?? []).map((v) => ({ id: v.id, name: v.vaccine_name, nextDoseDate: v.next_dose_date })),
+        plan: currentPlan((plansRes.data ?? []) as DogPlan[]),
         reports: (reportsRes.data ?? []).map((r) => ({
           id: r.id, sessionDate: r.session_date, serviceType: r.service_type, overallScore: r.overall_score, highlights: r.highlights, notes: r.notes,
         })),

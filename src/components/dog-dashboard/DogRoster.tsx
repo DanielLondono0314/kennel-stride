@@ -49,21 +49,22 @@ export function StayLabel({ dog }: { dog: DashboardDog }) {
 export function PlanSummary({ dog, compact }: { dog: DashboardDog; compact?: boolean }) {
   const p = dog.plan;
   if (p.state === "none") return <span className="text-xs text-muted-foreground">{PLAN_STATE_LABELS.none}</span>;
-  const ratio = p.total ? p.remaining / p.total : 0;
+  // Plan por duración: no hay unidades que contar, se muestran los días que le quedan.
+  const byUnits = p.total > 0;
   return (
     <div className="min-w-0">
       <div className="flex items-baseline justify-between gap-2 text-xs">
         <span className="truncate font-medium text-foreground">{p.name}</span>
         <span className={cn("shrink-0 tabular-nums", p.state === "expiring" ? "font-medium text-[hsl(26,83%,30%)]" : "text-muted-foreground")}>
-          {p.remaining}/{p.total}
+          {byUnits ? `${p.remaining}/${p.total}` : p.daysLeft !== null ? `${Math.max(0, p.daysLeft)} días` : ""}
         </span>
       </div>
       <div className="mt-1 h-1.5 w-full rounded-full bg-primary/10" aria-hidden>
-        <div className={cn("h-full rounded-full", p.state === "expiring" ? "bg-warning" : "bg-primary")} style={{ width: `${ratio * 100}%` }} />
+        <div className={cn("h-full rounded-full", p.state === "expiring" ? "bg-warning" : "bg-primary")} style={{ width: `${p.remainingPct}%` }} />
       </div>
       {!compact && p.expiresAt && (
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {p.state === "expiring" ? "Por vencer · " : ""}vence {format(new Date(p.expiresAt), "d MMM yyyy", { locale: es })}
+          {p.state === "expiring" ? "Por vencer · " : ""}vence {format(parseDateOnly(p.expiresAt), "d MMM yyyy", { locale: es })}
           {p.extraCount > 0 ? ` · +${p.extraCount} bono${p.extraCount > 1 ? "s" : ""}` : ""}
         </p>
       )}

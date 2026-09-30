@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { currentPlan, daysLeft as planDaysLeft, planProgressPct, planState as dogPlanStateOf, remainingUnits, type DogPlan } from "@/lib/dogPlans";
 import { addDays, differenceInCalendarDays, format, subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/supabaseQuery";
@@ -43,6 +44,10 @@ export interface DashboardDog {
     total: number;
     expiresAt: string | null;
     daysLeft: number | null;
+    /** Qué cuenta el plan ("clases", "días"); null = créditos de un paquete o plan por duración. */
+    unitLabel: string | null;
+    /** Cuánto le queda al plan (0–100): unidades restantes o tiempo restante si es por duración. */
+    remainingPct: number;
     /** Otros bonos activos del mismo dueño, además del mostrado. */
     extraCount: number;
   };
@@ -100,7 +105,7 @@ export function useDogDashboard(weightSettings: WeightSettings) {
       const horizon = addDays(today, 30).toISOString();
 
       const [
-        dogs, logs, medical, packages, reservations, units, allergies, meds, vaccines, reports,
+        dogs, logs, medical, packages, reservations, units, allergies, meds, vaccines, reports, dogPlans,
       ] = await Promise.all([
         fetchAll((f, t) => supabase.from("dogs")
           .select("id, name, breed, birth_date, gender, is_neutered, photo_url, feeding, aggression_details, behavior_notes, is_aggressive, has_allergies, on_medication, customer_id, customers(id, first_name, last_name, phone)")
@@ -132,6 +137,9 @@ export function useDogDashboard(weightSettings: WeightSettings) {
           .select("dog_id, session_date, energy_level, appetite, overall_score")
           .eq("organization_id", orgId!).gte("session_date", format(subDays(today, 90), "yyyy-MM-dd"))
           .order("session_date", { ascending: false }).range(f, t)),
+        // Planes del perro (catálogo de servicios); tienen prioridad sobre los bonos del dueño.
+        fetchAll((f, t) => supabase.from("dog_plans")
+          .select("*").eq("organization_id", orgId!).eq("status", "active").range(f, t)),
       ]);
 
       // Pesos: dog_weight_logs + medical_history, igual que la hoja de pesos.
@@ -143,6 +151,7 @@ export function useDogDashboard(weightSettings: WeightSettings) {
         (p) => p.dogId,
       );
       const pkgsByCustomer = groupBy(packages, (p) => p.customer_id);
+      const plansByDog = groupBy(dogPlans as DogPlan[], (p) => p.dog_id);
       const resByDog = groupBy(reservations, (r) => r.dog_id);
       const unitByDog = new Map(units.map((u) => [u.assigned_dog_id as string, u.name]));
       const allergiesByDog = groupBy(allergies, (a) => a.dog_id);
@@ -159,13 +168,20 @@ export function useDogDashboard(weightSettings: WeightSettings) {
         const aggr = (d.aggression_details ?? null) as Record<string, unknown> | null;
         const customer = d.customers as { id: string; first_name: string; last_name: string; phone: string | null } | null;
 
-        // Plan activo: el bono vigente que vence primero.
+        // Plan activo: primero el plan del perro (catálogo de servicios); si no
+        // tiene, el bono vigente del dueño que vence primero.
+        const dogPlan = currentPlan(plansByDog.get(d.id) ?? [], today);
         const pkgs = pkgsByCustomer.get(d.customer_id) ?? [];
-        const pkg = pkgs[0];
-        const daysLeft = pkg ? differenceInCalendarDays(parseDateOnly(pkg.expires_at), today) : null;
-        const planState: PlanState = !pkg
-          ? "none"
-          : (daysLeft !== null && daysLeft <= 7) || pkg.remaining_credits <= 2 ? "expiring" : "active";
+        const pkg = dogPlan ? undefined : pkgs[0];
+        const dogPlanState = dogPlan ? dogPlanStateOf(dogPlan, today) : null;
+        const daysLeft = dogPlan
+          ? planDaysLeft(dogPlan, today)
+          : pkg ? differenceInCalendarDays(parseDateOnly(pkg.expires_at), today) : null;
+        const planState: PlanState = dogPlan
+          ? (dogPlanState === "expiring" ? "expiring" : "active")
+          : !pkg
+            ? "none"
+            : (daysLeft !== null && daysLeft <= 7) || pkg.remaining_credits <= 2 ? "expiring" : "active";
 
         // Estancia: en el centro ahora, o próxima en 30 días.
         const res = resByDog.get(d.id) ?? [];
@@ -226,16 +242,31 @@ export function useDogDashboard(weightSettings: WeightSettings) {
               }
             : null,
           weight: analyzeWeight(pointsByDog.get(d.id) ?? [], weightSettings, today),
-          plan: {
-            state: planState,
-            name: pkg?.name ?? null,
-            serviceType: pkg?.service_type ?? null,
-            remaining: pkg?.remaining_credits ?? 0,
-            total: pkg?.total_credits ?? 0,
-            expiresAt: pkg?.expires_at ?? null,
-            daysLeft,
-            extraCount: Math.max(0, pkgs.length - 1),
-          },
+          plan: dogPlan
+            ? {
+                state: planState,
+                name: dogPlan.service_label,
+                serviceType: dogPlan.service_type,
+                remaining: remainingUnits(dogPlan) ?? 0,
+                total: dogPlan.quantity_total ?? 0,
+                expiresAt: dogPlan.end_date,
+                daysLeft,
+                unitLabel: dogPlan.billing === "quantity" ? dogPlan.unit_label ?? "unidades" : null,
+                remainingPct: 100 - planProgressPct(dogPlan, today),
+                extraCount: Math.max(0, (plansByDog.get(d.id)?.length ?? 1) - 1),
+              }
+            : {
+                state: planState,
+                name: pkg?.name ?? null,
+                serviceType: pkg?.service_type ?? null,
+                remaining: pkg?.remaining_credits ?? 0,
+                total: pkg?.total_credits ?? 0,
+                expiresAt: pkg?.expires_at ?? null,
+                daysLeft,
+                unitLabel: pkg ? "créditos" : null,
+                remainingPct: pkg?.total_credits ? Math.round((pkg.remaining_credits / pkg.total_credits) * 100) : 0,
+                extraCount: Math.max(0, pkgs.length - 1),
+              },
           stay: {
             state: current ? "in_center" : upcoming ? "upcoming" : "none",
             serviceName: stayRes?.service_name ?? null,

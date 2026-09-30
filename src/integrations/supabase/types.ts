@@ -640,6 +640,150 @@ export type Database = {
           },
         ]
       }
+      dog_plan_usage: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          organization_id: string
+          plan_id: string
+          quantity: number
+          reservation_id: string | null
+          used_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          organization_id: string
+          plan_id: string
+          quantity?: number
+          reservation_id?: string | null
+          used_on?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          organization_id?: string
+          plan_id?: string
+          quantity?: number
+          reservation_id?: string | null
+          used_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_plan_usage_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "dog_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dog_plans: {
+        Row: {
+          billing: string
+          category: string | null
+          conditions: string
+          consumption: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          dog_id: string
+          end_date: string | null
+          ended_at: string | null
+          id: string
+          includes: string[]
+          notes: string | null
+          organization_id: string
+          price: number
+          quantity_total: number | null
+          quantity_used: number
+          service_label: string
+          service_type: string
+          start_date: string
+          status: string
+          unit_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing: string
+          category?: string | null
+          conditions?: string
+          consumption?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          dog_id: string
+          end_date?: string | null
+          ended_at?: string | null
+          id?: string
+          includes?: string[]
+          notes?: string | null
+          organization_id: string
+          price?: number
+          quantity_total?: number | null
+          quantity_used?: number
+          service_label: string
+          service_type: string
+          start_date: string
+          status?: string
+          unit_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing?: string
+          category?: string | null
+          conditions?: string
+          consumption?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          dog_id?: string
+          end_date?: string | null
+          ended_at?: string | null
+          id?: string
+          includes?: string[]
+          notes?: string | null
+          organization_id?: string
+          price?: number
+          quantity_total?: number | null
+          quantity_used?: number
+          service_label?: string
+          service_type?: string
+          start_date?: string
+          status?: string
+          unit_label?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_plans_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_plans_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dog_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dog_temperament: {
         Row: {
           aggression_level: number
@@ -2473,6 +2617,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      register_plan_usage: {
+        Args: { p_note?: string; p_plan_id: string; p_quantity?: number; p_used_on?: string }
+        Returns: number
+      }
       accept_invitation: {
         Args: {
           p_privacy_version?: string

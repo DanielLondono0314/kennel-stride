@@ -79,7 +79,9 @@ export function attentionReasons(dog: DashboardDog): AttentionReason[] {
     out.push({
       kind: "plan_expiring",
       severity: 2,
-      label: d !== null && d <= 7 ? `Plan vence en ${d} día${d === 1 ? "" : "s"}` : `Quedan ${dog.plan.remaining} crédito${dog.plan.remaining === 1 ? "" : "s"}`,
+      label: d !== null && d <= 7
+        ? `Plan vence en ${d} día${d === 1 ? "" : "s"}`
+        : `Quedan ${dog.plan.remaining} ${dog.plan.unitLabel ?? "créditos"}`,
     });
   }
   return out.sort((a, b) => a.severity - b.severity);

@@ -18,12 +18,13 @@ import {
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Dog, Package,
   FileText, Edit, CreditCard, Calendar, AlertTriangle,
-  CheckCircle2, Clock, Loader2, Printer, ChevronRight, Plus, MessageCircle,
+  CheckCircle2, Clock, Loader2, Printer, ChevronRight, Plus, MessageCircle, ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatIdDocument, isDuplicateIdDocumentError } from "@/lib/idDocument";
 import { CustomerModal } from "@/components/customers/CustomerModal";
 import { DogModal } from "@/components/dogs/DogModal";
+import { CustomerPlansSection } from "@/components/plans/CustomerPlansSection";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
 import { saveDog } from "@/lib/saveDog";
 import { isUuid } from "@/lib/ids";
@@ -330,6 +331,10 @@ export default function CustomerProfilePage() {
             <Dog className="h-4 w-4" />
             Mascotas ({dogs.length})
           </TabsTrigger>
+          <TabsTrigger value="plans" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Planes
+          </TabsTrigger>
           <TabsTrigger value="reservations" className="gap-2">
             <Calendar className="h-4 w-4" />
             Reservas ({reservations.length})
@@ -416,6 +421,11 @@ export default function CustomerProfilePage() {
             </div>
             </>
           )}
+        </TabsContent>
+
+        {/* Planes de sus perros */}
+        <TabsContent value="plans" className="mt-4" forceMount>
+          <CustomerPlansSection dogs={dogs.map((d) => ({ id: d.id, name: d.name }))} />
         </TabsContent>
 
         {/* Reservations Tab */}

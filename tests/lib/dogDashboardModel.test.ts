@@ -20,7 +20,7 @@ function dog(overrides: Partial<DashboardDog> & { name: string }): DashboardDog 
     behaviorNotes: null,
     feeding: { foodType: "seco", brand: null, mealsPerDay: 2, portion: null, instructions: null },
     weight: analyzeWeight([{ date: "2026-09-20", weight: 20 }], settings, today),
-    plan: { state: "active", name: "Bono 10", serviceType: "daycare", remaining: 8, total: 10, expiresAt: "2026-12-01", daysLeft: 67, extraCount: 0 },
+    plan: { state: "active", name: "Bono 10", serviceType: "daycare", remaining: 8, total: 10, expiresAt: "2026-12-01", daysLeft: 67, unitLabel: "créditos", remainingPct: 80, extraCount: 0 },
     stay: { state: "none", serviceName: null, startDate: null, endDate: null },
     kennel: null,
     allergies: [],

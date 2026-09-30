@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  AlertTriangle, ChevronRight, ClipboardCheck, Home, Leaf, Phone, Pill, ShieldAlert, Star, Syringe, UtensilsCrossed,
+  AlertTriangle, CalendarCheck, ChevronRight, ClipboardCheck, Home, Leaf, Phone, Pill, ShieldAlert, Star, Syringe, UtensilsCrossed,
 } from "lucide-react";
 import { getAge, parseDateOnly } from "@/lib/age";
 import { telHref } from "@/lib/contact";
@@ -12,6 +12,7 @@ import { useServiceTypes } from "@/hooks/useServiceTypes";
 import type { WorkerDogProfile } from "@/hooks/queries/useWorkerDogs";
 import { cn } from "@/lib/utils";
 import { DogAvatar } from "./DogBits";
+import { PlanCard } from "@/components/plans/PlanCard";
 
 function Section({
   icon: Icon, title, tone = "default", children,
@@ -138,6 +139,13 @@ export function WorkerDogInfo({ dog, compact = false }: { dog: WorkerDogProfile;
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {/* Plan: lo que le toca a este perro (ej. reporte por WhatsApp, clases grupales). Sin precio. */}
+      {dog.plan && (
+        <Section icon={CalendarCheck} title="Plan">
+          <PlanCard plan={dog.plan} compact={compact} showPrice={false} />
         </Section>
       )}
 
