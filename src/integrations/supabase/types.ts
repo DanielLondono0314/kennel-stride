@@ -2624,6 +2624,11 @@ export type Database = {
     }
     Functions: {
       org_today: { Args: { p_org: string }; Returns: string }
+      import_clinical_records: {
+        Args: { p_dry_run?: boolean; p_kind: string; p_org_id: string; p_rows: Json }
+        Returns: Json
+      }
+      clinical_norm: { Args: { p: string }; Returns: string }
       register_plan_usage: {
         Args: { p_note?: string; p_plan_id: string; p_quantity?: number; p_used_on?: string }
         Returns: number

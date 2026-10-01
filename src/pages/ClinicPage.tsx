@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Stethoscope, Syringe, Bug, AlertTriangle,
-  Brain, FileText, ChevronRight, ArrowLeft,
+  Brain, FileText, ChevronRight, ArrowLeft, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
@@ -19,6 +19,7 @@ import { VaccinationTab } from "@/components/clinic/VaccinationTab";
 import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
+import { ImportClinicalModal } from "@/components/clinic/ImportClinicalModal";
 import { usePermission } from "@/hooks/usePermission";
 
 interface DbDog {
@@ -41,6 +42,9 @@ export default function ClinicPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dogs, setDogs] = useState<DbDog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  // Tras importar se vuelven a montar las pestañas para que lean lo nuevo.
+  const [importVersion, setImportVersion] = useState(0);
 
   const orgId = organization?.id;
 
@@ -78,10 +82,17 @@ export default function ClinicPage() {
       {/* Dog list sidebar — hidden on mobile when a dog is selected */}
       <div className={`w-full md:w-80 border-r border-border bg-card flex flex-col ${selectedDogId ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b border-border">
-          <h1 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
-            <Stethoscope className="h-5 w-5 text-primary" />
-            Clínica Veterinaria
-          </h1>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Stethoscope className="h-5 w-5 text-primary" />
+              Clínica Veterinaria
+            </h1>
+            {canClinical && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" /> Importar
+              </Button>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar perro..." aria-label="Buscar perro" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
@@ -177,7 +188,7 @@ export default function ClinicPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="history" className="w-full">
+            <Tabs key={`${selectedDogId}-${importVersion}`} defaultValue="history" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="history" className="text-xs sm:text-sm">
                   <FileText className="h-4 w-4 mr-1.5 hidden sm:inline" />
@@ -220,6 +231,7 @@ export default function ClinicPage() {
           </div>
         )}
       </div>
+      <ImportClinicalModal open={importOpen} onOpenChange={setImportOpen} onImported={() => setImportVersion((v) => v + 1)} />
     </div>
   );
 }

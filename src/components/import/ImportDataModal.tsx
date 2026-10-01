@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import Papa from "papaparse";
 import { normalizePhone } from "@/lib/contact";
-import * as XLSX from "xlsx";
+import { isExcelFile, parseCsvFile, parseExcelFile } from "@/lib/importFiles";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
@@ -19,7 +18,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CUSTOMER_AUTHORIZATION_PATH } from "@/lib/legal";
 import {
-  type RawRow, normalizeRow, decodeCsvBytes, toIsoDate, parseImportDate, isDescriptionRow,
+  type RawRow, normalizeRow, parseImportDate, isDescriptionRow,
   looksLikeEmail, looksLikePhone, hasGarbledText, parseBool, parseDecimal, digitsOnly, parseAllergies, parseMedications,
 } from "@/lib/importParsing";
 
@@ -65,43 +64,6 @@ const DOG_SAMPLE =
   DOG_HEADERS.join(",") +
   "\nFirulais,Labrador,male,2020-05-12,28,Negro,9821374,true,false,false,false,Muy juguetón,Sin novedades,seco,Marca X,2,300,g,Separar de otros perros,,,,,,,,Perrera 3,,juan@example.com," +
   "\nLuna,Poodle,female,,7,Blanco,,false,true,true,false,,,humedo,,3,150,g,,media,Manejar con correa corta,true,true,true,Pollo:comida:Picazón:media,Apoquel:5mg:cada 12h:oral:false,,Alérgica al pollo,ana@example.com,";
-
-function isExcelFile(file: File): boolean {
-  return (
-    /\.xlsx?$/i.test(file.name) ||
-    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-    file.type === "application/vnd.ms-excel"
-  );
-}
-
-// Lee la primera hoja de un .xlsx/.xls y la devuelve como filas planas. Las
-// celdas de fecha se convierten a aaaa-mm-dd desde su valor real: el texto
-// formateado depende del formato de celda (p. ej. "5/10/26" en mm-dd-yy) y
-// es ambiguo.
-async function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
-  const data = new Uint8Array(await file.arrayBuffer());
-  const workbook = XLSX.read(data, { type: "array", cellNF: true });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return [];
-  const sheet = workbook.Sheets[sheetName];
-  for (const addr of Object.keys(sheet)) {
-    if (addr.startsWith("!")) continue;
-    const cell = sheet[addr] as XLSX.CellObject;
-    if (cell.t === "n" && typeof cell.v === "number" && cell.z && XLSX.SSF.is_date(cell.z)) {
-      const p = XLSX.SSF.parse_date_code(cell.v);
-      const iso = toIsoDate(p.y, p.m, p.d);
-      sheet[addr] = { t: "s", v: iso, w: iso };
-    }
-  }
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
-}
-
-// CSV: se decodifica a mano para soportar los CSV Windows-1252 de Excel.
-async function parseCsvFile(file: File): Promise<{ rows: Record<string, unknown>[]; warnings: number }> {
-  const text = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()));
-  const res = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: "greedy" });
-  return { rows: res.data, warnings: res.errors.length };
-}
 
 function downloadTemplate(mode: Mode) {
   const content = mode === "customers" ? CUSTOMER_SAMPLE : DOG_SAMPLE;

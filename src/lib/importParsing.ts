@@ -55,7 +55,11 @@ export interface ParsedDate {
 // Día primero, como se escribe en Latinoamérica; si el segundo número no puede
 // ser mes (>12) se asume mm/dd. Nunca se lo pasamos crudo a Postgres, que
 // interpreta "10/05/2026" como 5 de octubre (DateStyle MDY).
-export function parseImportDate(raw: string, today: Date = new Date()): ParsedDate {
+export function parseImportDate(
+  raw: string,
+  today: Date = new Date(),
+  opts: { allowFuture?: boolean; label?: string } = {},
+): ParsedDate {
   const s = raw.trim();
   if (!s) return { value: null };
 
@@ -81,8 +85,8 @@ export function parseImportDate(raw: string, today: Date = new Date()): ParsedDa
 
   if (!isRealDate(y, m, d)) return { value: null, error: `Fecha "${s}" no es válida` };
   const value = toIsoDate(y, m, d);
-  if (value > toIsoDate(today.getFullYear(), today.getMonth() + 1, today.getDate())) {
-    return { value: null, error: `Fecha de nacimiento "${s}" está en el futuro` };
+  if (!opts.allowFuture && value > toIsoDate(today.getFullYear(), today.getMonth() + 1, today.getDate())) {
+    return { value: null, error: `${opts.label ?? "Fecha de nacimiento"} "${s}" está en el futuro` };
   }
   return { value };
 }
