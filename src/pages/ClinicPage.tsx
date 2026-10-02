@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search, Stethoscope, Syringe, Bug, AlertTriangle,
-  Brain, FileText, ChevronRight, ArrowLeft, Upload,
+  Brain, FileText, ChevronRight, ArrowLeft, Upload, LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { MedicalHistoryTab } from "@/components/clinic/MedicalHistoryTab";
@@ -20,6 +20,9 @@ import { DewormingTab } from "@/components/clinic/DewormingTab";
 import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 import { ImportClinicalModal } from "@/components/clinic/ImportClinicalModal";
+import { ClinicDashboard, type ClinicTab } from "@/components/clinic-dashboard/ClinicDashboard";
+import { useUrlState } from "@/hooks/useUrlState";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/usePermission";
 
 interface DbDog {
@@ -38,7 +41,12 @@ export default function ClinicPage() {
   const canClinical = usePermission("clinical");
   const basePath = useOrgBasePath();
   const { organization } = useOrganization();
-  const [selectedDogId, setSelectedDogId] = useState<string>("");
+  const queryClient = useQueryClient();
+  const [, setSearchParams] = useSearchParams();
+  // Panel (resumen del centro) o Fichas (historia de un perro); perro y pestaña en la URL.
+  const [view, setView] = useUrlState<string>("vista", "panel");
+  const [selectedDogId, setSelectedDogId] = useUrlState<string>("perro", "");
+  const [tab, setTab] = useUrlState<string>("seccion", "history");
   const [searchQuery, setSearchQuery] = useState("");
   const [dogs, setDogs] = useState<DbDog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,23 +84,74 @@ export default function ClinicPage() {
   }, [dogs, searchQuery]);
 
   const selectedDog = dogs.find((d) => d.id === selectedDogId);
+  const isPanel = view !== "fichas";
+
+  // Un solo cambio de URL: varios setters seguidos se pisarían entre sí.
+  const openDog = (dogId: string, section: ClinicTab = "history") => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("vista", "fichas");
+      next.set("perro", dogId);
+      if (section === "history") next.delete("seccion"); else next.set("seccion", section);
+      return next;
+    }, { replace: false });
+  };
+  const showPanel = () => {
+    // Lo editado en las fichas se refleja en el panel.
+    queryClient.invalidateQueries({ queryKey: ["clinic-dashboard"] });
+    setView("panel");
+  };
+
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 md:px-6">
+      <h1 className="flex items-center gap-2 text-lg font-bold text-foreground">
+        <Stethoscope className="h-5 w-5 text-primary" /> Clínica Veterinaria
+      </h1>
+      <div className="flex items-center gap-2">
+        <div className="inline-flex rounded-md border p-0.5" role="tablist" aria-label="Vista de clínica">
+          <button type="button" role="tab" aria-selected={isPanel} onClick={showPanel}
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium ${isPanel ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+            <LayoutDashboard className="h-4 w-4" /> Panel
+          </button>
+          <button type="button" role="tab" aria-selected={!isPanel} onClick={() => setView("fichas")}
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium ${!isPanel ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+            <FileText className="h-4 w-4" /> Fichas clínicas
+          </button>
+        </div>
+        {canClinical && (
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4" /> Importar
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const importModal = (
+    <ImportClinicalModal
+      open={importOpen}
+      onOpenChange={setImportOpen}
+      onImported={() => { setImportVersion((v) => v + 1); queryClient.invalidateQueries({ queryKey: ["clinic-dashboard"] }); }}
+    />
+  );
+
+  if (isPanel) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)]">
+        {header}
+        <div className="p-4 md:p-6"><ClinicDashboard onOpenDog={openDog} /></div>
+        {importModal}
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
+      {header}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Dog list sidebar — hidden on mobile when a dog is selected */}
       <div className={`w-full md:w-80 border-r border-border bg-card flex flex-col ${selectedDogId ? "hidden md:flex" : "flex"}`}>
         <div className="p-4 border-b border-border">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-primary" />
-              Clínica Veterinaria
-            </h1>
-            {canClinical && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4" /> Importar
-              </Button>
-            )}
-          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar perro..." aria-label="Buscar perro" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
@@ -188,7 +247,7 @@ export default function ClinicPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs key={`${selectedDogId}-${importVersion}`} defaultValue="history" className="w-full">
+            <Tabs key={`${selectedDogId}-${importVersion}`} value={tab} onValueChange={setTab} className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="history" className="text-xs sm:text-sm">
                   <FileText className="h-4 w-4 mr-1.5 hidden sm:inline" />
@@ -231,7 +290,8 @@ export default function ClinicPage() {
           </div>
         )}
       </div>
-      <ImportClinicalModal open={importOpen} onOpenChange={setImportOpen} onImported={() => setImportVersion((v) => v + 1)} />
+      </div>
+      {importModal}
     </div>
   );
 }
