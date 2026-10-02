@@ -107,7 +107,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         .maybeSingle(),
       supabase
         .from("organization_members")
-        .select("role, org_roles(id, name, access_type, permissions, is_system, system_key), organizations!inner(slug)")
+        .select("role, org_roles(id, name, access_type, permissions, pages, is_system, system_key), organizations!inner(slug)")
         .eq("user_id", userId)
         .eq("organizations.slug", orgSlug)
         .maybeSingle(),

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import type { AccessType, OrgPermission, OrgRoleInfo } from "@/lib/permissions";
+import type { AccessType, OrgPage, OrgPermission, OrgRoleInfo } from "@/lib/permissions";
 
 export interface OrgRoleWithCount extends OrgRoleInfo {
   member_count: number;
@@ -11,6 +11,8 @@ export interface OrgRoleInput {
   name: string;
   access_type: AccessType;
   permissions: OrgPermission[];
+  /** null = ve todas las secciones. */
+  pages: OrgPage[] | null;
 }
 
 function roleKeys(orgId: string | undefined) {
@@ -27,7 +29,7 @@ export function useOrgRoles() {
       const [rolesRes, staffRes] = await Promise.all([
         supabase
           .from("org_roles")
-          .select("id, name, access_type, permissions, is_system, system_key")
+          .select("id, name, access_type, permissions, pages, is_system, system_key")
           .eq("organization_id", organization!.id)
           .order("is_system", { ascending: false })
           .order("name"),

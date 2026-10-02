@@ -25,6 +25,7 @@ import {
   type ClinicAlert, type ClinicDog, type ClinicEvent, type ClinicSegment, type DueItem, type EventType,
 } from "@/lib/clinicDashboard";
 import { cn } from "@/lib/utils";
+import { specialCareDetail } from "@/lib/specialCare";
 
 /** Pestaña de la ficha clínica que conviene abrir. */
 export type ClinicTab = "history" | "vaccines" | "deworming" | "conditions" | "temperament";
@@ -163,14 +164,15 @@ function Kpis({ summary: s, horizon, segment, onSegment }: {
 }) {
   const pct = (n: number) => (s.total ? Math.round((n / s.total) * 100) : 0);
   const tiles: { segment: ClinicSegment | null; label: string; value: string; detail: string; ratio?: number; critical?: boolean }[] = [
-    { segment: "attention", label: "Con novedad", value: s.attention.toLocaleString("es"), detail: `de ${s.total} perros activos`, critical: s.attention > 0 },
-    { segment: "treatment", label: "En tratamiento", value: s.treatment.toLocaleString("es"), detail: "Medicación o condición activa" },
+    { segment: "attention", label: "Con novedad clínica", value: s.attention.toLocaleString("es"), detail: `Pendientes clínicos · de ${s.total} perros`, critical: s.attention > 0 },
+    { segment: "treatment", label: "En tratamiento", value: s.treatment.toLocaleString("es"), detail: "Medicación vigente o condición activa" },
+    { segment: "special", label: "Cuidados especiales", value: s.special.total.toLocaleString("es"), detail: specialCareDetail(s.special) },
     { segment: "vaccines", label: "Vacunas al día", value: `${pct(s.vaccinesUpToDate)}%`, detail: s.vaccinesOverdue ? `${s.vaccinesOverdue} con vacunas vencidas` : "Ninguna vencida", ratio: s.total ? s.vaccinesUpToDate / s.total : 0, critical: s.vaccinesOverdue > 0 },
     { segment: "deworming", label: "Desparasitación al día", value: `${pct(s.dewormedRecently)}%`, detail: s.dewormingOverdue ? `${s.dewormingOverdue} vencidas` : "Ninguna vencida", ratio: s.total ? s.dewormedRecently / s.total : 0 },
     { segment: "controls", label: `Agenda · ${horizon} días`, value: s.upcoming.toLocaleString("es"), detail: `${s.controlsPending} controles pendientes` },
   ];
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3 xl:grid-cols-6">
       {tiles.map((t, i) => {
         const selected = t.segment !== null && segment === t.segment;
         return (
@@ -181,7 +183,7 @@ function Kpis({ summary: s, horizon, segment, onSegment }: {
             onClick={() => t.segment && onSegment(selected ? "all" : t.segment)}
             className={cn(
               "relative flex flex-col items-start bg-card p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              i === 0 && "col-span-2 lg:col-span-1",
+              i === 0 && "col-span-2 sm:col-span-1",
               selected && "bg-muted",
             )}
           >
@@ -222,7 +224,7 @@ function AttentionCard({ dogs, onOpenDog }: { dogs: ClinicDog[]; onOpenDog: Prop
     <Card className="flex flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base"><AlertTriangle className="h-4 w-4 text-warning" aria-hidden /> Requieren atención</CardTitle>
-        <CardDescription>Novedades de rondas, vencimientos, controles y condiciones</CardDescription>
+        <CardDescription>Pendientes clínicos: novedades de rondas, vencimientos, controles, condiciones y pérdida de peso</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 px-2 pb-2">
         {ranked.length === 0 ? (

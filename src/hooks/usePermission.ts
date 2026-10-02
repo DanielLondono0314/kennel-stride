@@ -1,5 +1,5 @@
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { type OrgPermission, roleHasPermission } from "@/lib/permissions";
+import { type OrgPage, type OrgPermission, roleCanSeePage, roleHasPermission } from "@/lib/permissions";
 
 /**
  * Permisos del rol del usuario en la org actual (roles personalizados por org).
@@ -16,4 +16,10 @@ export function usePermission(action: Permission): boolean {
     return currentRole.access_type === "admin";
   }
   return roleHasPermission(currentRole, action);
+}
+
+/** El rol del usuario puede ver esta sección del panel (menú y rutas). */
+export function useCanSeePage(page: OrgPage): boolean {
+  const { currentRole } = useOrganization();
+  return roleCanSeePage(currentRole, page);
 }

@@ -11,6 +11,7 @@ import { OrgGuard } from "@/components/auth/OrgGuard";
 import { WorkerRoute, AdminOnlyRoute } from "@/components/auth/WorkerRoute";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
 import { FeatureRoute } from "@/components/auth/FeatureRoute";
+import { PageRoute } from "./components/auth/PageRoute";
 import { RoleHome } from "@/components/auth/RoleHome";
 import { WorkerLayout } from "@/components/worker/WorkerLayout";
 import { AppLayout } from "@/components/navigation/AppLayout";
@@ -170,42 +171,42 @@ const App = () => {
                     {/* Admin view (blocked for workers) */}
                     <Route element={<AdminOnlyRoute />}>
                     <Route element={<AppLayout />}>
-                      <Route path="dashboard"        element={<Dashboard />} />
-                      <Route path="customers"        element={<CustomersPage />} />
-                      <Route path="customers/:id"    element={<CustomerProfilePage />} />
-                      <Route path="dogs"             element={<DogsPage />} />
-                      <Route path="dogs/:id"         element={<DogProfilePage />} />
+                      <Route element={<PageRoute page="dashboard" />}><Route path="dashboard"        element={<Dashboard />} /></Route>
+                      <Route element={<PageRoute page="customers" />}><Route path="customers"        element={<CustomersPage />} /></Route>
+                      <Route element={<PageRoute page="customers" />}><Route path="customers/:id"    element={<CustomerProfilePage />} /></Route>
+                      <Route element={<PageRoute page="dogs" />}><Route path="dogs"             element={<DogsPage />} /></Route>
+                      <Route element={<PageRoute page="dogs" />}><Route path="dogs/:id"         element={<DogProfilePage />} /></Route>
                       <Route path="reservations/:id" element={<ReservationDetailPage />} />
-                      <Route path="dog-panel"        element={<DogDashboardPage />} />
+                      <Route element={<PageRoute page="dog_panel" />}><Route path="dog-panel"        element={<DogDashboardPage />} /></Route>
                       <Route element={<FeatureRoute feature="requests" />}>
-                        <Route path="requests" element={<RequestsPage />} />
+                        <Route element={<PageRoute page="requests" />}><Route path="requests" element={<RequestsPage />} /></Route>
                       </Route>
-                      <Route path="calendar"         element={<CalendarPage />} />
-                      <Route path="tasks"            element={<TasksPage />} />
+                      <Route element={<PageRoute page="calendar" />}><Route path="calendar"         element={<CalendarPage />} /></Route>
+                      <Route element={<PageRoute page="tasks" />}><Route path="tasks"            element={<TasksPage />} /></Route>
                       <Route element={<FeatureRoute feature="notices" />}>
-                        <Route path="notices" element={<NoticesPage />} />
+                        <Route element={<PageRoute page="notices" />}><Route path="notices" element={<NoticesPage />} /></Route>
                       </Route>
                       <Route element={<FeatureRoute feature="facility" />}>
-                        <Route path="facility" element={<FacilityPage />} />
+                        <Route element={<PageRoute page="facility" />}><Route path="facility" element={<FacilityPage />} /></Route>
                       </Route>
                       <Route element={<FeatureRoute feature="report_cards" />}>
-                        <Route path="report-cards" element={<ReportCardsPage />} />
+                        <Route element={<PageRoute page="report_cards" />}><Route path="report-cards" element={<ReportCardsPage />} /></Route>
                       </Route>
-                      <Route path="plans"            element={<PlansPage />} />
+                      <Route element={<PageRoute page="plans" />}><Route path="plans"            element={<PlansPage />} /></Route>
                       {/* Los paquetes de créditos se reemplazaron por planes. */}
                       <Route path="packages"         element={<Navigate to="../plans" replace />} />
-                      <Route path="invoices"         element={<InvoicesPage />} />
-                      <Route path="contracts"        element={<ContractsPage />} />
-                      <Route path="contracts/new"    element={<NewContractPage />} />
-                      <Route path="reports"          element={<ReportsPage />} />
+                      <Route element={<PageRoute page="invoices" />}><Route path="invoices"         element={<InvoicesPage />} /></Route>
+                      <Route element={<PageRoute page="contracts" />}><Route path="contracts"        element={<ContractsPage />} /></Route>
+                      <Route element={<PageRoute page="contracts" />}><Route path="contracts/new"    element={<NewContractPage />} /></Route>
+                      <Route element={<PageRoute page="reports" />}><Route path="reports"          element={<ReportsPage />} /></Route>
                       <Route element={<FeatureRoute feature="campaigns" />}>
-                        <Route path="campaigns" element={<CampaignsPage />} />
+                        <Route element={<PageRoute page="campaigns" />}><Route path="campaigns" element={<CampaignsPage />} /></Route>
                       </Route>
-                      <Route path="routes"           element={<RoutesPage />} />
+                      <Route element={<PageRoute page="routes" />}><Route path="routes"           element={<RoutesPage />} /></Route>
                       <Route element={<FeatureRoute feature="clinic" />}>
-                        <Route path="clinic" element={<ClinicPage />} />
+                        <Route element={<PageRoute page="clinic" />}><Route path="clinic" element={<ClinicPage />} /></Route>
                       </Route>
-                      <Route path="staff"            element={<StaffPage />} />
+                      <Route element={<PageRoute page="staff" />}><Route path="staff"            element={<StaffPage />} /></Route>
                       <Route path="settings"         element={<SettingsPage />} />
                     </Route>
                     </Route>

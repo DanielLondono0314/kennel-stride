@@ -1506,6 +1506,7 @@ export type Database = {
           is_system: boolean
           name: string
           organization_id: string
+          pages: string[] | null
           permissions: string[]
           system_key: Database["public"]["Enums"]["app_role"] | null
           updated_at: string
@@ -1517,6 +1518,7 @@ export type Database = {
           is_system?: boolean
           name: string
           organization_id: string
+          pages?: string[] | null
           permissions?: string[]
           system_key?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
@@ -1528,6 +1530,7 @@ export type Database = {
           is_system?: boolean
           name?: string
           organization_id?: string
+          pages?: string[] | null
           permissions?: string[]
           system_key?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string
@@ -2624,6 +2627,7 @@ export type Database = {
     }
     Functions: {
       org_today: { Args: { p_org: string }; Returns: string }
+      org_page_catalog: { Args: never; Returns: string[] }
       import_clinical_records: {
         Args: { p_dry_run?: boolean; p_kind: string; p_org_id: string; p_rows: Json }
         Returns: Json

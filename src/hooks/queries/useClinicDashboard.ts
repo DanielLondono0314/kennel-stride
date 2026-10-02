@@ -84,6 +84,7 @@ export function useClinicDashboard() {
       weightStatus: d.weight.status,
       weightChangePct: d.weight.changePct,
       allergies: d.allergies.map((a) => ({ allergen: a.allergen, severity: a.severity })),
+      flags: d.flags,
     }));
     return buildClinicDashboard(base, rawQuery.data);
   }, [dogsQuery.data, rawQuery.data]);

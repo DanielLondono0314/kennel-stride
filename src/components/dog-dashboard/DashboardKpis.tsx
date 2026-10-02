@@ -1,6 +1,7 @@
 import type { DashboardDog } from "@/hooks/queries/useDogDashboard";
 import { needsAttention, type Segment } from "./model";
 import { cn } from "@/lib/utils";
+import { specialCareDetail, summarizeSpecialCare } from "@/lib/specialCare";
 
 interface Props {
   dogs: DashboardDog[];
@@ -30,7 +31,7 @@ export function DashboardKpis({ dogs, segment, onSegment }: Props) {
   const weightLoss = dogs.filter((d) => d.weight.status === "loss").length;
   const upToDate = dogs.filter((d) => !d.weight.isOverdue).length;
   const withPlan = dogs.filter((d) => d.plan.state !== "none").length;
-  const special = dogs.filter((d) => d.flags.medication || d.flags.allergies || d.flags.aggressive).length;
+  const special = summarizeSpecialCare(dogs.map((d) => d.flags));
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 
   const tiles: Tile[] = [
@@ -42,7 +43,7 @@ export function DashboardKpis({ dogs, segment, onSegment }: Props) {
     },
     { segment: "overdue", label: "Pesaje al día", value: `${pct(upToDate)}%`, detail: `${total - upToDate} pendientes de pesar`, ratio: total ? upToDate / total : 0 },
     { segment: "no_plan", label: "Con plan vigente", value: `${pct(withPlan)}%`, detail: `${total - withPlan} sin plan activo`, ratio: total ? withPlan / total : 0 },
-    { segment: null, label: "Cuidados especiales", value: special.toLocaleString("es"), detail: "Medicación, alergias o manejo" },
+    { segment: "special", label: "Cuidados especiales", value: special.total.toLocaleString("es"), detail: specialCareDetail(special) },
   ];
 
   return (

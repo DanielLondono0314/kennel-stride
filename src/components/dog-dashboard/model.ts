@@ -1,3 +1,4 @@
+import { hasSpecialCare } from "@/lib/specialCare";
 import type { DashboardDog, PlanState } from "@/hooks/queries/useDogDashboard";
 import type { WeightStatus } from "@/lib/weightTrend";
 
@@ -20,7 +21,7 @@ export const PLAN_STATE_LABELS: Record<PlanState, string> = {
 
 export const SEVERITY_LABELS: Record<string, string> = { baja: "Baja", media: "Media", alta: "Alta" };
 
-export type Segment = "all" | "in_center" | "attention" | "overdue" | "no_plan";
+export type Segment = "all" | "in_center" | "attention" | "overdue" | "no_plan" | "special";
 
 export const SEGMENT_LABELS: Record<Segment, string> = {
   all: "Todos",
@@ -28,6 +29,7 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
   attention: "Requieren atención",
   overdue: "Pesaje vencido",
   no_plan: "Sin plan",
+  special: "Cuidados especiales",
 };
 
 export type SortKey = "name" | "weight_change" | "last_weigh_in" | "plan_expiry";
@@ -103,6 +105,7 @@ export function applyFilters(dogs: DashboardDog[], f: DashboardFilters): Dashboa
       case "attention": if (!needsAttention(d)) return false; break;
       case "overdue": if (!d.weight.isOverdue) return false; break;
       case "no_plan": if (d.plan.state !== "none") return false; break;
+      case "special": if (!hasSpecialCare(d.flags)) return false; break;
     }
     if (f.weightStatus && d.weight.status !== f.weightStatus) return false;
     if (f.planState && d.plan.state !== f.planState) return false;

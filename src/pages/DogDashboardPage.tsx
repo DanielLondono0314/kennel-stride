@@ -27,7 +27,7 @@ import { WEIGHT_STATUS_LABELS, type WeightStatus } from "@/lib/weightTrend";
 import { Search, SlidersHorizontal, LayoutGrid, List, Download, X, Dog, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const SEGMENTS: Segment[] = ["all", "in_center", "attention", "overdue", "no_plan"];
+const SEGMENTS: Segment[] = ["all", "in_center", "attention", "overdue", "no_plan", "special"];
 
 function exportCsv(dogs: DashboardDog[]) {
   const rows = dogs.map((d) => ({

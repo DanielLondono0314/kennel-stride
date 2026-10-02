@@ -5,7 +5,8 @@ const today = new Date(2026, 9, 2); // 2 oct 2026
 
 const dog = (id: string, p: Partial<ClinicDogBase> = {}): ClinicDogBase => ({
   id, name: id.toUpperCase(), breed: "Criollo", photoUrl: null, owner: null, inCenter: false,
-  weightStatus: "stable", weightChangePct: null, allergies: [], ...p,
+  weightStatus: "stable", weightChangePct: null, allergies: [],
+  flags: { medication: false, allergies: false, aggressive: false }, ...p,
 });
 
 const empty: ClinicRaw = { consultations: [], vaccines: [], dewormings: [], conditions: [], medications: [], welfare: [] };
@@ -97,5 +98,15 @@ describe("panel de clínica", () => {
     expect(relativeDay("2026-10-02", today)).toBe("Hoy");
     expect(relativeDay("2026-10-03", today)).toBe("Mañana");
     expect(relativeDay("2026-09-28", today)).toBe("Hace 4 días");
+  });
+
+  it("cuidados especiales: misma definición que el Panel de perros", () => {
+    const { dogs, events } = buildClinicDashboard([
+      dog("a", { flags: { medication: true, allergies: false, aggressive: true } }),
+      dog("b", { flags: { medication: false, allergies: false, aggressive: true } }),
+      dog("c"),
+    ], empty, today);
+    expect(summarize(dogs, events, 30, today).special).toEqual({ total: 2, medication: 1, allergies: 0, aggressive: 2 });
+    expect(dogs.filter((d) => matchesSegment(d, "special")).map((d) => d.id)).toEqual(["a", "b"]);
   });
 });

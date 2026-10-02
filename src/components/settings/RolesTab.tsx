@@ -32,8 +32,10 @@ import { useDeleteOrgRole, useOrgRoles, useSaveOrgRole, type OrgRoleWithCount } 
 import {
   ACCESS_TYPE_LABELS,
   ACCESS_TYPE_OPTIONS,
+  PAGE_CATALOG,
   PERMISSION_CATALOG,
   type AccessType,
+  type OrgPage,
   type OrgPermission,
 } from "@/lib/permissions";
 
@@ -55,12 +57,15 @@ export function RolesTab() {
   const [name, setName] = useState("");
   const [accessType, setAccessType] = useState<AccessType>("panel");
   const [permissions, setPermissions] = useState<OrgPermission[]>([]);
+  // null = ve todas las secciones (lo de siempre); una lista = solo esas.
+  const [pages, setPages] = useState<OrgPage[] | null>(null);
 
   const openNew = () => {
     setEditing(null);
     setName("");
     setAccessType("panel");
     setPermissions(["schedule", "record_weight"]);
+    setPages(null);
     setModalOpen(true);
   };
 
@@ -69,11 +74,19 @@ export function RolesTab() {
     setName(r.name);
     setAccessType(r.access_type);
     setPermissions(r.permissions);
+    setPages(r.pages ?? null);
     setModalOpen(true);
   };
 
   const togglePermission = (perm: OrgPermission, checked: boolean) => {
     setPermissions((prev) => (checked ? [...prev, perm] : prev.filter((p) => p !== perm)));
+  };
+
+  const togglePage = (page: OrgPage, checked: boolean) => {
+    setPages((prev) => {
+      const base = prev ?? PAGE_CATALOG.map((p) => p.key);
+      return checked ? [...base, page] : base.filter((p) => p !== page);
+    });
   };
 
   const handleSave = () => {
@@ -82,8 +95,14 @@ export function RolesTab() {
       toast.error("El nombre debe tener entre 2 y 40 caracteres");
       return;
     }
+    // Solo el acceso Panel limita secciones; con todas marcadas vuelve a "todas".
+    const pagesToSave = accessType !== "panel" || !pages || pages.length === PAGE_CATALOG.length ? null : pages;
+    if (pagesToSave && pagesToSave.length === 0) {
+      toast.error("Marca al menos una sección del menú");
+      return;
+    }
     saveRole.mutate(
-      { id: editing?.id, input: { name: trimmed, access_type: accessType, permissions } },
+      { id: editing?.id, input: { name: trimmed, access_type: accessType, permissions, pages: pagesToSave } },
       {
         onSuccess: () => {
           toast.success(editing ? "Rol actualizado" : "Rol creado");
@@ -158,6 +177,9 @@ export function RolesTab() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {r.access_type === "admin" ? "Todos" : `${r.permissions.length} de ${PERMISSION_CATALOG.length}`}
+                    {r.access_type === "panel" && r.pages && (
+                      <span className="block text-xs">{r.pages.length} de {PAGE_CATALOG.length} secciones</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">{r.member_count}</TableCell>
                   <TableCell className="text-right">
@@ -256,6 +278,36 @@ export function RolesTab() {
                 </div>
               )}
             </div>
+            {accessType === "panel" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Secciones del menú</Label>
+                  <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => setPages(null)} disabled={!pages}>
+                    Marcar todas
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Qué ve este rol en el menú. Lo que no marques no aparece y su enlace lleva a la primera sección permitida.
+                </p>
+                {[...new Set(PAGE_CATALOG.map((p) => p.group))].map((group) => (
+                  <fieldset key={group} className="space-y-1.5">
+                    <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group}</legend>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      {PAGE_CATALOG.filter((p) => p.group === group).map((p) => (
+                        <label key={p.key} htmlFor={`page-${p.key}`} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            id={`page-${p.key}`}
+                            checked={!pages || pages.includes(p.key)}
+                            onCheckedChange={(c) => togglePage(p.key, c === true)}
+                          />
+                          {p.label}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

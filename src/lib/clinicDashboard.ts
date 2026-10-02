@@ -5,6 +5,7 @@
 
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { parseDateOnly } from "@/lib/age";
+import { hasSpecialCare, summarizeSpecialCare, type SpecialCareFlags, type SpecialCareSummary } from "@/lib/specialCare";
 
 // ── Reglas ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ export interface ClinicDogBase {
   weightStatus: "loss" | "gain" | "stable" | "single" | "no_data";
   weightChangePct: number | null;
   allergies: { allergen: string; severity: string | null }[];
+  /** Marcas del perro (medicación, alergias, manejo): igual que en el Panel de perros. */
+  flags: SpecialCareFlags;
 }
 
 export interface ClinicRaw {
@@ -298,12 +301,13 @@ export function buildClinicDashboard(
 
 // ── Segmentos y resumen ──────────────────────────────────────────────────────
 
-export type ClinicSegment = "all" | "attention" | "treatment" | "vaccines" | "deworming" | "controls";
+export type ClinicSegment = "all" | "attention" | "treatment" | "special" | "vaccines" | "deworming" | "controls";
 
 export const CLINIC_SEGMENT_LABELS: Record<ClinicSegment, string> = {
   all: "Todos",
   attention: "Con novedad",
   treatment: "En tratamiento",
+  special: "Cuidados especiales",
   vaccines: "Vacunas vencidas",
   deworming: "Desparasitación vencida",
   controls: "Controles pendientes",
@@ -316,6 +320,7 @@ export function matchesSegment(d: ClinicDog, s: ClinicSegment): boolean {
   switch (s) {
     case "attention": return needsClinicalAttention(d);
     case "treatment": return d.inTreatment;
+    case "special": return hasSpecialCare(d.flags);
     case "vaccines": return d.vaccines.some((v) => v.state === "overdue");
     case "deworming": return d.deworming?.state === "overdue";
     case "controls": return !!d.nextControl;
@@ -333,6 +338,8 @@ export interface ClinicSummary {
   dewormedRecently: number;
   controlsPending: number;
   upcoming: number;
+  /** Misma cifra que "Cuidados especiales" del Panel de perros. */
+  special: SpecialCareSummary;
 }
 
 export function summarize(dogs: ClinicDog[], events: ClinicEvent[], horizonDays = DUE_SOON_DAYS, today = new Date()): ClinicSummary {
@@ -348,6 +355,7 @@ export function summarize(dogs: ClinicDog[], events: ClinicEvent[], horizonDays 
     dewormedRecently: dogs.filter((d) => d.deworming && d.deworming.state !== "overdue").length,
     controlsPending: dogs.filter((d) => d.nextControl).length,
     upcoming: events.filter((e) => e.date >= todayStr && e.date <= limit).length,
+    special: summarizeSpecialCare(dogs.map((d) => d.flags)),
   };
 }
 

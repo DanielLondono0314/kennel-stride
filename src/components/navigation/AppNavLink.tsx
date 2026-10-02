@@ -1,3 +1,4 @@
+import { roleCanSeePage, type OrgPage } from "@/lib/permissions";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LucideIcon, Lock } from "lucide-react";
@@ -10,6 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 
 interface AppNavLinkProps {
+  /** Sección del panel: se oculta si el rol no la tiene. */
+  page?: OrgPage;
   to: string;
   icon: LucideIcon;
   label: string;
@@ -20,11 +23,13 @@ interface AppNavLinkProps {
   onClick?: () => void;
 }
 
-export function AppNavLink({ to, icon: Icon, label, collapsed, badge, feature, onClick }: AppNavLinkProps) {
-  const { hasFeature } = useOrganization();
+export function AppNavLink({ to, icon: Icon, label, collapsed, badge, feature, page, onClick }: AppNavLinkProps) {
+  const { hasFeature, currentRole } = useOrganization();
   const locked = feature !== undefined && !hasFeature(feature);
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
+  // Sección que el rol no ve (Configuración → Roles → Secciones del menú).
+  if (page && !roleCanSeePage(currentRole, page)) return null;
 
   const linkContent = (
     <RouterNavLink

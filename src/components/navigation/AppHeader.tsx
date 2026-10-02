@@ -1,3 +1,4 @@
+import { useCanSeePage } from "@/hooks/usePermission";
 import { useNavigate } from "react-router-dom";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { useState, useEffect } from "react";
@@ -26,6 +27,7 @@ interface AppHeaderProps {
 export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeaderProps) {
   const navigate = useNavigate();
   const orgNavigate = useOrgNavigate();
+  const canSeeNotices = useCanSeePage("notices");
   const { user, signOut } = useAuth();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -98,7 +100,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeade
 
         {/* Right side */}
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <Button
+          {canSeeNotices && <Button
             variant="ghost"
             size="icon"
             className="relative text-muted-foreground"
@@ -111,7 +113,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeade
                 {noticeCount > 9 ? "9+" : noticeCount}
               </span>
             )}
-          </Button>
+          </Button>}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

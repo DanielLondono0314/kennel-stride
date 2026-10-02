@@ -17,11 +17,43 @@ export type OrgPermission =
 /** Tipo de acceso de un rol: qué app ve y si es administrador. */
 export type AccessType = "admin" | "panel" | "worker";
 
+/**
+ * Secciones del panel que un rol puede ver. Espejo de
+ * public.org_page_catalog() (migración 20261009000000_role_pages).
+ */
+export type OrgPage =
+  | "dashboard" | "requests" | "calendar" | "tasks" | "facility" | "notices"
+  | "customers" | "dogs" | "dog_panel" | "staff" | "report_cards" | "clinic"
+  | "plans" | "invoices" | "contracts" | "reports" | "campaigns" | "routes";
+
+export const PAGE_CATALOG: { key: OrgPage; label: string; path: string; group: string }[] = [
+  { key: "dashboard", label: "Dashboard", path: "dashboard", group: "Operaciones" },
+  { key: "requests", label: "Solicitudes", path: "requests", group: "Operaciones" },
+  { key: "calendar", label: "Calendario", path: "calendar", group: "Operaciones" },
+  { key: "tasks", label: "Tareas", path: "tasks", group: "Operaciones" },
+  { key: "facility", label: "Instalaciones", path: "facility", group: "Operaciones" },
+  { key: "notices", label: "Avisos", path: "notices", group: "Operaciones" },
+  { key: "routes", label: "Rutas", path: "routes", group: "Operaciones" },
+  { key: "customers", label: "Clientes", path: "customers", group: "CRM" },
+  { key: "dogs", label: "Perros", path: "dogs", group: "CRM" },
+  { key: "dog_panel", label: "Panel de perros", path: "dog-panel", group: "CRM" },
+  { key: "staff", label: "Personal", path: "staff", group: "CRM" },
+  { key: "report_cards", label: "Report Cards", path: "report-cards", group: "CRM" },
+  { key: "clinic", label: "Clínica", path: "clinic", group: "CRM" },
+  { key: "plans", label: "Planes", path: "plans", group: "Finanzas" },
+  { key: "invoices", label: "Facturación", path: "invoices", group: "Finanzas" },
+  { key: "contracts", label: "Contratos", path: "contracts", group: "Finanzas" },
+  { key: "reports", label: "Reportes", path: "reports", group: "Analytics" },
+  { key: "campaigns", label: "Campañas", path: "campaigns", group: "Analytics" },
+];
+
 export interface OrgRoleInfo {
   id: string;
   name: string;
   access_type: AccessType;
   permissions: OrgPermission[];
+  /** Secciones visibles; null = todas (como antes de existir este ajuste). */
+  pages?: OrgPage[] | null;
   is_system: boolean;
   system_key: string | null;
 }
@@ -54,4 +86,17 @@ export const ACCESS_TYPE_LABELS: Record<AccessType, string> = {
 export function roleHasPermission(role: Pick<OrgRoleInfo, "access_type" | "permissions"> | null, perm: OrgPermission): boolean {
   if (!role) return false;
   return role.access_type === "admin" || role.permissions.includes(perm);
+}
+
+/** El rol ve esta sección del panel (admin y roles sin lista: todas). */
+export function roleCanSeePage(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null, page: OrgPage): boolean {
+  if (!role) return true; // miembros sin rol asignado: comportamiento de siempre
+  if (role.access_type === "admin" || !role.pages) return true;
+  return role.pages.includes(page);
+}
+
+/** Primera sección visible (ruta relativa a la org), para la página de inicio. */
+export function firstAllowedPath(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null): string {
+  const page = PAGE_CATALOG.find((p) => roleCanSeePage(role, p.key));
+  return page?.path ?? "dashboard";
 }
