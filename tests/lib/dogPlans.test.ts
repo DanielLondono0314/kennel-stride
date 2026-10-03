@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   checkoutUnits, computeEndDate, currentPlan, planProgressPct, planProgressText, planReminderMessage, planState,
-  plansCoveringReservation, type DogPlan,
+  plansCoveringReservation, reminderDue, type DogPlan,
 } from "@/lib/dogPlans";
 
 const today = new Date(2026, 8, 30); // 30 sep 2026
@@ -87,6 +87,19 @@ describe("planes en el check-out", () => {
       .toBe("Hola Dani, te contamos que el plan X de Kaelis vence el 3 de octubre. ¿Quieres renovarlo?");
     expect(planReminderMessage(perDay, "Kaelis", null, today))
       .toBe("Hola, te contamos que al plan X de Kaelis le quedan 2 días. ¿Quieres renovarlo?");
+  });
+});
+
+describe("recordatorios al dueño", () => {
+  const q = { billing: "quantity" as const, end_date: null, quantity_total: 10, unit_label: "clases" };
+  it("una vez por situación: por vencer, agotado, vencido reciente", () => {
+    expect(reminderDue(plan({}), today)).toBeNull(); // vigente
+    expect(reminderDue(plan({ end_date: "2026-10-04" }), today)).toBe("expiring");
+    expect(reminderDue(plan({ end_date: "2026-10-04", reminded_state: "expiring" }), today)).toBeNull();
+    expect(reminderDue(plan({ ...q, quantity_used: 10, reminded_state: "expiring" }), today)).toBe("depleted");
+    expect(reminderDue(plan({ end_date: "2026-09-27" }), today)).toBe("expired");
+    expect(reminderDue(plan({ end_date: "2026-09-01" }), today)).toBeNull(); // venció hace mucho
+    expect(reminderDue(plan({ end_date: "2026-10-04", status: "finished" }), today)).toBeNull();
   });
 });
 

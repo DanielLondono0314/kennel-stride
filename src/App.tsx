@@ -75,6 +75,7 @@ const WorkerProfilePage    = lazy(() => import("./pages/worker/WorkerProfilePage
 const WorkerDogsPage       = lazy(() => import("./pages/worker/WorkerDogsPage"));
 const WorkerDogPage        = lazy(() => import("./pages/worker/WorkerDogPage"));
 const WorkerKennelsPage    = lazy(() => import("./pages/worker/WorkerKennelsPage"));
+const WorkerHealthPage     = lazy(() => import("./pages/worker/WorkerHealthPage"));
 
 // Precarga el código de la página de la URL actual EN PARALELO con la carga de
 // la organización: antes la ruta pedía su chunk recién cuando OrgGuard
@@ -162,6 +163,9 @@ const App = () => {
                         <Route path="dog/:id" element={<WorkerDogPage />} />
                         <Route element={<FeatureRoute feature="facility" />}>
                           <Route path="kennels" element={<WorkerKennelsPage />} />
+                        </Route>
+                        <Route element={<FeatureRoute feature="clinic" />}>
+                          <Route path="health" element={<WorkerHealthPage />} />
                         </Route>
                         <Route path="notices" element={<WorkerNoticesPage />} />
                         <Route path="profile" element={<WorkerProfilePage />} />

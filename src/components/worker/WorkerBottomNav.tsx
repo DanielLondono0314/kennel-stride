@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Clock, Bell, Truck, Dog, LayoutGrid } from "lucide-react";
+import { CalendarDays, Clock, Bell, Truck, Dog, LayoutGrid, HeartPulse } from "lucide-react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { useMyStaffMember } from "@/hooks/useMyStaffMember";
@@ -15,10 +15,13 @@ export function WorkerBottomNav() {
   // Perreras solo si el plan incluye instalaciones.
   const { hasFeature } = useOrganization();
   const showKennelsTab = hasFeature("facility");
+  // Salud (vacunas, desparasitación, controles) si el plan incluye clínica.
+  const showHealthTab = hasFeature("clinic");
 
   const items = [
     { to: `${base}/worker`, label: "Mi día", icon: CalendarDays, end: true },
     { to: `${base}/worker/dogs`, label: "Perros", icon: Dog, end: false },
+    ...(showHealthTab ? [{ to: `${base}/worker/health`, label: "Salud", icon: HeartPulse, end: false }] : []),
     ...(showKennelsTab ? [{ to: `${base}/worker/kennels`, label: "Perreras", icon: LayoutGrid, end: false }] : []),
     { to: `${base}/worker/schedule`, label: "Horario", icon: Clock, end: false },
     ...(showRouteTab ? [{ to: `${base}/worker/route`, label: "Ruta", icon: Truck, end: false }] : []),

@@ -706,6 +706,9 @@ export type Database = {
           price: number
           quantity_total: number | null
           quantity_used: number
+          reminded_at: string | null
+          reminded_by: string | null
+          reminded_state: string | null
           service_label: string
           service_type: string
           sold_on: string
@@ -732,6 +735,9 @@ export type Database = {
           price?: number
           quantity_total?: number | null
           quantity_used?: number
+          reminded_at?: string | null
+          reminded_by?: string | null
+          reminded_state?: string | null
           service_label: string
           service_type: string
           sold_on?: string
@@ -758,6 +764,9 @@ export type Database = {
           price?: number
           quantity_total?: number | null
           quantity_used?: number
+          reminded_at?: string | null
+          reminded_by?: string | null
+          reminded_state?: string | null
           service_label?: string
           service_type?: string
           sold_on?: string
@@ -2627,6 +2636,7 @@ export type Database = {
     }
     Functions: {
       org_today: { Args: { p_org: string }; Returns: string }
+      mark_plan_reminded: { Args: { p_plan_id: string; p_state: string }; Returns: undefined }
       org_page_catalog: { Args: never; Returns: string[] }
       import_clinical_records: {
         Args: { p_dry_run?: boolean; p_kind: string; p_org_id: string; p_rows: Json }

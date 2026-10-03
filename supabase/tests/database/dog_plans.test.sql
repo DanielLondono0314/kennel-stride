@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(16);
 
 -- ─── Seed ───────────────────────────────────────────────────────────────────
 insert into auth.users (id, email)
@@ -137,6 +137,26 @@ select is(
   public.check_expiring_dog_plans_all_orgs(), 0,
   'no repite el aviso del mismo plan'
 );
+
+-- ─── Recordatorio al dueño ──────────────────────────────────────────────────
+select pg_temp.act_as('00000000-0000-0000-0000-0000000001a1');
+select lives_ok(
+  $$select public.mark_plan_reminded('00000000-0000-0000-0000-0000000001f1', 'expiring')$$,
+  'quien agenda registra el recordatorio enviado'
+);
+select is(
+  (select reminded_state from public.dog_plans where id = '00000000-0000-0000-0000-0000000001f1'),
+  'expiring',
+  'queda guardado por qué situación se avisó'
+);
+select pg_temp.act_as('00000000-0000-0000-0000-0000000001b1');
+set local role authenticated;
+select throws_ok(
+  $$select public.mark_plan_reminded('00000000-0000-0000-0000-0000000001f1', 'expired')$$,
+  'Plan no encontrado o sin permiso',
+  'otra organización no puede marcarlo'
+);
+reset role;
 
 select * from finish();
 rollback;

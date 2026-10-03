@@ -27,7 +27,15 @@ export interface DogPlan {
   status: "active" | "finished" | "cancelled";
   ended_at: string | null;
   created_at: string;
+  /** Último recordatorio al dueño y por qué situación (por vencer, vencido, agotado). */
+  reminded_at?: string | null;
+  reminded_state?: ReminderState | null;
 }
+
+export type ReminderState = "expiring" | "expired" | "depleted";
+
+/** Un plan vencido deja de pedir recordatorio pasados estos días. */
+export const REMINDER_EXPIRED_DAYS = 7;
 
 /**
  * Estado que se muestra. `status` en la base solo distingue activo /
@@ -188,6 +196,25 @@ export function planReminderMessage(p: DogPlan, dogName: string, ownerFirstName?
   }
   return `${hi}, te contamos que ${plan} vence el ${fmt(p.end_date!)}. ¿Quieres renovarlo?`;
 }
+
+/**
+ * Situación por la que hay que avisarle al dueño, o null si no hace falta:
+ * por vencer, vencido (hace ≤ 7 días) o agotado, y aún no avisado por ESA
+ * situación. Así se avisa una vez por situación, no todos los días.
+ */
+export function reminderDue(p: DogPlan, today = new Date()): ReminderState | null {
+  if (p.status !== "active") return null;
+  const state = planState(p, today);
+  if (state !== "expiring" && state !== "expired" && state !== "depleted") return null;
+  if (state === "expired" && (daysLeft(p, today) ?? 0) < -REMINDER_EXPIRED_DAYS) return null;
+  return p.reminded_state === state ? null : state;
+}
+
+export const REMINDER_STATE_LABELS: Record<ReminderState, string> = {
+  expiring: "Por vencer",
+  expired: "Vencido",
+  depleted: "Agotado",
+};
 
 /** El plan que se muestra como "actual": el vigente que vence antes. */
 export function currentPlan(plans: DogPlan[], today = new Date()): DogPlan | null {

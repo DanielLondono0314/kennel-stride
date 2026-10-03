@@ -17,7 +17,7 @@ import { useDogPlans, usePlanActions, usePlanUsage } from "@/hooks/queries/useDo
 import { usePermission } from "@/hooks/usePermission";
 import { parseDateOnly, todayLocal } from "@/lib/age";
 import { whatsappHref } from "@/lib/contact";
-import { planReminderMessage, planState, remainingUnits, type DogPlan, type DogPlanUsage } from "@/lib/dogPlans";
+import { planReminderMessage, planState, reminderDue, remainingUnits, type DogPlan, type DogPlanUsage } from "@/lib/dogPlans";
 import { AssignPlanDialog } from "./AssignPlanDialog";
 import { PlanCard } from "./PlanCard";
 
@@ -33,7 +33,7 @@ interface Props {
 /** Planes del perro: los activos con sus acciones y el historial. */
 export function DogPlansSection({ dogId, dogName, owner }: Props) {
   const { data: plans = [], isLoading } = useDogPlans(dogId);
-  const { end, registerUsage } = usePlanActions();
+  const { end, registerUsage, markReminded } = usePlanActions();
   const canSchedule = usePermission("schedule");
   const canBill = usePermission("billing");
   const canManage = canSchedule || canBill;
@@ -117,13 +117,19 @@ export function DogPlansSection({ dogId, dogName, owner }: Props) {
                       <RefreshCw className="h-4 w-4" /> Renovar
                     </Button>
                     {waBase && REMIND_STATES.has(state) && (
-                      <Button size="sm" variant="outline" asChild className="gap-1.5">
+                      <Button
+                        size="sm"
+                        variant={reminderDue(plan) ? "default" : "outline"}
+                        asChild
+                        className="gap-1.5"
+                        onClick={() => { const due = reminderDue(plan); if (due) markReminded.mutate({ id: plan.id, state: due }); }}
+                      >
                         <a
                           href={`${waBase}?text=${encodeURIComponent(planReminderMessage(plan, dogName, owner?.first_name))}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <MessageCircle className="h-4 w-4" /> Avisar por WhatsApp
+                          <MessageCircle className="h-4 w-4" /> {reminderDue(plan) ? "Avisar por WhatsApp" : "Avisar de nuevo"}
                         </a>
                       </Button>
                     )}

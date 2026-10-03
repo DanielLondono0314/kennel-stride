@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
 import { AssignPlanDialog } from "@/components/plans/AssignPlanDialog";
+import { PlanRemindersCard } from "@/components/plans/PlanRemindersCard";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrgPlans } from "@/hooks/queries/useDogPlans";
@@ -123,6 +124,8 @@ export default function PlansPage() {
         <Kpi icon={AlertTriangle} tone="destructive" value={kpis.lapsed} label="Vencidos o agotados" />
         <Kpi icon={Wallet} tone="primary" value={formatCurrency(kpis.soldThisMonth)} label="Vendido este mes" />
       </div>
+
+      {!isLoading && <PlanRemindersCard plans={plans} canManage={canSchedule || canBill} />}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-sm">

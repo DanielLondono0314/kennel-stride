@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { fetchAll } from "@/lib/supabaseQuery";
-import type { DogPlan, DogPlanUsage } from "@/lib/dogPlans";
+import type { DogPlan, DogPlanUsage, ReminderState } from "@/lib/dogPlans";
 
 const keys = (orgId: string | undefined) => ({
   all: ["dog-plans", orgId] as const,
@@ -161,5 +161,14 @@ export function usePlanActions() {
     onSuccess: invalidate,
   });
 
-  return { create, end, registerUsage };
+  /** Recordatorio al dueño enviado (o descartado) para la situación actual del plan. */
+  const markReminded = useMutation({
+    mutationFn: async ({ id, state }: { id: string; state: ReminderState }) => {
+      const { error } = await supabase.rpc("mark_plan_reminded", { p_plan_id: id, p_state: state });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { create, end, registerUsage, markReminded };
 }
