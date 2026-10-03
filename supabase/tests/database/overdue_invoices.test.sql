@@ -60,11 +60,15 @@ select is(
   'un solo aviso por factura'
 );
 
-select ok(
-  exists (select 1 from cron.job where jobname = 'check_overdue_invoices_daily' and schedule = '5 12 * * *')
-  or not exists (select 1 from pg_extension where extname = 'pg_cron'),
-  'queda programado todos los días a las 7:05 a. m. de Bogotá'
-);
+-- En CI no hay pg_cron: cron.job solo se consulta si existe (SQL dinámico).
+create or replace function pg_temp.job_ok() returns boolean language plpgsql as $$
+declare v boolean;
+begin
+  if to_regclass('cron.job') is null then return true; end if;
+  execute $q$select exists (select 1 from cron.job where jobname = 'check_overdue_invoices_daily' and schedule = '5 12 * * *')$q$ into v;
+  return v;
+end $$;
+select ok(pg_temp.job_ok(), 'queda programado todos los días a las 7:05 a. m. de Bogotá');
 
 select * from finish();
 rollback;
