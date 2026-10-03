@@ -2657,7 +2657,7 @@ export type Database = {
         Returns: undefined
       }
       check_overdue_invoices: { Args: never; Returns: undefined }
-      check_overdue_invoices_all_orgs: { Args: never; Returns: undefined }
+      check_overdue_invoices_all_orgs: { Args: never; Returns: number }
       complete_checkout: {
         Args: {
           p_notes?: string
