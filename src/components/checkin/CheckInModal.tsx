@@ -64,6 +64,8 @@ export function CheckInModal({
   const [units, setUnits] = useState<FreeUnit[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [unitId, setUnitId] = useState("");
+  // Perrera donde el perro ya está (ubicado antes de tener esta reserva).
+  const [currentUnit, setCurrentUnit] = useState<FreeUnit | null>(null);
   const [creatingUnit, setCreatingUnit] = useState(false);
   const [newUnitName, setNewUnitName] = useState("");
   const [newUnitZoneId, setNewUnitZoneId] = useState("");
@@ -74,8 +76,10 @@ export function CheckInModal({
   useEffect(() => {
     if (!open || !orgId) return;
     setUnitId("");
+    setCurrentUnit(null);
     setCreatingUnit(false);
     setNewUnitName("");
+    const dogId = reservation?.dogId;
     Promise.all([
       supabase
         .from("facility_units")
@@ -88,12 +92,27 @@ export function CheckInModal({
         .select("id, name")
         .eq("organization_id", orgId)
         .order("name"),
-    ]).then(([unitsRes, zonesRes]) => {
+      dogId
+        ? supabase
+            .from("facility_units")
+            .select("id, name")
+            .eq("organization_id", orgId)
+            .eq("assigned_dog_id", dogId)
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]).then(([unitsRes, zonesRes, currentRes]) => {
+      const current = (currentRes.data as FreeUnit | null) ?? null;
       setUnits(unitsRes.data ?? []);
       setZones(zonesRes.data ?? []);
       setNewUnitZoneId(zonesRes.data?.[0]?.id ?? "");
+      // Si el perro ya está en una perrera, queda preseleccionada: no hay que volver a elegirla.
+      setCurrentUnit(current);
+      if (current) setUnitId(current.id);
     });
-  }, [open, orgId]);
+    // Keyed por id: la reserva cambia de identidad en cada refetch del Dashboard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, orgId, reservation?.id]);
 
   const handleCreateUnit = async () => {
     if (isCreatingUnit || !organization || !newUnitName.trim() || !newUnitZoneId) return;
@@ -266,11 +285,14 @@ export function CheckInModal({
               <Select value={unitId} onValueChange={setUnitId}>
                 <SelectTrigger id="unit-select">
                   <SelectValue placeholder={
-                    units.length ? "Elegir perrera libre…" : "No hay perreras libres"
+                    units.length || currentUnit ? "Elegir perrera libre…" : "No hay perreras libres"
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  {units.map((u) => (
+                  {currentUnit && (
+                    <SelectItem value={currentUnit.id}>{currentUnit.name} · donde está ahora</SelectItem>
+                  )}
+                  {units.filter((u) => u.id !== currentUnit?.id).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -301,6 +323,14 @@ export function CheckInModal({
                   </Button>
                 </div>
               </div>
+            )}
+
+            {currentUnit && !creatingUnit && (
+              <p className="text-xs text-muted-foreground">
+                {unitId === currentUnit.id
+                  ? `${reservation.dog?.name ?? "El perro"} ya está en ${currentUnit.name}: se queda ahí. Puedes cambiarla si se muda.`
+                  : `${reservation.dog?.name ?? "El perro"} se moverá y ${currentUnit.name} quedará libre.`}
+              </p>
             )}
 
             {!creatingUnit && (
