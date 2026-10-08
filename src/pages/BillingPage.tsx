@@ -110,7 +110,7 @@ export default function BillingPage() {
           <h2 className="text-2xl font-bold">Suscripción inactiva</h2>
           <p className="text-muted-foreground mt-2">
             Tu período de prueba ha terminado o la suscripción fue cancelada.
-            Activa tu plan para continuar usando KennelOps.
+            Activa tu plan para continuar usando Tails Up.
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export default function BillingPage() {
           <div className="space-y-3">
             <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/40 p-4 text-sm text-muted-foreground">
               La facturación aún no está configurada. Contacta al soporte de
-              KennelOps para activar tu suscripción.
+              Tails Up para activar tu suscripción.
             </div>
             <Button variant="ghost" className="w-full" asChild>
               <Link to={backTo}>Volver al inicio</Link>

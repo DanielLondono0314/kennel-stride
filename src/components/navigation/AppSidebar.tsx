@@ -70,7 +70,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         {!collapsed && (
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-sidebar-foreground text-lg leading-tight truncate">
-              {organization?.name ?? "KennelOps"}
+              {organization?.name ?? "Tails Up"}
             </span>
             <span className="text-xs text-sidebar-foreground/60 truncate">
               {orgSlug}

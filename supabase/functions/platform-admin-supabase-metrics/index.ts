@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 // frontend. Se nombra SB_* (no SUPABASE_*) porque Supabase reserva ese
 // prefijo para las variables que inyecta automáticamente.
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 const PROJECT_REF = "jqnpqmkwcaxqrevfqmue";
 
 const corsHeaders = {

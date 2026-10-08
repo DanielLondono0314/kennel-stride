@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 // Base del enlace /join. Por defecto el mismo dominio del frontend (ALLOWED_ORIGIN).
 const APP_URL = (Deno.env.get("APP_URL") ?? ALLOWED_ORIGIN).replace(/\/+$/, "");
 
@@ -38,7 +38,7 @@ function buildText(orgName: string, roleLabel: string, link: string, expiry: str
   return [
     `Hola,`,
     ``,
-    `Te invitaron a unirte a ${orgName} en KennelOps como ${roleLabel}.`,
+    `Te invitaron a unirte a ${orgName} en Tails Up como ${roleLabel}.`,
     ``,
     `Acepta la invitación desde este enlace:`,
     link,
@@ -63,7 +63,7 @@ function buildHtml(orgName: string, roleLabel: string, link: string, expiry: str
     <tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px;font-size:14px;color:#71717a;">KennelOps</p>
+          <p style="margin:0 0 8px;font-size:14px;color:#71717a;">Tails Up</p>
           <h1 style="margin:0 0 16px;font-size:20px;">Te invitaron a unirte a ${org}</h1>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.5;">
             Tendrás acceso como <strong>${role}</strong>. Crea tu cuenta o inicia sesión
@@ -163,8 +163,8 @@ serve(async (req: Request) => {
     const link = `${APP_URL}/join?token=${encodeURIComponent(invitation.token)}`;
     const expiry = formatExpiry(invitation.expires_at);
 
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
-    const fromName = org?.name ?? Deno.env.get("RESEND_FROM_NAME") ?? "KennelOps";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@tailsup.app";
+    const fromName = org?.name ?? Deno.env.get("RESEND_FROM_NAME") ?? "Tails Up";
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

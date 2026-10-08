@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 // en una Edge Function con SERVICE_ROLE_KEY en vez de un RPC SECURITY
 // DEFINER — el service role nunca se expone al frontend.
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,

@@ -1,4 +1,4 @@
-# KennelOps (kennel-stride)
+# Tails Up (kennel-stride)
 
 Software de operación para centros caninos: reservas y check-in, perreras, clientes y perros, clínica, report cards por servicio, tareas del personal, rutas, contratos, facturación y paquetes. Multi-organización (cada centro ve solo sus datos por RLS).
 

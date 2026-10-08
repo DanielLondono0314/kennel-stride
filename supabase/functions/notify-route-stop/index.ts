@@ -27,7 +27,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 //   TWILIO_WHATSAPP_TEMPLATE_DROPOFF_SID
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,

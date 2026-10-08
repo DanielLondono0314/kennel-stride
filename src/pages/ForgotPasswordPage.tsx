@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
             <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-bold text-sidebar-foreground text-xl">KennelOps</span>
+          <span className="font-bold text-sidebar-foreground text-xl">Tails Up</span>
         </div>
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-sidebar-foreground leading-tight">
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
             Control total de reservas, clientes, perros y facturación en un solo lugar.
           </p>
         </div>
-        <p className="text-sidebar-foreground/30 text-sm">© 2025 KennelOps</p>
+        <p className="text-sidebar-foreground/30 text-sm">© 2025 Tails Up</p>
       </div>
 
       {/* Right panel */}
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
               <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-bold text-xl">KennelOps</span>
+            <span className="font-bold text-xl">Tails Up</span>
           </div>
 
           <div>

@@ -300,7 +300,7 @@ function DashboardMockup() {
           className="flex-1 ml-2 flex items-center px-3"
           style={{ height: 22, backgroundColor: '#334155', borderRadius: 4 }}
         >
-          <span style={{ fontSize: 10.5, color: '#94A3B8' }}>app.kennelops.com/dashboard</span>
+          <span style={{ fontSize: 10.5, color: '#94A3B8' }}>tailsup.app/dashboard</span>
         </div>
       </div>
 
@@ -457,7 +457,7 @@ function NavBar() {
             <PawIcon size={19} color="#fff" />
           </div>
           <span style={{ fontSize: 17, fontWeight: 700, color: c.text, letterSpacing: '-0.02em' }}>
-            KennelOps
+            Tails Up
           </span>
         </a>
 
@@ -626,7 +626,7 @@ function Hero() {
                 className="mb-8"
                 style={{ fontSize: 18, color: c.muted, lineHeight: 1.72, maxWidth: 480 }}
               >
-                KennelOps da a los centros y escuelas de adiestramiento
+                Tails Up da a los centros y escuelas de adiestramiento
                 una sola plataforma para gestionar reservas, historiales médicos,
                 facturación y personal — para que nada se pierda por el camino.
               </p>
@@ -1190,7 +1190,7 @@ function Footer() {
                 <PawIcon size={17} color="#fff" />
               </div>
               <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>
-                KennelOps
+                Tails Up
               </span>
             </div>
             <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.67, maxWidth: 210 }}>

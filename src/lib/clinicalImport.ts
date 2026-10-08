@@ -137,7 +137,7 @@ const RECORD_TYPES: [RegExp, string][] = [
 
 const VALID_RECORD_TYPES = new Set(["admission_checkup", "consultation", "surgery", "emergency", "checkup", "dental", "laboratory", "imaging"]);
 
-/** Tipo de registro de KennelOps; `original` se guarda en notas si no se reconoce. */
+/** Tipo de registro de Tails Up; `original` se guarda en notas si no se reconoce. */
 export function mapRecordType(raw: string): { value: string; original: string | null } {
   const s = normalizeHeader(raw);
   if (!s) return { value: "consultation", original: null };
@@ -213,7 +213,7 @@ export type DogMatch =
 const digits = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "").slice(-10);
 
 /**
- * Perro de la fila: por id de KennelOps, microchip, o nombre (y dueño si hay
+ * Perro de la fila: por id de Tails Up, microchip, o nombre (y dueño si hay
  * varios con el mismo nombre). Sin coincidencia segura → no se importa.
  */
 export function matchDog(
@@ -270,7 +270,7 @@ export interface ParsedClinicalFile {
   errors: RowIssue[];
   /** Datos corregidos o descartados sin perder la fila. */
   warnings: RowIssue[];
-  /** Campos de KennelOps que se encontraron en el archivo. */
+  /** Campos de Tails Up que se encontraron en el archivo. */
   mapped: string[];
 }
 

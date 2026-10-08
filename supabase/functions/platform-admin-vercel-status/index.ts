@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 // VERCEL_PROJECT_ID y VERCEL_TEAM_SLUG viven como secrets de Edge Function,
 // nunca en el frontend.
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,

@@ -1,4 +1,4 @@
-// KennelOps Type Definitions
+// Tails Up Type Definitions
 // All enums and interfaces for the dog training center management system
 
 // ============================================

@@ -177,7 +177,7 @@ export async function buildContractPdf(input: ContractPdfInput): Promise<Uint8Ar
   const doc = await PDFDocument.create();
   doc.setTitle(sanitize(input.title));
   doc.setAuthor(sanitize(input.orgName));
-  doc.setCreator("KennelOps");
+  doc.setCreator("Tails Up");
   const regular = await doc.embedFont(StandardFonts.TimesRoman);
   const bold = await doc.embedFont(StandardFonts.TimesRomanBold);
   const w = new Writer(doc, regular, bold);

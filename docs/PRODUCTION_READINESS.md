@@ -1,6 +1,6 @@
 # Production Readiness — Registro vivo
 
-> **Qué es esto:** la única fuente de verdad de todo lo conocido que falta para que KennelOps
+> **Qué es esto:** la única fuente de verdad de todo lo conocido que falta para que Tails Up
 > sea un producto sólido que cobra. Cada hallazgo (de auditorías, bugs o mejoras) vive aquí con
 > severidad, dueño, estado y **Definición de Hecho (DoD)**. Si algo no está en esta lista, es un
 > desconocido — no un "ya estaba listo".

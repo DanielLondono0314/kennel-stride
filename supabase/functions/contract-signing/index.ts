@@ -17,7 +17,7 @@ import { encode as b64encode, decode as b64decode } from "https://deno.land/std@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 import { buildContractPdf } from "../_shared/contractPdf.ts";
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 const APP_URL = (Deno.env.get("APP_URL") ?? ALLOWED_ORIGIN).replace(/\/+$/, "");
 const LINK_DAYS = 30;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -116,7 +116,7 @@ async function sendEmail(payload: {
 }): Promise<string | null> {
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) return "RESEND_API_KEY no configurado";
-  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
+  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@tailsup.app";
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },

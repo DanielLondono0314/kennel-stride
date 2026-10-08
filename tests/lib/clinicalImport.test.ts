@@ -17,7 +17,7 @@ describe("columnas y tipo de archivo", () => {
     expect(normalizeHeader("Diagnóstico")).toBe("diagnostico");
   });
 
-  it("reconoce las columnas de KennelOps y las de otras plataformas", () => {
+  it("reconoce las columnas de Tails Up y las de otras plataformas", () => {
     expect(mapColumns(["dog_id", "record_date", "reason"], "medical")).toMatchObject({ dog_id: "dog_id", record_date: "record_date", reason: "reason" });
     expect(mapColumns(["Paciente", "Fecha", "Motivo de consulta", "Diagnóstico", "Fórmula médica"], "medical"))
       .toMatchObject({ dog_name: "Paciente", record_date: "Fecha", reason: "Motivo de consulta", diagnosis: "Diagnóstico", prescription: "Fórmula médica" });
@@ -69,7 +69,7 @@ describe("emparejar perros", () => {
 });
 
 describe("leer filas", () => {
-  it("formato OkVet → KennelOps (con dog_id ya asignado)", () => {
+  it("formato OkVet → Tails Up (con dog_id ya asignado)", () => {
     const rows = [
       {
         dog_id: "d-apolo-1", dog_name: "APOLO", organization_id: "org", record_date: "2026-06-03", record_type: "consultation",
