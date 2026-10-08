@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 import { CONTACT_HOURS_MESSAGE, isWithinColombiaContactHours } from "../_shared/colombiaContactHours.ts";
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -316,8 +316,8 @@ serve(async (req: Request) => {
       }, 400);
     }
 
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
-    const fromName = Deno.env.get("RESEND_FROM_NAME") ?? "KennelOps";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@tailsup.app";
+    const fromName = Deno.env.get("RESEND_FROM_NAME") ?? "Tails Up";
     const fromAddress = `${fromName} <${fromEmail}>`;
     const unsubscribeEmail = Deno.env.get("RESEND_UNSUBSCRIBE_EMAIL") ?? fromEmail;
     const unsubscribeHeader = `<mailto:${unsubscribeEmail}?subject=unsubscribe>`;

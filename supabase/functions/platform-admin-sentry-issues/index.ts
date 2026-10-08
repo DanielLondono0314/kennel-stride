@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 // de Edge Function, nunca en el frontend. El org de Sentry es región US
 // (ver DSN: ingest.us.sentry.io), por eso la API base es us.sentry.io.
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 const SENTRY_API_BASE = "https://us.sentry.io/api/0";
 
 const corsHeaders = {

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.2";
 
-const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://app.kennelops.com";
+const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "https://tailsup.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -166,8 +166,8 @@ serve(async (req: Request) => {
       }, 400);
     }
 
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@kennelops.com";
-    const fromName = Deno.env.get("RESEND_FROM_NAME") ?? org?.name ?? "KennelOps";
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@tailsup.app";
+    const fromName = Deno.env.get("RESEND_FROM_NAME") ?? org?.name ?? "Tails Up";
     const orgName = org?.name ?? "el equipo";
     const staff = (reportCard as { staff_members?: { first_name?: string; last_name?: string } | null }).staff_members;
     const staffName = staff ? `${staff.first_name ?? ""} ${staff.last_name ?? ""}`.trim() || null : null;

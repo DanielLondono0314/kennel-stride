@@ -151,7 +151,7 @@ export default function OnboardingPage() {
               URL de acceso *
             </Label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground shrink-0">app.kennelops.com/</span>
+              <span className="text-sm text-muted-foreground shrink-0">tailsup.app/</span>
               <div className="relative flex-1">
                 <Input
                   id="slug"

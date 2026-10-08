@@ -250,7 +250,7 @@ export function ImportClinicalModal({ open, onOpenChange, onImported }: Props) {
             <div className="space-y-2 text-sm">
               <p className="font-medium">¿Qué columnas reconoce?</p>
               <p className="text-muted-foreground">
-                Las de KennelOps o sus equivalentes en español (fecha, paciente/mascota, propietario, motivo, diagnóstico,
+                Las de Tails Up o sus equivalentes en español (fecha, paciente/mascota, propietario, motivo, diagnóstico,
                 tratamiento, fórmula, peso, temperatura, vacuna, lote, producto, próxima dosis…). Descarga una plantilla de ejemplo:
               </p>
               <div className="flex flex-wrap gap-2">

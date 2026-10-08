@@ -10,7 +10,7 @@
 
 export const LEGAL = {
   /** Nombre comercial del producto. */
-  brand: "KennelOps",
+  brand: "Tails Up",
   /** Razón social de la sociedad operadora (p. ej. "Kennel Tech S.A.S."). */
   companyName: "PENDIENTE_RAZON_SOCIAL",
   nit: "PENDIENTE_NIT",

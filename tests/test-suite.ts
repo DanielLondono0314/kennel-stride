@@ -1,5 +1,5 @@
 /**
- * KennelOps – Test Suite
+ * Tails Up – Test Suite
  * Framework: Vitest + @testing-library/react
  * Run: npm test
  */
