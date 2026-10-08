@@ -130,8 +130,8 @@ Doc completo: `docs/membership-plans.md`. Modelo: `organizations.plan_tier`
 2. LemonSqueezy: crear 3 variants mensuales (Esencial $19, Pro $49, Premium $99).
 3. SQL: `update public.plan_catalog set ls_variant_id='<id>' where tier='basic'|'pro'|'premium';`
    (si hay variants anuales, ampliar plan_catalog a varios variants por plan).
-4. Vercel: reemplazar `VITE_LS_CHECKOUT_URL_STARTER/_GROWTH` por
-   `VITE_LS_CHECKOUT_URL_BASIC/_PRO/_PREMIUM`.
+4. Vercel: definir `VITE_LS_CHECKOUT_URL_BASIC/_PRO/_PREMIUM` (BillingPage ya
+   las lee desde el PR de multi-sede; las STARTER/_GROWTH ya no se usan).
 5. Aplicar migración `20260924000000_membership_plans.sql`.
 6. Desplegar edge functions `handle-ls-webhook` y `send-campaign`.
 7. Regenerar `src/integrations/supabase/types.ts` (se editó a mano).

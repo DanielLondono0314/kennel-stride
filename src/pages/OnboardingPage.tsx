@@ -11,21 +11,18 @@ import { Dog, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ACCOUNT_CONSENT_VERSIONS, LegalConsentCheckbox } from "@/components/legal/LegalConsentCheckbox";
 import { LEGAL, LEGAL_DOCS } from "@/lib/legal";
+import { ORG_SLUG_PATTERN, toOrgSlug as toSlug } from "@/lib/orgSlug";
+import { useMyOrganizations } from "@/hooks/queries/useMyOrganizations";
+import { ownedPrincipal } from "@/lib/myOrganizations";
 
-function toSlug(name: string) {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
 
 export default function OnboardingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Una cuenta tiene un solo centro independiente; los demás son sedes (Premium).
+  const { data: myOrgs } = useMyOrganizations();
+  const owned = ownedPrincipal(myOrgs ?? []);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -58,7 +55,7 @@ export default function OnboardingPage() {
     if (!slug.trim()) { toast.error("El URL de acceso no puede estar vacío"); return; }
     if (!accepted) { toast.error("Debes aceptar los documentos legales para crear el centro"); return; }
     // Espeja la validación del RPC create_organization (3–40, minúsculas/números/guiones).
-    if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug)) {
+    if (!ORG_SLUG_PATTERN.test(slug)) {
       toast.error("URL inválido: usa 3–40 caracteres, solo minúsculas, números y guiones");
       return;
     }
@@ -122,6 +119,31 @@ export default function OnboardingPage() {
     await queryClient.invalidateQueries({ queryKey: ["my-organizations"] });
     navigate(`/${orgData.slug}/dashboard`);
   };
+
+  if (owned) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="flex justify-center">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
+              <Dog className="h-6 w-6 text-sidebar-primary-foreground" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Ya tienes un centro</h2>
+            <p className="text-muted-foreground mt-2">
+              Tu cuenta ya administra <span className="font-medium text-foreground">{owned.name}</span>. Para abrir
+              otra sede de tu negocio, créala desde Configuración → Sedes (incluido en el plan Premium).
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => navigate(`/${owned.slug}/settings?tab=sedes`)}>Ver mis sedes</Button>
+            <Button variant="ghost" onClick={() => navigate(`/${owned.slug}`)}>Ir a {owned.name}</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">

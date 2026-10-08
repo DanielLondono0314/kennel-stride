@@ -23,7 +23,8 @@ export type Feature =
   | "route_notifications"
   | "facility"
   | "clinic"
-  | "campaigns";
+  | "campaigns"
+  | "locations";
 
 export interface PlanDefinition {
   tier: PlanTier;
@@ -35,6 +36,8 @@ export interface PlanDefinition {
   /** null = ilimitado */
   maxMembers: number | null;
   maxDogs: number | null;
+  /** Centros que puede tener la cuenta (principal + sedes). Espejo de plan_catalog.max_locations. */
+  maxLocations: number;
   features: readonly Feature[];
 }
 
@@ -45,7 +48,7 @@ const ESSENTIAL: readonly Feature[] = [
 const PRO: readonly Feature[] = [
   ...ESSENTIAL, "requests", "notices", "report_cards", "route_notifications",
 ];
-const PREMIUM: readonly Feature[] = [...PRO, "facility", "clinic", "campaigns"];
+const PREMIUM: readonly Feature[] = [...PRO, "facility", "clinic", "campaigns", "locations"];
 
 export const PLANS: Record<PlanTier, PlanDefinition> = {
   basic: {
@@ -56,6 +59,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     monthlyCop: 79_000,
     maxMembers: 2,
     maxDogs: 200,
+    maxLocations: 1,
     features: ESSENTIAL,
   },
   pro: {
@@ -66,6 +70,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     monthlyCop: 199_000,
     maxMembers: 10,
     maxDogs: 1000,
+    maxLocations: 1,
     features: PRO,
   },
   premium: {
@@ -76,6 +81,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     monthlyCop: 399_000,
     maxMembers: null,
     maxDogs: null,
+    maxLocations: 5,
     features: PREMIUM,
   },
 };
@@ -102,6 +108,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   facility: "Instalaciones y perreras",
   clinic: "Clínica veterinaria",
   campaigns: "Campañas de marketing",
+  locations: "Multi-sede (hasta 5 sedes)",
 };
 
 export function planHasFeature(tier: PlanTier, feature: Feature): boolean {

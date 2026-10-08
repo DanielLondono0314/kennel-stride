@@ -3,6 +3,8 @@ import { ChevronRight, Dog, Loader2, LogOut, Plus, RefreshCw } from "lucide-reac
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyOrganizations } from "@/hooks/queries/useMyOrganizations";
 import { getLastOrgSlug } from "@/lib/orgNavigation";
+import { locationLabel, ownedPrincipal } from "@/lib/myOrganizations";
+import { OrgAvatar } from "@/components/navigation/OrgSwitcher";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -39,6 +41,9 @@ export default function SelectOrganizationPage() {
   if (orgs.length === 0) return <Navigate to="/onboarding" replace />;
   if (orgs.length === 1) return <Navigate to={`/${orgs[0].slug}`} replace />;
 
+  const principal = ownedPrincipal(orgs);
+  const ownsAny = orgs.some((o) => o.isOwner);
+
   return (
     <main className="flex min-h-screen flex-col items-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
@@ -60,18 +65,13 @@ export default function SelectOrganizationPage() {
                 onClick={() => navigate(`/${o.slug}`)}
                 className="flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {o.logoUrl ? (
-                  <img src={o.logoUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary" aria-hidden>
-                    {o.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <OrgAvatar org={o} className="h-10 w-10 text-base" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{o.name}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {o.roleName}
-                    {o.slug === lastSlug && " · Último usado"}
+                    {[locationLabel(o, orgs), o.roleName, o.slug === lastSlug ? "Último usado" : null]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -81,12 +81,21 @@ export default function SelectOrganizationPage() {
         </ul>
 
         <div className="mt-8 flex flex-col items-center gap-2">
-          <Button variant="ghost" asChild className="gap-2 text-muted-foreground">
-            <Link to="/onboarding">
-              <Plus className="h-4 w-4" />
-              Crear otro centro o sede
-            </Link>
-          </Button>
+          {principal ? (
+            <Button variant="ghost" asChild className="gap-2 text-muted-foreground">
+              <Link to={`/${principal.slug}/settings?tab=sedes`}>
+                <Plus className="h-4 w-4" />
+                Nueva sede
+              </Link>
+            </Button>
+          ) : !ownsAny && (
+            <Button variant="ghost" asChild className="gap-2 text-muted-foreground">
+              <Link to="/onboarding">
+                <Plus className="h-4 w-4" />
+                Crear mi propio centro
+              </Link>
+            </Button>
+          )}
           <Button variant="ghost" onClick={signOut} className="gap-2 text-muted-foreground">
             <LogOut className="h-4 w-4" />
             Cerrar sesión

@@ -11,6 +11,8 @@ export interface Organization {
   slug: string;
   name: string;
   logo_url: string | null;
+  /** Sede principal de la que depende (null = centro independiente o principal). */
+  parent_org_id: string | null;
   subscription_status: string;
   plan_tier: PlanTier;
   trial_ends_at: string;
@@ -102,7 +104,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     const [orgResult, memberResult, platformAdminResult] = await Promise.all([
       supabase
         .from("organizations")
-        .select("id, slug, name, logo_url, subscription_status, plan_tier, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types, route_notifications_enabled, route_notification_channel")
+        .select("id, slug, name, logo_url, parent_org_id, subscription_status, plan_tier, trial_ends_at, opening_time, closing_time, timezone, address, city, phone, email, service_types, route_notifications_enabled, route_notification_channel")
         .eq("slug", orgSlug)
         .maybeSingle(),
       supabase

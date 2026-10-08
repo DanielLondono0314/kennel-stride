@@ -30,7 +30,7 @@
 
 - **PR-1** — `signUp`/`resetPasswordForEmail` usan el SMTP por defecto de Supabase (~3-4/h, va a spam). Un registro que no recibe el correo de confirmación = trial que nunca empieza = venta perdida. Ya hay cuenta de **Resend** (`send-campaign`).
   **DoD:** Supabase Auth apuntado a Resend SMTP; un registro nuevo en prod recibe confirmación <1 min en bandeja de entrada; "recuperar contraseña" llega y funciona.
-- **PR-2** — `BillingPage` lee `VITE_LS_CHECKOUT_URL_STARTER`/`GROWTH`; si faltan en Vercel, no se puede comprar. El webhook necesita su secret y la URL registrada en LemonSqueezy.
+- **PR-2** — `BillingPage` lee `VITE_LS_CHECKOUT_URL_BASIC`/`PRO`/`PREMIUM`; si faltan en Vercel, no se puede comprar. El webhook necesita su secret y la URL registrada en LemonSqueezy.
   **DoD:** env vars presentes en prod; webhook registrado apuntando a la edge function con secret; documentado.
 - **PR-3** — **DoD:** un recorrido real (o sandbox de LS) registrado: alta → trial → click upgrade → checkout → webhook → org pasa a `active`. Sin pasos rotos.
 
