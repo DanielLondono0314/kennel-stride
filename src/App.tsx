@@ -30,6 +30,7 @@ const DataProcessingPage   = lazy(() => import("./pages/legal/DataProcessingPage
 const CookiesPage          = lazy(() => import("./pages/legal/CookiesPage"));
 const CustomerAuthorizationPage = lazy(() => import("./pages/legal/CustomerAuthorizationPage"));
 const OnboardingPage   = lazy(() => import("./pages/OnboardingPage"));
+const SelectOrganizationPage = lazy(() => import("./pages/SelectOrganizationPage"));
 const BillingPage      = lazy(() => import("./pages/BillingPage"));
 
 const Dashboard            = lazy(() => import("./pages/Dashboard"));
@@ -143,6 +144,7 @@ const App = () => {
                   {/* Auth required, no org needed */}
                   <Route element={<ProtectedRoute />}>
                     <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route path="/centros" element={<SelectOrganizationPage />} />
                     <Route path="/billing" element={<BillingPage />} />
                   </Route>
 

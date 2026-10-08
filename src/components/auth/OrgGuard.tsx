@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
 import { Button } from "@/components/ui/button";
+import { SELECT_ORG_PATH, setLastOrgSlug } from "@/lib/orgNavigation";
 
 function OrgGuardInner() {
   const location = useLocation();
@@ -17,6 +18,11 @@ function OrgGuardInner() {
     document.title = `TailsUp | ${organization.name}`;
     return () => { document.title = "TailsUp"; };
   }, [organization?.name]);
+
+  // Recordar el último centro abierto, para destacarlo en "Mis centros".
+  useEffect(() => {
+    if (organization?.slug) setLastOrgSlug(organization.slug);
+  }, [organization?.slug]);
 
   if (authLoading || orgLoading) {
     return (
@@ -103,7 +109,7 @@ function OrgNotFound() {
         No existe un centro con la dirección <span className="font-medium text-foreground">/{orgSlug}</span>, o tu cuenta no tiene acceso a él.
       </p>
       <Button asChild>
-        <Link to={ownSlug ? `/${ownSlug}/dashboard` : "/"} replace>{ownSlug ? "Ir a mi centro" : "Volver al inicio"}</Link>
+        <Link to={ownSlug ? SELECT_ORG_PATH : "/"} replace>{ownSlug ? "Ir a mis centros" : "Volver al inicio"}</Link>
       </Button>
     </main>
   );

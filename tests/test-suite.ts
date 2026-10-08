@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import {
   VaccinationType, DocumentType, DocumentStatus,
@@ -240,9 +241,11 @@ describe("UI – OnboardingPage renders correctly", () => {
   async function renderOnboarding() {
     const { default: OnboardingPage } = await import("@/pages/OnboardingPage");
     return render(
-      React.createElement(MemoryRouter, { initialEntries: ["/onboarding"] },
-        React.createElement(Routes, null,
-          React.createElement(Route, { path: "/onboarding", element: React.createElement(OnboardingPage) })
+      React.createElement(QueryClientProvider, { client: new QueryClient() },
+        React.createElement(MemoryRouter, { initialEntries: ["/onboarding"] },
+          React.createElement(Routes, null,
+            React.createElement(Route, { path: "/onboarding", element: React.createElement(OnboardingPage) })
+          )
         )
       )
     );

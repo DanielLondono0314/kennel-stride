@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppNavLink } from "./AppNavLink";
+import { OrgSwitcher } from "./OrgSwitcher";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
 import {
@@ -19,6 +20,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   Bell,
   ClipboardList,
   Map,
@@ -62,21 +64,30 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         className
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary shrink-0">
-          <Dog className="h-5 w-5 text-sidebar-primary-foreground" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="font-bold text-sidebar-foreground text-lg leading-tight truncate">
-              {organization?.name ?? "Tails Up"}
-            </span>
-            <span className="text-xs text-sidebar-foreground/60 truncate">
-              {orgSlug}
-            </span>
-          </div>
-        )}
+      {/* Logo + selector de centro */}
+      <div className="flex items-center px-2 h-16 border-b border-sidebar-border">
+        <OrgSwitcher className="flex w-full min-w-0 items-center gap-3 px-2 py-1.5 hover:bg-sidebar-accent">
+          {(interactive) => (
+            <>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sidebar-primary shrink-0">
+                <Dog className="h-5 w-5 text-sidebar-primary-foreground" />
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="flex flex-1 flex-col min-w-0">
+                    <span className="font-bold text-sidebar-foreground text-lg leading-tight truncate">
+                      {organization?.name ?? "Tails Up"}
+                    </span>
+                    <span className="text-xs text-sidebar-foreground/60 truncate">
+                      {orgSlug}
+                    </span>
+                  </div>
+                  {interactive && <ChevronsUpDown className="h-4 w-4 shrink-0 text-sidebar-foreground/50" aria-hidden />}
+                </>
+              )}
+            </>
+          )}
+        </OrgSwitcher>
       </div>
 
       {/* Navigation */}

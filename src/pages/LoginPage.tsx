@@ -8,13 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Dog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { LegalLinks } from "@/components/legal/LegalLinks";
+import { fetchMyOrganizations } from "@/hooks/queries/useMyOrganizations";
+import { postLoginPath, SELECT_ORG_PATH } from "@/lib/orgNavigation";
 
-async function getFirstOrgSlug(_userId: string): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_my_first_org_slug");
-  if (error) {
-    return null;
+/**
+ * A dónde ir tras el login: crear centro, entrar al único, o elegir entre
+ * varios. Si la consulta falla se manda a "Mis centros", que muestra el error
+ * con reintento; nunca a crear un centro por un fallo de red.
+ */
+async function getPostLoginPath(userId: string): Promise<string> {
+  try {
+    const orgs = await fetchMyOrganizations(userId);
+    return postLoginPath(orgs.map((o) => o.slug));
+  } catch {
+    return SELECT_ORG_PATH;
   }
-  return (data as string | null) ?? null;
 }
 
 export default function LoginPage() {
@@ -43,8 +51,7 @@ export default function LoginPage() {
         navigate(`/join?token=${encodeURIComponent(invite)}`, { replace: true });
         return;
       }
-      const slug = await getFirstOrgSlug(session.user.id);
-      navigate(slug ? `/${slug}` : "/onboarding", { replace: true });
+      navigate(await getPostLoginPath(session.user.id), { replace: true });
     })();
   }, [session, authLoading, invite, navigate, from]);
 
@@ -62,8 +69,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    const slug = await getFirstOrgSlug(data.user.id);
-    navigate(slug ? `/${slug}/dashboard` : "/onboarding", { replace: true });
+    navigate(await getPostLoginPath(data.user.id), { replace: true });
     setLoading(false);
   };
 

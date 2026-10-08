@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ function toSlug(name: string) {
 export default function OnboardingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -116,6 +118,8 @@ export default function OnboardingPage() {
     }
 
     toast.success("¡Centro creado!");
+    // El nuevo centro debe aparecer ya en el selector de centros.
+    await queryClient.invalidateQueries({ queryKey: ["my-organizations"] });
     navigate(`/${orgData.slug}/dashboard`);
   };
 
