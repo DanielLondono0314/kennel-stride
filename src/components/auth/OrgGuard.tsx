@@ -11,6 +11,13 @@ function OrgGuardInner() {
   const { session, loading: authLoading } = useAuth();
   const { organization, loading: orgLoading, notFound, loadError, isSubscriptionActive, refetch } = useOrganization();
 
+  // Pestaña del navegador: "TailsUp | {centro}". Al salir del centro vuelve al título base de index.html.
+  useEffect(() => {
+    if (!organization?.name) return;
+    document.title = `TailsUp | ${organization.name}`;
+    return () => { document.title = "TailsUp"; };
+  }, [organization?.name]);
+
   if (authLoading || orgLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
