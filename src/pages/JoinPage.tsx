@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { friendlyPlanLimitMessage } from "@/lib/query-client";
@@ -23,6 +24,7 @@ async function hasAcceptedAccountTerms(userId: string): Promise<boolean> {
 export default function JoinPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const token = searchParams.get("token");
 
@@ -81,7 +83,10 @@ export default function JoinPage() {
       setStatus("invalid");
     } else {
       toast.success(`Bienvenido a ${orgName}!`);
-      navigate(`/${(data as { slug: string }).slug}/dashboard`, { replace: true });
+      // El nuevo centro debe aparecer ya en el selector de centros.
+      await queryClient.invalidateQueries({ queryKey: ["my-organizations"] });
+      // RoleHome decide si entra a la vista de trabajador o a la de admin.
+      navigate(`/${(data as { slug: string }).slug}`, { replace: true });
     }
   };
 
