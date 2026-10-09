@@ -34,8 +34,9 @@ configurado" y nadie puede pagar. Y si el webhook no está bien, el cliente paga
 organización no pasa a `active` → bloqueado → reembolso + churn.
 
 - [ ] **Vercel → Project → Settings → Environment Variables (Production):** confirma que existen y apuntan a los checkout links de cada plan en LemonSqueezy:
-  - `VITE_LS_CHECKOUT_URL_STARTER`
-  - `VITE_LS_CHECKOUT_URL_GROWTH`
+  - `VITE_LS_CHECKOUT_URL_BASIC` (Esencial)
+  - `VITE_LS_CHECKOUT_URL_PRO` (Pro)
+  - `VITE_LS_CHECKOUT_URL_PREMIUM` (Premium, incluye multi-sede)
   - (Tras añadirlas, **redeploy** para que entren al build.)
 - [ ] **Edge function desplegada:** confirma que `handle-ls-webhook` está en prod (`supabase functions deploy handle-ls-webhook`). *Yo puedo desplegar el código si me lo pides; el resto es dashboard.*
 - [ ] **LemonSqueezy → Settings → Webhooks → +:**

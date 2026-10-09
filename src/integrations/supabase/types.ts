@@ -1665,6 +1665,7 @@ export type Database = {
           name: string
           opening_time: string | null
           owner_id: string | null
+          parent_org_id: string | null
           phone: string | null
           plan_tier: string
           route_notification_channel: string
@@ -1690,6 +1691,7 @@ export type Database = {
           name: string
           opening_time?: string | null
           owner_id?: string | null
+          parent_org_id?: string | null
           phone?: string | null
           plan_tier?: string
           route_notification_channel?: string
@@ -1715,6 +1717,7 @@ export type Database = {
           name?: string
           opening_time?: string | null
           owner_id?: string | null
+          parent_org_id?: string | null
           phone?: string | null
           plan_tier?: string
           route_notification_channel?: string
@@ -1726,7 +1729,15 @@ export type Database = {
           trial_ends_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_parent_org_id_fkey"
+            columns: ["parent_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       package_credit_log: {
         Row: {
@@ -1866,6 +1877,7 @@ export type Database = {
           display_name: string
           ls_variant_id: string | null
           max_dogs: number | null
+          max_locations: number
           max_members: number | null
           monthly_price_cop: number
           monthly_price_usd: number
@@ -1876,6 +1888,7 @@ export type Database = {
           display_name: string
           ls_variant_id?: string | null
           max_dogs?: number | null
+          max_locations?: number
           max_members?: number | null
           monthly_price_cop: number
           monthly_price_usd: number
@@ -1886,6 +1899,7 @@ export type Database = {
           display_name?: string
           ls_variant_id?: string | null
           max_dogs?: number | null
+          max_locations?: number
           max_members?: number | null
           monthly_price_cop?: number
           monthly_price_usd?: number
@@ -2705,6 +2719,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_sede: {
+        Args: {
+          p_dpa_version?: string
+          p_name: string
+          p_parent_org_id: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       create_reservation: {
         Args: {
           p_customer_id: string
@@ -2735,6 +2758,7 @@ export type Database = {
       }
       get_invitation_by_token: { Args: { p_token: string }; Returns: Json }
       get_my_first_org_slug: { Args: never; Returns: string }
+      get_sede_quota: { Args: { p_org_id: string }; Returns: Json }
       get_my_staff_ids: { Args: never; Returns: string[] }
       get_onboarding_status: { Args: { p_org_id: string }; Returns: Json }
       get_org_ids_with_permission: {

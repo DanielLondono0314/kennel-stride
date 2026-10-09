@@ -38,7 +38,7 @@ $$;
 -- ─── Matriz de features ────────────────────────────────────────────────────
 select is((select count(*)::int from public.plan_features where tier = 'basic'),   11, 'Esencial: 11 features');
 select is((select count(*)::int from public.plan_features where tier = 'pro'),     15, 'Pro: 15 features');
-select is((select count(*)::int from public.plan_features where tier = 'premium'), 18, 'Premium: 18 features');
+select is((select count(*)::int from public.plan_features where tier = 'premium'), 19, 'Premium: 19 features (incluye multi-sede)');
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000a0001');
 select ok(public.org_has_feature('00000000-0000-0000-0000-00000000a000', 'invoices'),

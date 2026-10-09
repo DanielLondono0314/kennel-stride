@@ -67,7 +67,8 @@ function OrgGuardInner() {
       </div>
     );
   }
-  if (!isSubscriptionActive) return <Navigate to="/billing" replace />;
+  // Con ?org= la facturación sabe qué centro (o sede) está inactivo.
+  if (!isSubscriptionActive) return <Navigate to={`/billing?org=${encodeURIComponent(organization.slug)}`} replace />;
 
   return <Outlet />;
 }

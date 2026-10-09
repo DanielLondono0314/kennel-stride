@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dog, AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { PLANS, type PlanTier } from "@/lib/plans";
+import { SELECT_ORG_PATH } from "@/lib/orgNavigation";
+import type { SedeQuota } from "@/hooks/queries/useMyOrganizations";
 
-// [E4] Base checkout URLs come from env vars (one per plan). These are the bare
-// LemonSqueezy checkout links WITHOUT any custom data; we append the org id at
-// runtime. When a plan's URL is not configured, billing is shown as "no
-// configurado" instead of rendering a dead "#" placeholder link.
-//
-// Env vars (owned/documented by Stream G in .env.example):
-//   VITE_LS_CHECKOUT_URL_STARTER
-//   VITE_LS_CHECKOUT_URL_GROWTH
-const PLAN_CHECKOUT_BASE = {
-  starter: import.meta.env.VITE_LS_CHECKOUT_URL_STARTER as string | undefined,
-  growth: import.meta.env.VITE_LS_CHECKOUT_URL_GROWTH as string | undefined,
+// [E4] Base checkout URLs come from env vars (one per plan, see .env.example).
+// These are the bare LemonSqueezy checkout links WITHOUT any custom data; we
+// append the org id at runtime. A plan without URL is simply not offered.
+const PLAN_CHECKOUT_BASE: Record<PlanTier, string | undefined> = {
+  premium: import.meta.env.VITE_LS_CHECKOUT_URL_PREMIUM as string | undefined,
+  pro: import.meta.env.VITE_LS_CHECKOUT_URL_PRO as string | undefined,
+  basic: import.meta.env.VITE_LS_CHECKOUT_URL_BASIC as string | undefined,
 };
+const CHECKOUT_ORDER: PlanTier[] = ["premium", "pro", "basic"];
 
 /**
  * Append LemonSqueezy custom checkout data so the webhook can link the resulting
@@ -41,59 +41,74 @@ function buildCheckoutUrl(
   }
 }
 
+interface BillingOrg {
+  id: string;
+  slug: string;
+  name: string;
+  parent_org_id: string | null;
+  subscription_status: string;
+}
+
 export default function BillingPage() {
   const { user } = useAuth();
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [slug, setSlug] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const requestedSlug = searchParams.get("org");
+  const [org, setOrg] = useState<BillingOrg | null>(null);
+  const [sede, setSede] = useState<SedeQuota | null>(null);
   const [resolving, setResolving] = useState(true);
 
-  // [E4] BillingPage renders outside the org-scoped route tree (it is reached via
-  // a redirect from OrgGuard when the subscription is inactive), so there is no
-  // OrganizationContext here. Resolve the user's organization directly so the
-  // checkout can carry a real org_id.
+  // [E4] BillingPage renders outside the org-scoped route tree (OrgGuard
+  // redirects here with ?org=<slug> when the subscription is inactive), so
+  // there is no OrganizationContext. With several centros the checkout must
+  // carry the org that sent us here, not just the user's first one.
   useEffect(() => {
     let cancelled = false;
     async function resolveOrg() {
       if (!user) {
-        if (!cancelled) {
-          setResolving(false);
-        }
+        if (!cancelled) setResolving(false);
         return;
       }
       const { data } = await supabase
         .from("organization_members")
-        .select("organization_id, organizations!inner(id, slug, created_at)")
+        .select("created_at, organizations!inner(id, slug, name, parent_org_id, subscription_status)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: true });
+      const orgs = ((data ?? []) as unknown as { organizations: BillingOrg }[]).map((m) => m.organizations);
+      const found = orgs.find((o) => o.slug === requestedSlug) ?? orgs[0] ?? null;
+
+      // Una sede no se paga sola: depende de la suscripción de su principal.
+      let quota: SedeQuota | null = null;
+      if (found?.parent_org_id) {
+        const { data: q } = await supabase.rpc("get_sede_quota", { p_org_id: found.id });
+        quota = (q as unknown as SedeQuota) ?? null;
+      }
 
       if (cancelled) return;
-
-      const org = (data as { organizations?: { id?: string; slug?: string } } | null)?.organizations;
-      setOrgId(org?.id ?? null);
-      setSlug(org?.slug ?? null);
+      setOrg(found);
+      setSede(quota);
       setResolving(false);
     }
     resolveOrg();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, requestedSlug]);
 
   const email = user?.email ?? null;
-
-  const growthUrl = useMemo(
-    () => buildCheckoutUrl(PLAN_CHECKOUT_BASE.growth, orgId, email),
-    [orgId, email],
-  );
-  const starterUrl = useMemo(
-    () => buildCheckoutUrl(PLAN_CHECKOUT_BASE.starter, orgId, email),
-    [orgId, email],
+  const checkoutLinks = useMemo(
+    () =>
+      CHECKOUT_ORDER.map((tier) => ({ tier, url: buildCheckoutUrl(PLAN_CHECKOUT_BASE[tier], org?.id ?? null, email) }))
+        .filter((l): l is { tier: PlanTier; url: string } => l.url !== null),
+    [org?.id, email],
   );
 
-  const billingConfigured = Boolean(growthUrl || starterUrl);
-  const backTo = slug ? `/${slug}/dashboard` : "/login";
+  const isSede = !!org?.parent_org_id;
+  const title = isSede ? "Sede sin plan activo" : "Suscripción inactiva";
+  const description = !isSede
+    ? "Tu período de prueba ha terminado o la suscripción fue cancelada. Activa tu plan para continuar usando Tails Up."
+    : org?.subscription_status === "suspended"
+      ? `${sede?.principal_name ?? "La sede principal"} ya no tiene el plan Premium, que es el que incluye las sedes. Los datos de ${org.name} están intactos y vuelve a funcionar en cuanto la sede principal reactive Premium.`
+      : `${org?.name} usa la suscripción de ${sede?.principal_name ?? "su sede principal"}, que está inactiva. Vuelve a funcionar en cuanto se reactive el pago.`;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -107,47 +122,45 @@ export default function BillingPage() {
           <AlertTriangle className="h-8 w-8 text-warning" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold">Suscripción inactiva</h2>
-          <p className="text-muted-foreground mt-2">
-            Tu período de prueba ha terminado o la suscripción fue cancelada.
-            Activa tu plan para continuar usando Tails Up.
-          </p>
+          <h2 className="text-2xl font-bold">{title}</h2>
+          {org && !resolving && <p className="mt-1 text-sm font-medium">{org.name}</p>}
+          <p className="text-muted-foreground mt-2">{resolving ? null : description}</p>
         </div>
 
         {resolving ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : billingConfigured ? (
+        ) : isSede ? (
           <div className="space-y-3">
-            {growthUrl && (
+            {sede?.is_owner && (
               <Button className="w-full" asChild>
-                <a
-                  href={growthUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2"
-                >
-                  Activar plan Growth — $179/mes
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            )}
-            {starterUrl && (
-              <Button variant="outline" className="w-full" asChild>
-                <a
-                  href={starterUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2"
-                >
-                  Activar plan Starter — $79/mes
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+                <Link to={`/billing?org=${encodeURIComponent(sede.principal_slug)}`}>
+                  Ir a la facturación de {sede.principal_name}
+                </Link>
               </Button>
             )}
             <Button variant="ghost" className="w-full" asChild>
-              <Link to={backTo}>Volver al inicio</Link>
+              <Link to={SELECT_ORG_PATH}>Ver mis centros</Link>
+            </Button>
+          </div>
+        ) : checkoutLinks.length > 0 ? (
+          <div className="space-y-3">
+            {checkoutLinks.map(({ tier, url }, i) => (
+              <Button key={tier} variant={i === 0 ? "default" : "outline"} className="w-full" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2">
+                  Activar {PLANS[tier].name} — ${PLANS[tier].monthlyUsd}/mes
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            ))}
+            {checkoutLinks.some((l) => l.tier === "premium") && (
+              <p className="text-xs text-muted-foreground">
+                Premium incluye multi-sede: hasta {PLANS.premium.maxLocations} sedes con una sola suscripción.
+              </p>
+            )}
+            <Button variant="ghost" className="w-full" asChild>
+              <Link to={SELECT_ORG_PATH}>Ver mis centros</Link>
             </Button>
           </div>
         ) : (
@@ -159,7 +172,7 @@ export default function BillingPage() {
               Tails Up para activar tu suscripción.
             </div>
             <Button variant="ghost" className="w-full" asChild>
-              <Link to={backTo}>Volver al inicio</Link>
+              <Link to={user ? SELECT_ORG_PATH : "/login"}>Volver</Link>
             </Button>
           </div>
         )}
