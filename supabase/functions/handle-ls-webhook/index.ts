@@ -31,6 +31,10 @@ const corsHeaders = {
 
 /** Verify the HMAC-SHA256 signature LemonSqueezy sends on every webhook */
 async function verifySignature(body: string, signature: string, secret: string): Promise<boolean> {
+  // Sin firma o con una que no es hex (sha256 = 64 caracteres) no hay nada que
+  // verificar: es un 401, no un error interno.
+  if (!/^[0-9a-f]{64}$/i.test(signature)) return false;
+
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const msgData = encoder.encode(body);
@@ -43,7 +47,7 @@ async function verifySignature(body: string, signature: string, secret: string):
   );
 
   const sigBytes = new Uint8Array(
-    signature.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+    signature.match(/.{2}/g)!.map((byte) => parseInt(byte, 16)),
   );
 
   return crypto.subtle.verify("HMAC", key, sigBytes, msgData);
