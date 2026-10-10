@@ -8,12 +8,13 @@ import { createQueryClient } from "@/lib/query-client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OrgGuard } from "@/components/auth/OrgGuard";
-import { WorkerRoute, AdminOnlyRoute } from "@/components/auth/WorkerRoute";
+import { LegacyWorkerRedirect } from "@/components/auth/WorkerRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
+import { MyWorkLayout } from "@/components/navigation/MyWorkLayout";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
 import { FeatureRoute } from "@/components/auth/FeatureRoute";
 import { PageRoute } from "./components/auth/PageRoute";
 import { RoleHome } from "@/components/auth/RoleHome";
-import { WorkerLayout } from "@/components/worker/WorkerLayout";
 import { AppLayout } from "@/components/navigation/AppLayout";
 import { PlatformAdminLayout } from "@/components/platform-admin/PlatformAdminLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -70,13 +71,10 @@ const PlatformAdminAuditLogPage      = lazy(() => import("./pages/platform-admin
 const MyDayPage            = lazy(() => import("./pages/worker/MyDayPage"));
 const MyRoutePage          = lazy(() => import("./pages/worker/MyRoutePage"));
 const MySchedulePage       = lazy(() => import("./pages/worker/MySchedulePage"));
-const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailPage"));
-const WorkerNoticesPage    = lazy(() => import("./pages/worker/WorkerNoticesPage"));
-const WorkerProfilePage    = lazy(() => import("./pages/worker/WorkerProfilePage"));
 const WorkerDogsPage       = lazy(() => import("./pages/worker/WorkerDogsPage"));
 const WorkerDogPage        = lazy(() => import("./pages/worker/WorkerDogPage"));
-const WorkerKennelsPage    = lazy(() => import("./pages/worker/WorkerKennelsPage"));
-const WorkerHealthPage     = lazy(() => import("./pages/worker/WorkerHealthPage"));
+const WorkerTaskDetailPage = lazy(() => import("./pages/worker/WorkerTaskDetailPage"));
+const ProfilePage          = lazy(() => import("./pages/ProfilePage"));
 
 // Precarga el código de la página de la URL actual EN PARALELO con la carga de
 // la organización: antes la ruta pedía su chunk recién cuando OrgGuard
@@ -153,29 +151,10 @@ const App = () => {
                     {/* Role-based landing */}
                     <Route index element={<RoleHome />} />
 
-                    {/* Worker view */}
-                    <Route path="worker" element={<WorkerRoute />}>
-                      <Route element={<WorkerLayout />}>
-                        <Route index element={<MyDayPage />} />
-                        <Route path="schedule" element={<MySchedulePage />} />
-                        <Route path="route" element={<MyRoutePage />} />
-                        <Route path="reservation/:id" element={<WorkerTaskDetailPage />} />
-                        <Route path="task/:id" element={<WorkerTaskDetailPage />} />
-                        <Route path="dogs" element={<WorkerDogsPage />} />
-                        <Route path="dog/:id" element={<WorkerDogPage />} />
-                        <Route element={<FeatureRoute feature="facility" />}>
-                          <Route path="kennels" element={<WorkerKennelsPage />} />
-                        </Route>
-                        <Route element={<FeatureRoute feature="clinic" />}>
-                          <Route path="health" element={<WorkerHealthPage />} />
-                        </Route>
-                        <Route path="notices" element={<WorkerNoticesPage />} />
-                        <Route path="profile" element={<WorkerProfilePage />} />
-                      </Route>
-                    </Route>
+                    {/* Enlaces de la antigua app de trabajador → panel unificado */}
+                    <Route path="worker/*" element={<LegacyWorkerRedirect />} />
 
-                    {/* Admin view (blocked for workers) */}
-                    <Route element={<AdminOnlyRoute />}>
+                    {/* Panel único: cada rol ve las secciones que su rol permite */}
                     <Route element={<AppLayout />}>
                       <Route element={<PageRoute page="dashboard" />}><Route path="dashboard"        element={<Dashboard />} /></Route>
                       <Route element={<PageRoute page="customers" />}><Route path="customers"        element={<CustomersPage />} /></Route>
@@ -213,8 +192,20 @@ const App = () => {
                         <Route element={<PageRoute page="clinic" />}><Route path="clinic" element={<ClinicPage />} /></Route>
                       </Route>
                       <Route element={<PageRoute page="staff" />}><Route path="staff"            element={<StaffPage />} /></Route>
-                      <Route path="settings"         element={<SettingsPage />} />
-                    </Route>
+                      <Route element={<AdminRoute />}><Route path="settings" element={<SettingsPage />} /></Route>
+                      <Route path="profile"          element={<ProfilePage />} />
+                      {/* Mi trabajo (antes la app de trabajador) */}
+                      <Route element={<MyWorkLayout />}>
+                      <Route element={<PageRoute page="my_day" />}>
+                        <Route path="my-day"                element={<MyDayPage />} />
+                        <Route path="my-day/reservation/:id" element={<WorkerTaskDetailPage />} />
+                        <Route path="my-day/task/:id"        element={<WorkerTaskDetailPage />} />
+                        <Route path="my-day/dogs"            element={<WorkerDogsPage />} />
+                        <Route path="my-day/dog/:id"         element={<WorkerDogPage />} />
+                      </Route>
+                      <Route element={<PageRoute page="my_schedule" />}><Route path="my-schedule" element={<MySchedulePage />} /></Route>
+                      <Route element={<PageRoute page="my_route" />}><Route path="my-route" element={<MyRoutePage />} /></Route>
+                      </Route>
                     </Route>
                   </Route>
 

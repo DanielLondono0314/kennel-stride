@@ -64,7 +64,7 @@ export default function MySchedulePage() {
             <section className="space-y-2">
               <h2 className="text-sm font-medium text-muted-foreground">Sin fecha</h2>
               {undated.map((item) => (
-                <ScheduleRow key={`${item.kind}-${item.id}`} item={item} onClick={() => navigate(`/worker/${item.kind}/${item.id}`)} />
+                <ScheduleRow key={`${item.kind}-${item.id}`} item={item} onClick={() => navigate(`/my-day/${item.kind}/${item.id}`)} />
               ))}
             </section>
           )}
@@ -79,7 +79,7 @@ export default function MySchedulePage() {
                   {format(day, "EEEE d 'de' MMMM", { locale: es })}
                 </h2>
                 {items.map((item) => (
-                  <ScheduleRow key={`${item.kind}-${item.id}`} item={item} onClick={() => navigate(`/worker/${item.kind}/${item.id}`)} />
+                  <ScheduleRow key={`${item.kind}-${item.id}`} item={item} onClick={() => navigate(`/my-day/${item.kind}/${item.id}`)} />
                 ))}
               </section>
             );

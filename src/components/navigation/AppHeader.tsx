@@ -1,4 +1,4 @@
-import { useCanSeePage } from "@/hooks/usePermission";
+import { useCanSeePage, usePermission } from "@/hooks/usePermission";
 import { useNavigate } from "react-router-dom";
 import { useOrgNavigate } from "@/hooks/useOrgNavigate";
 import { useState, useEffect } from "react";
@@ -28,6 +28,7 @@ export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeade
   const navigate = useNavigate();
   const orgNavigate = useOrgNavigate();
   const canSeeNotices = useCanSeePage("notices");
+  const canManageSettings = usePermission("manage_settings");
   const { user, signOut } = useAuth();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -134,14 +135,16 @@ export function AppHeader({ noticeCount = 0, onMenuToggle, className }: AppHeade
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=profile")}>
+              <DropdownMenuItem onClick={() => orgNavigate("/profile")}>
                 <User className="mr-2 h-4 w-4" />
                 Mi perfil
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=business")}>
-                <Settings className="mr-2 h-4 w-4" />
-                Configuración del centro
-              </DropdownMenuItem>
+              {canManageSettings && (
+                <DropdownMenuItem onClick={() => orgNavigate("/settings?tab=business")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configuración del centro
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"

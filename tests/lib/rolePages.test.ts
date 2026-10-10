@@ -25,7 +25,22 @@ describe("secciones por rol", () => {
   it("el catálogo coincide con org_page_catalog() de la base", () => {
     expect(PAGE_CATALOG.map((p) => p.key).sort()).toEqual([
       "calendar", "campaigns", "clinic", "contracts", "customers", "dashboard", "dog_panel", "dogs", "facility",
-      "invoices", "notices", "plans", "report_cards", "reports", "requests", "routes", "staff", "tasks",
+      "invoices", "my_day", "my_route", "my_schedule", "notices", "plans", "report_cards", "reports", "requests",
+      "routes", "staff", "tasks",
     ]);
+  });
+
+  it("personal operativo: usa el panel con las secciones de Mi día y empieza ahí", () => {
+    const worker = { access_type: "worker" as const, pages: null };
+    expect(roleCanSeePage(worker, "my_day")).toBe(true);
+    expect(roleCanSeePage(worker, "facility")).toBe(true);
+    expect(roleCanSeePage(worker, "invoices")).toBe(false);
+    expect(firstAllowedPath(worker)).toBe("my-day");
+    expect(firstAllowedPath({ access_type: "worker", pages: ["dogs", "facility"] })).toBe("facility");
+  });
+
+  it("administrador y oficina no empiezan en Mi día aunque lo vean", () => {
+    expect(firstAllowedPath({ access_type: "admin", pages: null })).toBe("dashboard");
+    expect(firstAllowedPath({ access_type: "panel", pages: ["my_day", "clinic"] })).toBe("clinic");
   });
 });

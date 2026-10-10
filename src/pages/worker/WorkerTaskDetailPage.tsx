@@ -48,7 +48,7 @@ export default function WorkerTaskDetailPage() {
   if (!item) {
     return (
       <div className="space-y-4">
-        <BackButton onClick={() => navigate("/worker")} />
+        <BackButton onClick={() => navigate("/my-day")} />
         <p className="text-sm text-muted-foreground">No se encontró el elemento.</p>
       </div>
     );
@@ -79,7 +79,7 @@ export default function WorkerTaskDetailPage() {
     setReporting(false);
     queryClient.invalidateQueries({ queryKey: ["work-item", kind] });
     queryClient.invalidateQueries({ queryKey: ["my-day"] });
-    navigate("/worker");
+    navigate("/my-day");
   }
 
   const target: ReportTarget = {
@@ -93,7 +93,7 @@ export default function WorkerTaskDetailPage() {
 
   return (
     <div className="space-y-4">
-      <BackButton onClick={() => navigate("/worker")} />
+      <BackButton onClick={() => navigate("/my-day")} />
 
       <Card>
         <CardHeader>

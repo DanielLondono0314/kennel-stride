@@ -214,7 +214,7 @@ export function WorkerDogInfo({ dog, compact = false }: { dog: WorkerDogProfile;
 
       {compact && (
         <Link
-          to={`${base}/worker/dog/${dog.id}`}
+          to={`${base}/my-day/dog/${dog.id}`}
           className="flex items-center justify-between rounded-lg border p-3 text-sm font-medium hover:bg-muted/50"
         >
           Ver ficha completa de {dog.name}

@@ -59,7 +59,7 @@ export default function MyDayPage() {
 
       {/* Acceso a los perros presentes */}
       <Link
-        to={`${base}/worker/dogs`}
+        to={`${base}/my-day/dogs`}
         className="flex items-center gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40"
       >
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -98,7 +98,7 @@ export default function MyDayPage() {
                 return (
                   <Link
                     key={`${item.kind}-${item.id}`}
-                    to={`${base}/worker/${item.kind}/${item.id}`}
+                    to={`${base}/my-day/${item.kind}/${item.id}`}
                     className={cn(
                       "flex items-center gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       overdue && "border-destructive/50",

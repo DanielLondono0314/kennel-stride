@@ -92,7 +92,7 @@ export function KennelSheet({
                   )}
                 </div>
                 {kennel.dogId && (
-                  <Link to={`${base}/worker/dog/${kennel.dogId}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  <Link to={`${base}/my-day/dog/${kennel.dogId}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary">
                     Ficha <ChevronRight className="h-4 w-4" aria-hidden />
                   </Link>
                 )}

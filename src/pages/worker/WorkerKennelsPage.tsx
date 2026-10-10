@@ -17,10 +17,9 @@ const TILE: Record<KennelStatus, string> = {
 };
 
 /**
- * Perreras en la app del trabajador: ver ocupación y, con el permiso
+ * Vista "Perreras" de Instalaciones: ver ocupación y, con el permiso
  * "Gestionar perreras", crear, renombrar, eliminar, asignar, mover, liberar y
- * poner en mantenimiento.
- * Quien se encarga de las perreras no tiene acceso al panel administrativo.
+ * poner en mantenimiento, sin pasar por check-in/check-out.
  */
 export default function WorkerKennelsPage() {
   const canManage = usePermission("manage_facility");
