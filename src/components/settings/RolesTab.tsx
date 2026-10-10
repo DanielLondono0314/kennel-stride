@@ -33,6 +33,7 @@ import {
   ACCESS_TYPE_LABELS,
   ACCESS_TYPE_OPTIONS,
   PAGE_CATALOG,
+  WORKER_DEFAULT_PAGES,
   PERMISSION_CATALOG,
   type AccessType,
   type OrgPage,
@@ -95,8 +96,12 @@ export function RolesTab() {
       toast.error("El nombre debe tener entre 2 y 40 caracteres");
       return;
     }
-    // Solo el acceso Panel limita secciones; con todas marcadas vuelve a "todas".
-    const pagesToSave = accessType !== "panel" || !pages || pages.length === PAGE_CATALOG.length ? null : pages;
+    // Administrador ve todo. Oficina con todas marcadas vuelve a "todas" (null);
+    // Personal operativo siempre guarda su lista (sin lista = las de Mi día).
+    const pagesToSave =
+      accessType === "admin" ? null
+      : accessType === "worker" ? (pages ?? WORKER_DEFAULT_PAGES)
+      : !pages || pages.length === PAGE_CATALOG.length ? null : pages;
     if (pagesToSave && pagesToSave.length === 0) {
       toast.error("Marca al menos una sección del menú");
       return;
@@ -232,7 +237,12 @@ export function RolesTab() {
               <Label>Tipo de acceso</Label>
               <RadioGroup
                 value={accessType}
-                onValueChange={(v) => setAccessType(v as AccessType)}
+                onValueChange={(v) => {
+                  const next = v as AccessType;
+                  setAccessType(next);
+                  // Al pasar a Personal operativo sin lista, propone las secciones de Mi día.
+                  if (next === "worker" && !pages) setPages(WORKER_DEFAULT_PAGES);
+                }}
                 disabled={lockAccessType}
                 className="space-y-2"
               >
@@ -278,7 +288,7 @@ export function RolesTab() {
                 </div>
               )}
             </div>
-            {accessType === "panel" && (
+            {accessType !== "admin" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Label>Secciones del menú</Label>

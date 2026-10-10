@@ -29,6 +29,9 @@ import {
   ListTodo,
   HeartPulse,
   FileSignature,
+  Sun,
+  Clock,
+  Truck,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -92,8 +95,17 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-        {!collapsed && showGroup("Operaciones") && (
+        {!collapsed && showGroup("Mi trabajo") && (
           <p className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+            Mi trabajo
+          </p>
+        )}
+        <AppNavLink to={`${base}/my-day`}       icon={Sun}           label="Mi día"        collapsed={collapsed} onClick={onMobileClose} page="my_day" />
+        <AppNavLink to={`${base}/my-schedule`}  icon={Clock}         label="Mi horario"    collapsed={collapsed} onClick={onMobileClose} page="my_schedule" />
+        <AppNavLink to={`${base}/my-route`}     icon={Truck}         label="Mi ruta"       collapsed={collapsed} feature="routes" onClick={onMobileClose} page="my_route" />
+
+        {!collapsed && showGroup("Operaciones") && (
+          <p className={cn("px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider", showGroup("Mi trabajo") && "mt-6")}>
             Operaciones
           </p>
         )}

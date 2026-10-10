@@ -96,7 +96,7 @@ export default function WorkerDogsPage() {
             return (
               <li key={d.id}>
                 <Link
-                  to={`${base}/worker/dog/${d.id}`}
+                  to={`${base}/my-day/dog/${d.id}`}
                   className="flex items-center gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <DogAvatar photoUrl={d.photoUrl} name={d.name} />

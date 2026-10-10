@@ -7,7 +7,10 @@ import { ZoneBlock } from "@/components/facility/ZoneBlock";
 import { FacilitySummary } from "@/components/facility/FacilitySummary";
 import { KennelAssignmentModal } from "@/components/facility/KennelAssignmentModal";
 import { Button } from "@/components/ui/button";
-import { Map, Loader2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Map, Loader2, ZoomIn, ZoomOut, Maximize, LayoutGrid } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import KennelsBoard from "@/pages/worker/WorkerKennelsPage";
 
 interface FacilityZone {
   id: string;
@@ -38,6 +41,11 @@ interface FacilityUnit {
 }
 
 export default function FacilityPage() {
+  // Vista "Perreras": la operación del día (mover perro, liberar, mantenimiento,
+  // notas) sin pasar por check-in/check-out. "Mapa": diseño de zonas.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("vista") === "perreras" ? "kennels" : "map";
+  const setView = (v: "map" | "kennels") => setSearchParams(v === "kennels" ? { vista: "perreras" } : {}, { replace: true });
   const { organization } = useOrganization();
   const [zones, setZones] = useState<FacilityZone[]>([]);
   const [units, setUnits] = useState<FacilityUnit[]>([]);
@@ -293,12 +301,33 @@ export default function FacilityPage() {
           <Map className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Mapa de Instalaciones</h1>
-          <p className="text-xs text-muted-foreground">Diseña y gestiona las zonas de tu centro canino</p>
+          <h1 className="text-xl font-bold text-foreground">Instalaciones</h1>
+          <p className="text-xs text-muted-foreground">
+            {view === "map" ? "Diseña y gestiona las zonas de tu centro canino" : "Ocupación de perreras: mueve, libera o pon en mantenimiento"}
+          </p>
+        </div>
+
+        <div className="ml-4 inline-flex rounded-lg border bg-muted/40 p-0.5" role="tablist" aria-label="Vista de instalaciones">
+          {([["map", "Mapa", Map], ["kennels", "Perreras", LayoutGrid]] as const).map(([key, label, Icon]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                view === key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Zoom controls */}
-        <div className="ml-auto flex items-center gap-1">
+        <div className={cn("ml-auto flex items-center gap-1", view !== "map" && "hidden")}>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={zoomOut} title="Alejar">
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -318,8 +347,16 @@ export default function FacilityPage() {
         </div>
       </div>
 
+      {view === "kennels" && (
+        <div className="flex-1 overflow-auto">
+          <div className="mx-auto max-w-3xl px-4 py-6">
+            <KennelsBoard />
+          </div>
+        </div>
+      )}
+
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className={cn("flex flex-1 overflow-hidden", view !== "map" && "hidden")}>
         {/* Toolbar */}
         <FacilityToolbar onAddZone={handleAddZone} />
 

@@ -24,9 +24,13 @@ export type AccessType = "admin" | "panel" | "worker";
 export type OrgPage =
   | "dashboard" | "requests" | "calendar" | "tasks" | "facility" | "notices"
   | "customers" | "dogs" | "dog_panel" | "staff" | "report_cards" | "clinic"
-  | "plans" | "invoices" | "contracts" | "reports" | "campaigns" | "routes";
+  | "plans" | "invoices" | "contracts" | "reports" | "campaigns" | "routes"
+  | "my_day" | "my_schedule" | "my_route";
 
 export const PAGE_CATALOG: { key: OrgPage; label: string; path: string; group: string }[] = [
+  { key: "my_day", label: "Mi día", path: "my-day", group: "Mi trabajo" },
+  { key: "my_schedule", label: "Mi horario", path: "my-schedule", group: "Mi trabajo" },
+  { key: "my_route", label: "Mi ruta", path: "my-route", group: "Mi trabajo" },
   { key: "dashboard", label: "Dashboard", path: "dashboard", group: "Operaciones" },
   { key: "requests", label: "Solicitudes", path: "requests", group: "Operaciones" },
   { key: "calendar", label: "Calendario", path: "calendar", group: "Operaciones" },
@@ -71,32 +75,49 @@ export const PERMISSION_CATALOG: { key: OrgPermission; label: string; descriptio
   { key: "record_weight", label: "Registrar peso", description: "Registrar el peso de los perros." },
 ];
 
+// Todos los roles usan el mismo panel. "Personal operativo" (antes "App de
+// trabajador") se diferencia de "Oficina" en que empieza en Mi día y aparece
+// como encargado asignable en tareas, reservas y rondas de bienestar.
 export const ACCESS_TYPE_OPTIONS: { value: AccessType; label: string; description: string }[] = [
   { value: "admin", label: "Administrador", description: "Acceso total, incluye personal, roles y configuración." },
-  { value: "panel", label: "Panel", description: "Panel de administración limitado a los permisos marcados." },
-  { value: "worker", label: "App de trabajador", description: "Solo la app de trabajador (Mi día, Mi ruta, Horario)." },
+  { value: "panel", label: "Oficina", description: "Panel limitado a las secciones y permisos marcados (recepción, gerencia, veterinaria…)." },
+  { value: "worker", label: "Personal operativo", description: "Panel limitado a las secciones y permisos marcados; empieza en Mi día y se le asignan tareas, reservas y rondas." },
 ];
 
 export const ACCESS_TYPE_LABELS: Record<AccessType, string> = {
   admin: "Administrador",
-  panel: "Panel",
-  worker: "App de trabajador",
+  panel: "Oficina",
+  worker: "Personal operativo",
 };
+
+/** Secciones de un rol operativo sin lista (espejo de org_worker_default_pages). */
+export const WORKER_DEFAULT_PAGES: OrgPage[] = ["clinic", "dogs", "facility", "my_day", "my_route", "my_schedule", "notices"];
 
 export function roleHasPermission(role: Pick<OrgRoleInfo, "access_type" | "permissions"> | null, perm: OrgPermission): boolean {
   if (!role) return false;
   return role.access_type === "admin" || role.permissions.includes(perm);
 }
 
-/** El rol ve esta sección del panel (admin y roles sin lista: todas). */
-export function roleCanSeePage(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null, page: OrgPage): boolean {
-  if (!role) return true; // miembros sin rol asignado: comportamiento de siempre
-  if (role.access_type === "admin" || !role.pages) return true;
-  return role.pages.includes(page);
+/** Secciones efectivas del rol (null = todas). */
+export function rolePages(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null): OrgPage[] | null {
+  if (!role || role.access_type === "admin") return null;
+  if (role.pages) return role.pages;
+  return role.access_type === "worker" ? WORKER_DEFAULT_PAGES : null;
 }
 
-/** Primera sección visible (ruta relativa a la org), para la página de inicio. */
+/** El rol ve esta sección del panel (admin y roles de oficina sin lista: todas). */
+export function roleCanSeePage(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null, page: OrgPage): boolean {
+  const pages = rolePages(role);
+  return pages === null || pages.includes(page);
+}
+
+/**
+ * Página de inicio (ruta relativa a la org): el personal operativo empieza en
+ * Mi día; los demás en la primera sección de gestión que puedan ver.
+ */
 export function firstAllowedPath(role: Pick<OrgRoleInfo, "access_type" | "pages"> | null): string {
-  const page = PAGE_CATALOG.find((p) => roleCanSeePage(role, p.key));
+  if (role?.access_type === "worker" && roleCanSeePage(role, "my_day")) return "my-day";
+  const page = PAGE_CATALOG.find((p) => !p.key.startsWith("my_") && roleCanSeePage(role, p.key))
+    ?? PAGE_CATALOG.find((p) => roleCanSeePage(role, p.key));
   return page?.path ?? "dashboard";
 }
