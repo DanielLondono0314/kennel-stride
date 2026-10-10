@@ -46,10 +46,15 @@ interface KennelAssignmentModalProps {
   onRelease: (unitId: string) => void;
   onSetMaintenance: (unitId: string) => void;
   onDeleteUnit: (unitId: string) => void;
+  /** Asignar, liberar y mantenimiento ("Operar perreras"). */
+  canOperate?: boolean;
+  /** Eliminar la perrera ("Configurar instalaciones"). */
+  canConfigure?: boolean;
 }
 
 export function KennelAssignmentModal({
   open, onOpenChange, unit, dogs, onAssign, onRelease, onSetMaintenance, onDeleteUnit,
+  canOperate = true, canConfigure = true,
 }: KennelAssignmentModalProps) {
   const [dogId, setDogId] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
@@ -120,14 +125,16 @@ export function KennelAssignmentModal({
               )}
               {unit.notes && <p className="text-xs text-muted-foreground">{unit.notes}</p>}
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" size="sm" onClick={() => unit && onSetMaintenance(unit.id)}>
-                Mantenimiento
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => unit && onRelease(unit.id)}>
-                Liberar Perrera
-              </Button>
-            </DialogFooter>
+            {canOperate && (
+              <DialogFooter className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => unit && onSetMaintenance(unit.id)}>
+                  Mantenimiento
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => unit && onRelease(unit.id)}>
+                  Liberar Perrera
+                </Button>
+              </DialogFooter>
+            )}
           </div>
         ) : isMaintenance ? (
           <div className="space-y-4">
@@ -138,17 +145,21 @@ export function KennelAssignmentModal({
               </p>
             </div>
             <DialogFooter className="gap-2 sm:justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-              </Button>
-              <Button size="sm" onClick={() => onRelease(unit.id)}>
-                Quitar mantenimiento
-              </Button>
+              {canConfigure ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                </Button>
+              ) : <span />}
+              {canOperate && (
+                <Button size="sm" onClick={() => onRelease(unit.id)}>
+                  Quitar mantenimiento
+                </Button>
+              )}
             </DialogFooter>
           </div>
         ) : (
@@ -202,22 +213,26 @@ export function KennelAssignmentModal({
             </div>
 
             <DialogFooter className="gap-2 sm:justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
-                  Mantenimiento
+              {canConfigure ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" /> Eliminar
                 </Button>
-                <Button size="sm" disabled={!dogId || !startDate || !endDate} onClick={handleAssign}>
-                  Asignar Perro
-                </Button>
-              </div>
+              ) : <span />}
+              {canOperate && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => onSetMaintenance(unit.id)}>
+                    Mantenimiento
+                  </Button>
+                  <Button size="sm" disabled={!dogId || !startDate || !endDate} onClick={handleAssign}>
+                    Asignar Perro
+                  </Button>
+                </div>
+              )}
             </DialogFooter>
           </div>
         )}

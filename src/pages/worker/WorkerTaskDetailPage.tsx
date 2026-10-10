@@ -39,7 +39,7 @@ export default function WorkerTaskDetailPage() {
   const [reporting, setReporting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [weighing, setWeighing] = useState(false);
-  const canRecordWeight = usePermission("record_weight");
+  const canRecordWeight = usePermission("weight.record");
   const { data: lastWeight } = useLatestDogWeight(item?.dogId);
   // Lo que el trabajador necesita saber del perro antes de atenderlo.
   const { data: dog } = useWorkerDogProfile(item?.dogId);

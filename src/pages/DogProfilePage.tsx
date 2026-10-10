@@ -1,3 +1,4 @@
+import { Price } from "@/components/shared/Price";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,12 +30,12 @@ import { DogContractsTab } from "@/components/contracts/DogContractsTab";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { getAge as getSharedAge, parseDateOnly } from "@/lib/age";
-import { formatCurrency } from "@/lib/currency";
 import { toast } from "sonner";
 import { saveDog } from "@/lib/saveDog";
 import { isUuid } from "@/lib/ids";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { usePermission } from "@/hooks/usePermission";
+import { ClinicalGate } from "@/components/clinic/ClinicalGate";
 
 interface DbDog {
   id: string;
@@ -131,7 +132,9 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function DogProfilePage() {
-  const canClinical = usePermission("clinical");
+  const canClinical = usePermission("clinical.edit");
+  const canSeeContact = usePermission("customers.view_contact");
+  const canEditDog = usePermission("dogs.edit");
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -276,10 +279,12 @@ export default function DogProfilePage() {
                 <Printer className="h-4 w-4 mr-2" />
                 Imprimir
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
+              {canEditDog && (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              )}
             </div>
           </div>
 
@@ -292,7 +297,7 @@ export default function DogProfilePage() {
               >
                 {dog.customers.first_name} {dog.customers.last_name}
               </button>
-              {dog.customers.phone && <span>· {dog.customers.phone}</span>}
+              {canSeeContact && dog.customers.phone && <span>· {dog.customers.phone}</span>}
             </div>
           )}
         </div>
@@ -338,7 +343,7 @@ export default function DogProfilePage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><Palette className="h-4 w-4 text-warning" /></div>
               <div>
-                <p className="text-xl font-bold">{formatCurrency(totalSpent)}</p>
+                <p className="text-xl font-bold"><Price value={totalSpent} perm="invoices.view" /></p>
                 <p className="text-xs text-muted-foreground">Gasto Total</p>
               </div>
             </div>
@@ -593,7 +598,7 @@ export default function DogProfilePage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{formatCurrency(r.total_price)}</span>
+                      <span className="text-sm font-medium"><Price value={r.total_price} /></span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[r.status] || "bg-muted text-muted-foreground"}`}>
                         {statusLabels[r.status] || r.status}
                       </span>
@@ -608,16 +613,16 @@ export default function DogProfilePage() {
 
         {/* Clinic tabs — reuse existing components */}
         <TabsContent value="vaccinations" className="mt-6" forceMount>
-          <VaccinationTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
+          <ClinicalGate><VaccinationTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate>
         </TabsContent>
         <TabsContent value="medical" className="mt-6" forceMount>
-          <MedicalHistoryTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
+          <ClinicalGate><MedicalHistoryTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate>
         </TabsContent>
         <TabsContent value="weight" className="mt-6" forceMount>
           <WeightTab dogId={dog.id} dogName={dog.name} />
         </TabsContent>
         <TabsContent value="deworming" className="mt-6" forceMount>
-          <DewormingTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />
+          <ClinicalGate><DewormingTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate>
         </TabsContent>
         <TabsContent value="conditions" className="mt-6" forceMount>
           <ConditionsTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} />

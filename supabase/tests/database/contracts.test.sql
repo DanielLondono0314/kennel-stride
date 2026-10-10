@@ -17,7 +17,7 @@ values ('00000000-0000-0000-0000-00000000ca00', 'Org CA', 'test-contracts-a',
 
 insert into public.org_roles (id, organization_id, name, access_type, permissions)
 values ('00000000-0000-0000-0000-00000000cc01', '00000000-0000-0000-0000-00000000ca00',
-        'Cajero', 'panel', array['billing']);
+        'Cajero', 'panel', array['invoices.create', 'invoices.payment', 'contracts.create']);
 
 insert into public.organization_members (organization_id, user_id, role)
 values ('00000000-0000-0000-0000-00000000ca00', '00000000-0000-0000-0000-00000000ca01', 'admin'),

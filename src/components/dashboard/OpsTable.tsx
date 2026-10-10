@@ -1,9 +1,9 @@
+import { Price } from "@/components/shared/Price";
 import { Fragment, useState } from "react";
 import { Reservation, ReservationStatus, ServiceType } from "@/types";
 import { format, isToday, startOfToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -77,14 +77,15 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
 
   const getPrimaryAction = (status: ReservationStatus) => {
     switch (status) {
+      // Sin la acción (el rol no tiene ese permiso) no hay botón.
       case ReservationStatus.SCHEDULED:
-        return { label: "Check-in", icon: LogIn, action: "checkin" as const };
+        return onCheckIn ? { label: "Check-in", icon: LogIn, action: "checkin" as const } : null;
       case ReservationStatus.CHECKED_IN:
       case ReservationStatus.IN_PROGRESS:
       case ReservationStatus.READY:
-        return { label: "Check-out", icon: LogOut, action: "checkout" as const };
+        return onCheckOut ? { label: "Check-out", icon: LogOut, action: "checkout" as const } : null;
       case ReservationStatus.REQUESTED:
-        return { label: "Aprobar", icon: CheckCircle, action: "approve" as const };
+        return onApprove ? { label: "Aprobar", icon: CheckCircle, action: "approve" as const } : null;
       default:
         return null;
     }
@@ -221,20 +222,22 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                               Ficha del perro
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuSeparator />
-                          {reservation.status === ReservationStatus.SCHEDULED && isBeforeToday(reservation.startDate) && (
+                          {(onNoShow || onCancel) && <DropdownMenuSeparator />}
+                          {onNoShow && reservation.status === ReservationStatus.SCHEDULED && isBeforeToday(reservation.startDate) && (
                             <DropdownMenuItem onClick={() => onNoShow?.(reservation.id)}>
                               <XCircle className="mr-2 h-4 w-4" />
                               No se presentó
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => onCancel?.(reservation.id)}
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar reserva
-                          </DropdownMenuItem>
+                          {onCancel && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => onCancel(reservation.id)}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelar reserva
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -264,7 +267,7 @@ export function OpsTable({ reservations, onCheckIn, onCheckOut, onView, onApprov
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servicio</h4>
                             <div className="space-y-1 text-sm">
                               <p>{reservation.service?.name}</p>
-                              <p className="text-muted-foreground">{formatCurrency(reservation.totalPrice)}</p>
+                              <p className="text-muted-foreground"><Price value={reservation.totalPrice} /></p>
                             </div>
                           </div>
                           <div className="space-y-2">

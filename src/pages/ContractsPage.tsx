@@ -42,10 +42,9 @@ function formatShort(date: string | null) {
 export default function ContractsPage() {
   const navigate = useOrgNavigate();
   const { labels: serviceLabels } = useServiceTypes();
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
+  const canCreate = usePermission("contracts.create");
   const isAdmin = usePermission("manage_settings");
-  const canUse = canSchedule || canBill;
+  const canUse = usePermission("contracts.view");
 
   const [tab, setTab] = useUrlState<string>("tab", "contracts");
   const [search, setSearch] = useState("");
@@ -125,14 +124,16 @@ export default function ContractsPage() {
           <h1 className="text-2xl font-bold">Contratos</h1>
           <p className="text-muted-foreground">Documentación legal de cada servicio: imprime o envía para firma digital</p>
         </div>
-        <Button
-          onClick={() => navigate("/contracts/new")}
-          disabled={templates.length === 0}
-          className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Generar contrato
-        </Button>
+        {canCreate && (
+          <Button
+            onClick={() => navigate("/contracts/new")}
+            disabled={templates.length === 0}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Generar contrato
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -200,7 +201,7 @@ export default function ContractsPage() {
                             <Plus className="h-4 w-4 mr-2" /> Crear plantilla
                           </Button>
                         )
-                      ) : (
+                      ) : canCreate && (
                         <Button variant="outline" onClick={() => navigate("/contracts/new")}>
                           <Plus className="h-4 w-4 mr-2" /> Generar contrato
                         </Button>
@@ -345,11 +346,13 @@ export default function ContractsPage() {
                         {t.body.replace(/^#+\s*/gm, "").replace(/\*\*/g, "").slice(0, 300)}
                       </p>
                     </CardContent>
-                    <CardFooter>
-                      <Button className="w-full" variant="secondary" onClick={() => navigate(`/contracts/new?template=${t.id}`)}>
-                        <FileSignature className="h-4 w-4 mr-2" /> Generar con esta plantilla
-                      </Button>
-                    </CardFooter>
+                    {canCreate && (
+                      <CardFooter>
+                        <Button className="w-full" variant="secondary" onClick={() => navigate(`/contracts/new?template=${t.id}`)}>
+                          <FileSignature className="h-4 w-4 mr-2" /> Generar con esta plantilla
+                        </Button>
+                      </CardFooter>
+                    )}
                   </Card>
                 );
               })}

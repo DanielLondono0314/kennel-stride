@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useMemo } from "react";
 
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -46,6 +47,13 @@ function isAwaitingCheckIn(r: { status: ReservationStatus; startDate: Date; endD
 export default function Dashboard() {
   const orgNavigate = useOrgNavigate();
   const { organization } = useOrganization();
+  const can = {
+    checkIn: usePermission("stays.checkin"),
+    checkOut: usePermission("stays.checkout"),
+    approve: usePermission("reservations.approve"),
+    cancel: usePermission("reservations.cancel"),
+    create: usePermission("reservations.create"),
+  };
   const [activeTab, setActiveTab] = useUrlState<OpsTab>("tab", "expected");
   const [searchQuery, setSearchQuery] = useUrlState<string>("q", "");
   const [serviceFilter, setServiceFilter] = useUrlState<string>("service", "all");
@@ -272,14 +280,16 @@ export default function Dashboard() {
             <span className="hidden sm:inline">Ver calendario</span>
             <span className="sm:hidden">Calendario</span>
           </Button>
-          <Button
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-            onClick={() => setNewReservationOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Nueva reserva</span>
-            <span className="sm:hidden">Nueva</span>
-          </Button>
+          {can.create && (
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => setNewReservationOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Nueva reserva</span>
+              <span className="sm:hidden">Nueva</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -354,12 +364,12 @@ export default function Dashboard() {
           ) : (
             <OpsTable
               reservations={filteredReservations}
-              onCheckIn={handleCheckIn}
-              onCheckOut={handleCheckOut}
+              onCheckIn={can.checkIn ? handleCheckIn : undefined}
+              onCheckOut={can.checkOut ? handleCheckOut : undefined}
               onView={(id) => orgNavigate(`/reservations/${id}`)}
-              onApprove={handleApprove}
-              onCancel={handleCancelRequest}
-              onNoShow={handleNoShow}
+              onApprove={can.approve ? handleApprove : undefined}
+              onCancel={can.cancel ? handleCancelRequest : undefined}
+              onNoShow={can.cancel ? handleNoShow : undefined}
               onViewDog={(dogId) => orgNavigate(`/dogs/${dogId}`)}
             />
           )}

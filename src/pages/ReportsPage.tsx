@@ -1,3 +1,5 @@
+import { Price } from "@/components/shared/Price";
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useMemo } from "react";
 import { useReportsData, DateRange } from "@/hooks/queries/useReportsData";
 import { useAdminSummary } from "@/hooks/queries/useAdminSummary";
@@ -32,6 +34,7 @@ const COLORS = [
 export default function ReportsPage() {
   const [range, setRange] = useState<DateRange>("30d");
   const basePath = useOrgBasePath();
+  const canSeeIncome = usePermission("finance.view_income");
 
   const { data, isLoading } = useReportsData(range);
   const { data: adminSummary, isLoading: adminLoading } = useAdminSummary();
@@ -187,7 +190,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10"><DollarSign className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
+                <p className="text-2xl font-bold"><Price value={totalRevenue} perm="finance.view_income" /></p>
                 <p className="text-xs text-muted-foreground">Ingresos Cobrados</p>
               </div>
             </div>
@@ -198,7 +201,7 @@ export default function ReportsPage() {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10"><TrendingUp className="h-5 w-5 text-warning" /></div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalPending)}</p>
+                <p className="text-2xl font-bold"><Price value={totalPending} perm="finance.view_income" /></p>
                 <p className="text-xs text-muted-foreground">Por Cobrar</p>
               </div>
             </div>
@@ -253,7 +256,7 @@ export default function ReportsPage() {
       <Tabs defaultValue="admin" className="space-y-4">
         <TabsList>
           <TabsTrigger value="admin" className="gap-1.5"><ShieldCheck className="h-4 w-4" />Administración</TabsTrigger>
-          <TabsTrigger value="financial" className="gap-1.5"><BarChart3 className="h-4 w-4" />Financiero</TabsTrigger>
+          {canSeeIncome && <TabsTrigger value="financial" className="gap-1.5"><BarChart3 className="h-4 w-4" />Financiero</TabsTrigger>}
           <TabsTrigger value="operations" className="gap-1.5"><Activity className="h-4 w-4" />Operaciones</TabsTrigger>
           <TabsTrigger value="clients" className="gap-1.5"><Users className="h-4 w-4" />Clientes</TabsTrigger>
         </TabsList>
@@ -344,11 +347,11 @@ export default function ReportsPage() {
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 rounded-lg bg-success/10">
                       <span className="text-sm font-medium">Ingresos Cobrados</span>
-                      <span className="text-lg font-bold text-success">{formatCurrency(totalRevenue)}</span>
+                      <span className="text-lg font-bold text-success"><Price value={totalRevenue} perm="finance.view_income" /></span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg bg-warning/10">
                       <span className="text-sm font-medium">Cuentas por Cobrar</span>
-                      <span className="text-lg font-bold text-warning">{formatCurrency(totalPending)}</span>
+                      <span className="text-lg font-bold text-warning"><Price value={totalPending} perm="finance.view_income" /></span>
                     </div>
                     <Link
                       to={`${basePath}/invoices`}
@@ -583,6 +586,7 @@ export default function ReportsPage() {
 
         {/* Clients Tab */}
         <TabsContent value="clients" className="space-y-4">
+          {canSeeIncome && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Top 5 Clientes por Gasto</CardTitle>
@@ -603,6 +607,7 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card className="card-kpi">
               <CardContent className="pt-4">
@@ -615,7 +620,7 @@ export default function ReportsPage() {
             <Card className="card-kpi">
               <CardContent className="pt-4">
                 <div className="text-center">
-                  <p className="text-3xl font-bold">{formatCurrency(activeCustomers > 0 ? totalRevenue / activeCustomers : 0)}</p>
+                  <p className="text-3xl font-bold"><Price value={activeCustomers > 0 ? totalRevenue / activeCustomers : 0} perm="finance.view_income" /></p>
                   <p className="text-sm text-muted-foreground mt-1">Ingreso Promedio por Cliente</p>
                 </div>
               </CardContent>

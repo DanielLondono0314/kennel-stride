@@ -120,16 +120,19 @@ select lives_ok(
   'un admin hace check-in'
 );
 
+-- Como la app (rol authenticated): las guardas solo revisan escrituras directas.
 select pg_temp.act_as('00000000-0000-0000-0000-00000000a002');
+set local role authenticated;
 select throws_ok(
   $$update public.reservations set total_price = 0 where id = '00000000-0000-0000-0000-0000000aa4e1'$$,
-  'Solo puedes actualizar el estado de tus reservas',
+  'No tienes permiso para editar reservas',
   'el worker asignado no puede cambiar el precio'
 );
 select lives_ok(
   $$update public.reservations set status = 'completed' where id = '00000000-0000-0000-0000-0000000aa4e1'$$,
   'el worker asignado sí puede cerrar su reserva'
 );
+reset role;
 select is(
   (select status from public.facility_units where id = '00000000-0000-0000-0000-0000000aa0e1'),
   'available',

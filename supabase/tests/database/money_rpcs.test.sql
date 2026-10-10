@@ -148,7 +148,7 @@ select throws_ok(
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000b1');
 select throws_ok(
   format($f$select public.complete_checkout(%L, 'cash')$f$, (select id from t_res)),
-  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para cobrar'
+  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para hacer check-out'
 );
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000a1');
@@ -194,7 +194,7 @@ select is(
 -- Doble checkout → error (la reserva ya no está en curso).
 select throws_ok(
   format($f$select public.complete_checkout(%L, 'cash')$f$, (select id from t_res)),
-  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para cobrar'
+  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para hacer check-out'
 );
 
 -- ─── complete_checkout (paquete) + deduct_package_credit ────────────────────

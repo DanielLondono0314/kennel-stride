@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { useState } from "react";
 import { useMyActiveRoute, useDepartToStop, useCompleteRouteStop, type MyRouteStop } from "@/hooks/queries/useMyRoute";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ function StopCard({ stop }: { stop: MyRouteStop }) {
   const [skipReason, setSkipReason] = useState("");
   const depart = useDepartToStop();
   const complete = useCompleteRouteStop();
+  const canSeeContact = usePermission("customers.view_contact");
 
   const isDone = stop.status === "completed" || stop.status === "skipped";
   const canDepart = stop.status === "pending";
@@ -41,7 +43,7 @@ function StopCard({ stop }: { stop: MyRouteStop }) {
 
         <div className="space-y-1 text-sm text-muted-foreground">
           <p className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{stop.address_snapshot}</p>
-          {stop.customers?.phone && (
+          {canSeeContact && stop.customers?.phone && (
             <a href={`tel:${stop.customers.phone}`} className="flex items-center gap-1.5 text-primary">
               <Phone className="h-3.5 w-3.5 shrink-0" />{stop.customers.phone}
             </a>

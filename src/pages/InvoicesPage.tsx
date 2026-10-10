@@ -58,9 +58,9 @@ const paymentMethodLabels: Record<string, string> = {
 
 export default function InvoicesPage() {
   const { organization } = useOrganization();
-  const canCreateInvoice = usePermission("billing");
-  const canMarkPaid = usePermission("billing");
-  const canCancelInvoice = usePermission("cancel_invoice");
+  const canCreateInvoice = usePermission("invoices.create");
+  const canMarkPaid = usePermission("invoices.payment");
+  const canCancelInvoice = usePermission("invoices.cancel");
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

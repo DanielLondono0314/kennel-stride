@@ -1,3 +1,5 @@
+import { Price } from "@/components/shared/Price";
+import { usePermission } from "@/hooks/usePermission";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +13,6 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
 import { RESERVATION_SELECT, mapDbToReservation, type DbReservationRow } from "@/hooks/useReservations";
 import { isUuid } from "@/lib/ids";
-import { formatCurrency } from "@/lib/currency";
 import { formatReservationRange } from "@/lib/reservationDates";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { NewReservationModal } from "@/components/reservations/NewReservationModal";
@@ -38,6 +39,8 @@ export default function ReservationDetailPage() {
   const navigate = useNavigate();
   const base = useOrgBasePath();
   const { organization } = useOrganization();
+  const canSeeContact = usePermission("customers.view_contact");
+  const canEdit = usePermission("reservations.edit");
   const queryClient = useQueryClient();
   const orgId = organization?.id;
   const validId = isUuid(id);
@@ -110,9 +113,11 @@ export default function ReservationDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" /> Editar
-          </Button>
+          {canEdit && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4" /> Editar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -133,7 +138,7 @@ export default function ReservationDetailPage() {
                 <Link to={`${base}/customers/${r.customer.id}`} className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">{customerName}</Link>
               ) : "—"}
             </p>
-            {r.customer?.phone && (
+            {canSeeContact && r.customer?.phone && (
               <p className="text-muted-foreground pl-6">
                 <a href={`tel:${r.customer.phone}`} className="hover:underline">{r.customer.phone}</a>
               </p>
@@ -182,7 +187,7 @@ export default function ReservationDetailPage() {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Cobro</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p className="text-2xl font-bold">{formatCurrency(r.totalPrice)}</p>
+            <p className="text-2xl font-bold"><Price value={r.totalPrice} /></p>
             {data!.invoices.map((inv) => (
               <p key={inv.id} className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />

@@ -29,13 +29,13 @@ import { cn } from "@/lib/utils";
 
 const SEGMENTS: Segment[] = ["all", "in_center", "attention", "overdue", "no_plan", "special"];
 
-function exportCsv(dogs: DashboardDog[]) {
+function exportCsv(dogs: DashboardDog[], includeContact: boolean) {
   const rows = dogs.map((d) => ({
     Perro: d.name,
     Raza: d.breed,
     Edad: d.age,
     Dueño: d.owner?.name ?? "",
-    "Teléfono dueño": d.owner?.phone ?? "",
+    ...(includeContact ? { "Teléfono dueño": d.owner?.phone ?? "" } : {}),
     "Peso actual (kg)": d.weight.latest?.weight ?? "",
     "Fecha último pesaje": d.weight.latest?.date ?? "",
     "Días sin pesar": d.weight.daysSinceLast ?? "",
@@ -87,6 +87,7 @@ function DashboardSkeleton() {
 
 export default function DogDashboardPage() {
   const canEditConfig = usePermission("manage_settings");
+  const canSeeContact = usePermission("customers.view_contact");
   const configQuery = useDogDashboardConfig();
   const config = configQuery.data ?? DEFAULT_DOG_DASHBOARD_CONFIG;
   const { data, isLoading, isError, refetch, isFetching } = useDogDashboard(config.weight);
@@ -139,7 +140,7 @@ export default function DogDashboardPage() {
           <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isFetching} aria-label="Actualizar datos">
             <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => exportCsv(visible)} disabled={!visible.length}>
+          <Button variant="outline" size="sm" onClick={() => exportCsv(visible, canSeeContact)} disabled={!visible.length}>
             <Download className="mr-1.5 h-4 w-4" />Exportar reporte
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCustomizeOpen(true)}>

@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -56,6 +57,7 @@ export default function ReportCardsPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("all");
 
+  const canWrite = usePermission("report_cards.write");
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -171,10 +173,12 @@ export default function ReportCardsPage() {
             {stats ? `${stats.total} report cards · ${stats.drafts} borradores` : " "}
           </p>
         </div>
-        <Button onClick={openNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Report Card
-        </Button>
+        {canWrite && (
+          <Button onClick={openNew} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nuevo Report Card
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -303,6 +307,7 @@ export default function ReportCardsPage() {
                     </button>
 
                     {/* Acciones: siempre visibles en táctil, al pasar el mouse en escritorio */}
+                    {canWrite && (
                     <div className="flex items-center gap-1 mt-3 pt-3 border-t md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(rc)} className="h-8 text-xs gap-1">
                         <Pencil className="h-3 w-3" /> Editar
@@ -326,6 +331,7 @@ export default function ReportCardsPage() {
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               );

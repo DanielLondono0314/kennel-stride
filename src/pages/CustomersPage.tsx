@@ -1,3 +1,4 @@
+import { Price } from "@/components/shared/Price";
 import { useState, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -36,14 +37,16 @@ import { ImportDataModal } from "@/components/import/ImportDataModal";
 import { CardGridSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { QueryErrorState } from "@/components/shared/QueryErrorState";
-import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 export type { DbCustomer };
 
 export default function CustomersPage() {
   const { organization } = useOrganization();
-  const canDelete = usePermission("delete_records");
+  const canDelete = usePermission("customers.delete");
+  const canCreate = usePermission("customers.create");
+  const canEdit = usePermission("customers.edit");
+  const canSeeContact = usePermission("customers.view_contact");
   const orgNavigate = useOrgNavigate();
   const basePath = useOrgBasePath();
   // La búsqueda queda en la URL (?q=): sobrevive a recargar y se puede compartir (QA E-15).
@@ -78,7 +81,7 @@ export default function CustomersPage() {
       action={<Button variant="outline" onClick={() => setSearchQuery("")}>Limpiar búsqueda</Button>}
     />
   ) : (
-    <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={<Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
+    <EmptyState icon={Users} title="No hay clientes" description="Crea el primer cliente para empezar." action={canCreate && <Button onClick={() => { setEditingCustomer(null); setModalOpen(true); }}><Plus className="h-4 w-4 mr-2" />Nuevo cliente</Button>} />
   );
 
   const { data, isLoading, isFetching, isError, refetch } = useCustomers({ page, search: debouncedSearch, status: statusFilter });
@@ -180,13 +183,15 @@ export default function CustomersPage() {
             <Upload className="h-4 w-4 mr-2" />
             Importar
           </Button>
-          <Button
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-            onClick={() => { setEditingCustomer(null); setModalOpen(true); }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo cliente
-          </Button>
+          {canCreate && (
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => { setEditingCustomer(null); setModalOpen(true); }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo cliente
+            </Button>
+          )}
         </div>
       </div>
 
@@ -322,14 +327,18 @@ export default function CustomersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-sm">
-                      <p className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" />
-                        {customer.email}
-                      </p>
-                      <p className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        {customer.phone}
-                      </p>
+                      {canSeeContact ? (
+                        <>
+                          <p className="flex items-center gap-2 text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />
+                            {customer.email}
+                          </p>
+                          <p className="flex items-center gap-2 text-muted-foreground">
+                            <Phone className="h-3.5 w-3.5" />
+                            {customer.phone}
+                          </p>
+                        </>
+                      ) : <span className="text-muted-foreground">—</span>}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -344,10 +353,10 @@ export default function CustomersPage() {
                   <TableCell>
                     {hasBalance ? (
                       <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
-                        {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
+                        {isOwing ? "-" : "+"}<Price value={Math.abs(customer.balance)} perm="invoices.view" />
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">{formatCurrency(0)}</span>
+                      <span className="text-muted-foreground"><Price value={0} perm="invoices.view" /></span>
                     )}
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -362,9 +371,11 @@ export default function CustomersPage() {
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Ver perfil
                         </DropdownMenuItem>
+                        {canEdit && (
                         <DropdownMenuItem onClick={() => { setEditingCustomer(customer); setModalOpen(true); }}>
                           Editar
                         </DropdownMenuItem>
+                        )}
                         {canDelete && <DropdownMenuSeparator />}
                         {canDelete && (
                           <DropdownMenuItem onClick={() => handleSetActive([customer.id], !customer.is_active)}>
@@ -451,9 +462,11 @@ export default function CustomersPage() {
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Ver perfil
                         </DropdownMenuItem>
+                        {canEdit && (
                         <DropdownMenuItem onClick={() => { setEditingCustomer(customer); setModalOpen(true); }}>
                           Editar
                         </DropdownMenuItem>
+                        )}
                         {canDelete && <DropdownMenuSeparator />}
                         {canDelete && (
                           <DropdownMenuItem onClick={() => handleSetActive([customer.id], !customer.is_active)}>
@@ -473,14 +486,18 @@ export default function CustomersPage() {
                   </div>
                 </div>
                 <div className="mt-3 space-y-1.5 text-sm">
-                  <p className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{customer.email}</span>
-                  </p>
-                  <p className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 shrink-0" />
-                    {customer.phone}
-                  </p>
+                  {canSeeContact && (
+                    <>
+                      <p className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{customer.email}</span>
+                      </p>
+                      <p className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        {customer.phone}
+                      </p>
+                    </>
+                  )}
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Dog className="h-4 w-4" />
@@ -489,10 +506,10 @@ export default function CustomersPage() {
                     </div>
                     {hasBalance ? (
                       <span className={isOwing ? "text-destructive font-medium" : "text-success font-medium"}>
-                        {isOwing ? "-" : "+"}{formatCurrency(Math.abs(customer.balance))}
+                        {isOwing ? "-" : "+"}<Price value={Math.abs(customer.balance)} perm="invoices.view" />
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">{formatCurrency(0)}</span>
+                      <span className="text-muted-foreground"><Price value={0} perm="invoices.view" /></span>
                     )}
                   </div>
                 </div>

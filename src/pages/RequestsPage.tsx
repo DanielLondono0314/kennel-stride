@@ -1,3 +1,5 @@
+import { Price } from "@/components/shared/Price";
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useUrlState } from "@/hooks/useUrlState";
@@ -41,7 +43,6 @@ import { formatReservationRange } from "@/lib/reservationDates";
 import { CATEGORY_CONFIG } from "@/lib/reportCardServices";
 import { telHref } from "@/lib/contact";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
-import { formatCurrency } from "@/lib/currency";
 import { useServiceTypes } from "@/hooks/useServiceTypes";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -60,6 +61,11 @@ interface StaffMember {
 
 export default function RequestsPage() {
   const { organization } = useOrganization();
+  const canApprove = usePermission("reservations.approve");
+  const canCreate = usePermission("reservations.create");
+  const canDelete = usePermission("reservations.delete");
+  const canEdit = usePermission("reservations.edit");
+  const canSeeContact = usePermission("customers.view_contact");
   const basePath = useOrgBasePath();
   const { labels: serviceTypeLabels, categoryFor } = useServiceTypes();
   // Ícono por categoría del servicio (incluye los personalizados de la org).
@@ -347,7 +353,7 @@ export default function RequestsPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">{formatCurrency(r.totalPrice)}</span>
+                  <span className="font-medium"><Price value={r.totalPrice} /></span>
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={r.status} />
@@ -364,7 +370,7 @@ export default function RequestsPage() {
                         Editar
                       </Button>
                     )}
-                    {isPending && (
+                    {isPending && canApprove && (
                       <>
                         <Button size="sm" variant="outline" onClick={() => openReject(r)}>
                           <X className="h-4 w-4" />
@@ -375,9 +381,11 @@ export default function RequestsPage() {
                         </Button>
                       </>
                     )}
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteReservationIds([r.id])}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteReservationIds([r.id])}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -395,20 +403,22 @@ export default function RequestsPage() {
           <h1 className="text-2xl font-bold">Solicitudes</h1>
           <p className="text-muted-foreground">Revisa, aprueba y asigna las solicitudes de reserva</p>
         </div>
-        <Button
-          className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto"
-          onClick={() => setNewReservationOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Nueva reserva</span>
-          <span className="sm:hidden">Nueva</span>
-        </Button>
+        {canCreate && (
+          <Button
+            className="bg-accent text-accent-foreground hover:bg-accent/90 self-start sm:self-auto"
+            onClick={() => setNewReservationOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Nueva reserva</span>
+            <span className="sm:hidden">Nueva</span>
+          </Button>
+        )}
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground font-medium">
               {selectedIds.size} seleccionada(s)
             </span>
-            {activeTab === "pending" && (
+            {activeTab === "pending" && canApprove && (
               <>
                 <Button variant="outline" size="sm" onClick={() => { setRejectionReason(""); setBatchRejectOpen(true); }}>
                   <XCircle className="h-4 w-4 mr-2" />Rechazar
@@ -418,9 +428,9 @@ export default function RequestsPage() {
                 </Button>
               </>
             )}
-            <Button variant="destructive" size="sm" onClick={() => setDeleteReservationIds(Array.from(selectedIds))}>
+            {canDelete && <Button variant="destructive" size="sm" onClick={() => setDeleteReservationIds(Array.from(selectedIds))}>
               <Trash2 className="h-4 w-4 mr-2" />Eliminar
-            </Button>
+            </Button>}
           </div>
         )}
       </div>
@@ -541,7 +551,7 @@ export default function RequestsPage() {
                           </Link>
                         ) : "—"}
                       </span>
-                      {selectedRequest.customer?.phone && (
+                      {canSeeContact && selectedRequest.customer?.phone && (
                         <a href={telHref(selectedRequest.customer.phone) ?? undefined} className="flex items-center gap-1 hover:underline hover:text-foreground">
                           <Phone className="h-3.5 w-3.5" />
                           {selectedRequest.customer.phone}
@@ -573,7 +583,7 @@ export default function RequestsPage() {
                           </p>
                         </div>
                       </div>
-                      <p className="text-2xl font-bold">{formatCurrency(selectedRequest.totalPrice)}</p>
+                      <p className="text-2xl font-bold"><Price value={selectedRequest.totalPrice} /></p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -621,20 +631,24 @@ export default function RequestsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDetailModalOpen(false)}>Cerrar</Button>
-                <Button
-                  variant="outline"
-                  onClick={() => { setDetailModalOpen(false); setEditingReservation(selectedRequest); }}
-                >
-                  <Pencil className="h-4 w-4 mr-2" />Editar
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => { setDetailModalOpen(false); setDeleteReservationIds([selectedRequest.id]); }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />Eliminar
-                </Button>
-                {selectedRequest.status === ReservationStatus.REQUESTED && (
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    onClick={() => { setDetailModalOpen(false); setEditingReservation(selectedRequest); }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />Editar
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => { setDetailModalOpen(false); setDeleteReservationIds([selectedRequest.id]); }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />Eliminar
+                  </Button>
+                )}
+                {canApprove && selectedRequest.status === ReservationStatus.REQUESTED && (
                   <>
                     <Button variant="outline" onClick={() => { setDetailModalOpen(false); openReject(selectedRequest); }}>
                       <X className="h-4 w-4 mr-2" />Rechazar
@@ -671,7 +685,7 @@ export default function RequestsPage() {
                 <div>
                   <p className="font-medium">{selectedRequest.dog?.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedRequest.service?.name} · {formatCurrency(selectedRequest.totalPrice)}
+                    {selectedRequest.service?.name} · <Price value={selectedRequest.totalPrice} />
                   </p>
                 </div>
               </div>

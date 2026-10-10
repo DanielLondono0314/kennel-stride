@@ -34,14 +34,15 @@ interface TaskDetailDialogProps {
   task: any | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  canManage: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   busy: boolean;
   onChangeStatus: (status: TaskStatus) => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function TaskDetailDialog({ task, open, onOpenChange, canManage, busy, onChangeStatus, onEdit, onDelete }: TaskDetailDialogProps) {
+export function TaskDetailDialog({ task, open, onOpenChange, canEdit, canDelete, busy, onChangeStatus, onEdit, onDelete }: TaskDetailDialogProps) {
   const base = useOrgBasePath();
   if (!task) return null;
 
@@ -146,14 +147,14 @@ export function TaskDetailDialog({ task, open, onOpenChange, canManage, busy, on
         </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
-          {canManage ? (
+          {canDelete ? (
             <Button variant="ghost" onClick={onDelete} disabled={busy} className="gap-1.5 text-destructive hover:text-destructive">
               <Trash2 className="h-4 w-4" /> Eliminar
             </Button>
           ) : <span />}
           <div className="flex gap-2">
             {busy && <Loader2 className="h-4 w-4 animate-spin self-center text-muted-foreground" aria-label="Guardando" />}
-            {canManage && (
+            {canEdit && (
               <Button variant="outline" onClick={onEdit} disabled={busy} className="gap-1.5">
                 <Pencil className="h-4 w-4" /> Editar
               </Button>

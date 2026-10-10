@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { Link } from "react-router-dom";
 import { differenceInCalendarDays, format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -75,6 +76,7 @@ export function WorkerDogHeader({ dog }: { dog: WorkerDogProfile }) {
 export function WorkerDogInfo({ dog, compact = false }: { dog: WorkerDogProfile; compact?: boolean }) {
   const base = useOrgBasePath();
   const { labels: serviceLabels } = useServiceTypes();
+  const canSeeContact = usePermission("customers.view_contact");
   const today = new Date();
   const activeMeds = dog.medications.filter((m) => !m.endDate || parseDateOnly(m.endDate) >= parseDateOnly(format(today, "yyyy-MM-dd")));
   const overdueVaccines = dog.vaccines.filter((v) => v.nextDoseDate && differenceInCalendarDays(parseDateOnly(v.nextDoseDate), today) < 0);
@@ -177,7 +179,7 @@ export function WorkerDogInfo({ dog, compact = false }: { dog: WorkerDogProfile;
             <Section icon={Phone} title="Dueño">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium">{dog.owner.name}</span>
-                {dog.owner.phone && (
+                {canSeeContact && dog.owner.phone && (
                   <a
                     href={telHref(dog.owner.phone) ?? undefined}
                     className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"

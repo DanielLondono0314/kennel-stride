@@ -37,7 +37,7 @@ interface DogServiceHistoryProps {
  */
 export function DogServiceHistory({ dogId, dogName }: DogServiceHistoryProps) {
   const { organization, hasFeature } = useOrganization();
-  const canWrite = usePermission("report_cards") && hasFeature("report_cards");
+  const canWrite = usePermission("report_cards.write") && hasFeature("report_cards");
   const { labels: serviceLabels, categoryFor } = useServiceTypes();
   const queryClient = useQueryClient();
   const orgId = organization?.id;

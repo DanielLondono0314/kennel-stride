@@ -34,9 +34,8 @@ interface Props {
 export function DogPlansSection({ dogId, dogName, owner }: Props) {
   const { data: plans = [], isLoading } = useDogPlans(dogId);
   const { end, registerUsage, markReminded } = usePlanActions();
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
-  const canManage = canSchedule || canBill;
+  const canSell = usePermission("plans.sell");
+  const canUse = usePermission("plans.use");
   const [assignOpen, setAssignOpen] = useState(false);
   const [renewFrom, setRenewFrom] = useState<DogPlan | null>(null);
   const [usagePlan, setUsagePlan] = useState<DogPlan | null>(null);
@@ -83,7 +82,7 @@ export function DogPlansSection({ dogId, dogName, owner }: Props) {
           <h2 className="text-lg font-semibold">Plan</h2>
           <p className="text-sm text-muted-foreground">El plan contratado para {dogName}: vigencia, qué incluye y condiciones.</p>
         </div>
-        {canManage && (
+        {canSell && (
           <Button onClick={() => { setRenewFrom(null); setAssignOpen(true); }} className="gap-2 print:hidden">
             <Plus className="h-4 w-4" /> Asignar plan
           </Button>
@@ -106,17 +105,19 @@ export function DogPlansSection({ dogId, dogName, owner }: Props) {
                 <PlanCard plan={plan} />
                 {plan.notes && <p className="rounded bg-muted/60 p-2 text-xs text-muted-foreground">{plan.notes}</p>}
                 {plan.billing === "quantity" && <UsageHistory usage={usageLog.filter((u) => u.plan_id === plan.id)} unit={plan.unit_label} />}
-                {canManage && (
+                {(canSell || canUse) && (
                   <div className="flex flex-wrap gap-2 border-t pt-3 print:hidden">
-                    {plan.billing === "quantity" && remainingUnits(plan)! > 0 && state !== "upcoming" && state !== "expired" && (
+                    {canUse && plan.billing === "quantity" && remainingUnits(plan)! > 0 && state !== "upcoming" && state !== "expired" && (
                       <Button size="sm" onClick={() => { setUsage({ quantity: "1", date: todayLocal(), note: "" }); setUsagePlan(plan); }} className="gap-1.5">
                         <CheckCheck className="h-4 w-4" /> Registrar uso
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => { setRenewFrom(plan); setAssignOpen(true); }} className="gap-1.5">
-                      <RefreshCw className="h-4 w-4" /> Renovar
-                    </Button>
-                    {waBase && REMIND_STATES.has(state) && (
+                    {canSell && (
+                      <Button size="sm" variant="outline" onClick={() => { setRenewFrom(plan); setAssignOpen(true); }} className="gap-1.5">
+                        <RefreshCw className="h-4 w-4" /> Renovar
+                      </Button>
+                    )}
+                    {canSell && waBase && REMIND_STATES.has(state) && (
                       <Button
                         size="sm"
                         variant={reminderDue(plan) ? "default" : "outline"}
@@ -133,10 +134,14 @@ export function DogPlansSection({ dogId, dogName, owner }: Props) {
                         </a>
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => setEnding({ plan, status: "finished" })}>Finalizar</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive gap-1.5" onClick={() => setEnding({ plan, status: "cancelled" })}>
-                      <XCircle className="h-4 w-4" /> Cancelar
-                    </Button>
+                    {canSell && (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => setEnding({ plan, status: "finished" })}>Finalizar</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive gap-1.5" onClick={() => setEnding({ plan, status: "cancelled" })}>
+                          <XCircle className="h-4 w-4" /> Cancelar
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>

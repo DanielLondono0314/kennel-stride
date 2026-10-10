@@ -37,9 +37,11 @@ interface ZoneBlockProps {
   onUnitClick: (unit: any) => void;
   onAddUnit: (zoneId: string) => void;
   onSetKennelCount: (zoneId: string, count: number) => void;
+  /** Sin "Configurar instalaciones": se ve y se abren las perreras, pero no se edita el mapa. */
+  readOnly?: boolean;
 }
 
-export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, onRename, onUnitClick, onAddUnit, onSetKennelCount }: ZoneBlockProps) {
+export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, onRename, onUnitClick, onAddUnit, onSetKennelCount, readOnly = false }: ZoneBlockProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -126,11 +128,11 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
     >
       {/* Header */}
       <div
-        className="flex items-center gap-1.5 px-2 py-1 cursor-grab active:cursor-grabbing rounded-t-md"
+        className={cn("flex items-center gap-1.5 px-2 py-1 rounded-t-md", !readOnly && "cursor-grab active:cursor-grabbing")}
         style={{ backgroundColor: zone.color + "25" }}
-        onMouseDown={handleDragStart}
+        onMouseDown={readOnly ? undefined : handleDragStart}
       >
-        <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
+        {!readOnly && <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />}
         {Icon && <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: zone.color }} />}
         
         {isEditing ? (
@@ -150,18 +152,22 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
 
         <span className="text-[10px] text-muted-foreground shrink-0">{occupied}/{units.length}</span>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); setIsEditing(true); setEditName(zone.name); }}
-          className="p-0.5 rounded hover:bg-background/50"
-        >
-          <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(zone.id); }}
-          className="p-0.5 rounded hover:bg-destructive/20"
-        >
-          <X className="h-2.5 w-2.5 text-muted-foreground hover:text-destructive" />
-        </button>
+        {!readOnly && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsEditing(true); setEditName(zone.name); }}
+              className="p-0.5 rounded hover:bg-background/50"
+            >
+              <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(zone.id); }}
+              className="p-0.5 rounded hover:bg-destructive/20"
+            >
+              <X className="h-2.5 w-2.5 text-muted-foreground hover:text-destructive" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Content */}
@@ -169,6 +175,7 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
         {zone.zone_type === "kennels" ? (
           <div>
             <KennelGrid units={units} onUnitClick={onUnitClick} />
+            {!readOnly && (
             <div className="mt-1 flex items-center justify-center gap-1 border-t border-muted-foreground/15 pt-1">
               <span className="text-[9px] text-muted-foreground mr-0.5">Perreras</span>
               <button
@@ -198,6 +205,7 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
                 <Plus className="h-2.5 w-2.5" />
               </button>
             </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
@@ -207,6 +215,7 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
       </div>
 
       {/* Resize handle */}
+      {!readOnly && (
       <div
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
         onMouseDown={handleResizeStart}
@@ -215,6 +224,7 @@ export function ZoneBlock({ zone, zoom = 1, units, onMove, onResize, onDelete, o
           <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </div>
+      )}
     </div>
   );
 }

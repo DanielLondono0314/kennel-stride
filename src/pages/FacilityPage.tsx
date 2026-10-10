@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -47,6 +48,8 @@ export default function FacilityPage() {
   const view = searchParams.get("vista") === "perreras" ? "kennels" : "map";
   const setView = (v: "map" | "kennels") => setSearchParams(v === "kennels" ? { vista: "perreras" } : {}, { replace: true });
   const { organization } = useOrganization();
+  const canConfigure = usePermission("facility.manage");
+  const canOperate = usePermission("kennels.assign") || canConfigure;
   const [zones, setZones] = useState<FacilityZone[]>([]);
   const [units, setUnits] = useState<FacilityUnit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -358,7 +361,7 @@ export default function FacilityPage() {
       {/* Body */}
       <div className={cn("flex flex-1 overflow-hidden", view !== "map" && "hidden")}>
         {/* Toolbar */}
-        <FacilityToolbar onAddZone={handleAddZone} />
+        {canConfigure && <FacilityToolbar onAddZone={handleAddZone} />}
 
         {/* Canvas */}
         <div className="flex-1 overflow-auto bg-muted/30 relative" style={{ minHeight: 600 }}>
@@ -408,6 +411,7 @@ export default function FacilityPage() {
                 onUnitClick={handleUnitClick}
                 onAddUnit={handleAddUnit}
                 onSetKennelCount={handleSetKennelCount}
+                readOnly={!canConfigure}
               />
             ))}
           </div>
@@ -427,6 +431,8 @@ export default function FacilityPage() {
         onRelease={handleRelease}
         onSetMaintenance={handleSetMaintenance}
         onDeleteUnit={handleDeleteUnit}
+        canOperate={canOperate}
+        canConfigure={canConfigure}
       />
     </div>
   );

@@ -64,7 +64,9 @@ export default function TasksPage() {
   const { data, isLoading, isError, refetch } = useTasks();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
-  const canManage = usePermission("schedule");
+  const canCreate = usePermission("tasks.create");
+  const canEdit = usePermission("tasks.edit");
+  const canDelete = usePermission("tasks.delete");
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -176,7 +178,7 @@ export default function TasksPage() {
             </div>
           )}
         </div>
-        {canManage && (
+        {canCreate && (
           <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
             <Plus className="h-4 w-4" />
             Nueva tarea
@@ -285,7 +287,8 @@ export default function TasksPage() {
         task={openTask}
         open={!!openTask && !formOpen}
         onOpenChange={(o) => !o && setOpenId(null)}
-        canManage={canManage}
+        canEdit={canEdit}
+        canDelete={canDelete}
         busy={updateTask.isPending || deleteTask.isPending}
         onChangeStatus={(s) => openTask && changeStatus(openTask, s)}
         onEdit={() => { setEditing(openTask); setFormOpen(true); }}

@@ -62,7 +62,7 @@ $$;
 select pg_temp.act_as('00000000-0000-0000-0000-0000000001b1');
 select throws_ok(
   $$select public.complete_checkout('00000000-0000-0000-0000-0000000001e1', 'plan', null, '', '00000000-0000-0000-0000-0000000001f1')$$,
-  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para cobrar',
+  'Reserva inválida, fuera de tu organización, no está en curso o no tienes permiso para hacer check-out',
   'otra organización no puede cobrar con el plan'
 );
 

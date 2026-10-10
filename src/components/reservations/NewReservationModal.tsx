@@ -1,3 +1,5 @@
+import { reservationStatusPermission, roleHasPermission } from "@/lib/permissions";
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -102,7 +104,8 @@ export function NewReservationModal({
   editData,
 }: NewReservationModalProps) {
   const isEditing = !!editData;
-  const { organization } = useOrganization();
+  const { organization, currentRole } = useOrganization();
+  const canDelete = usePermission("reservations.delete");
   const { options: serviceTypeOptions } = useServiceTypes();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -562,7 +565,14 @@ export function NewReservationModal({
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      <SelectItem
+                        key={s.value}
+                        value={s.value}
+                        disabled={s.value !== editData?.status
+                          && !roleHasPermission(currentRole, reservationStatusPermission(editData?.status ?? "", s.value))}
+                      >
+                        {s.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -609,7 +619,7 @@ export function NewReservationModal({
         )}
 
         <DialogFooter className="mt-4">
-          {isEditing && (
+          {isEditing && canDelete && (
             <Button
               variant="outline"
               className="text-destructive hover:text-destructive mr-auto"
