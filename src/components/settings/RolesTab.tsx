@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ShieldCheck, Plus, Edit, Trash2, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
@@ -35,10 +36,18 @@ import {
   PAGE_CATALOG,
   WORKER_DEFAULT_PAGES,
   PERMISSION_CATALOG,
+  PERMISSION_GROUPS,
+  permissionRequiredBy,
+  withImpliedPermissions,
   type AccessType,
   type OrgPage,
   type OrgPermission,
 } from "@/lib/permissions";
+
+/** Lo mínimo para alguien del equipo: ver su trabajo, el contacto del cliente y la salud del perro. */
+const NEW_ROLE_PERMISSIONS: OrgPermission[] = ["customers.view_contact", "clinical.view", "weight.record"];
+
+const permissionLabel = new Map(PERMISSION_CATALOG.map((p) => [p.key, p.label]));
 
 const accessBadgeVariant: Record<AccessType, "default" | "secondary" | "outline"> = {
   admin: "default",
@@ -65,7 +74,7 @@ export function RolesTab() {
     setEditing(null);
     setName("");
     setAccessType("panel");
-    setPermissions(["schedule", "record_weight"]);
+    setPermissions(NEW_ROLE_PERMISSIONS);
     setPages(null);
     setModalOpen(true);
   };
@@ -79,8 +88,15 @@ export function RolesTab() {
     setModalOpen(true);
   };
 
+  // Marcar un permiso también marca los que necesita (crear reservas → verlas).
   const togglePermission = (perm: OrgPermission, checked: boolean) => {
-    setPermissions((prev) => (checked ? [...prev, perm] : prev.filter((p) => p !== perm)));
+    setPermissions((prev) => withImpliedPermissions(checked ? [...prev, perm] : prev.filter((p) => p !== perm)));
+  };
+
+  const toggleGroup = (keys: readonly OrgPermission[], checked: boolean) => {
+    setPermissions((prev) => withImpliedPermissions(
+      checked ? [...prev, ...keys] : prev.filter((p) => !keys.includes(p) || permissionRequiredBy(p, prev.filter((x) => !keys.includes(x))).length > 0),
+    ));
   };
 
   const togglePage = (page: OrgPage, checked: boolean) => {
@@ -107,7 +123,7 @@ export function RolesTab() {
       return;
     }
     saveRole.mutate(
-      { id: editing?.id, input: { name: trimmed, access_type: accessType, permissions, pages: pagesToSave } },
+      { id: editing?.id, input: { name: trimmed, access_type: accessType, permissions: withImpliedPermissions(permissions), pages: pagesToSave } },
       {
         onSuccess: () => {
           toast.success(editing ? "Rol actualizado" : "Rol creado");
@@ -182,7 +198,7 @@ export function RolesTab() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {r.access_type === "admin" ? "Todos" : `${r.permissions.length} de ${PERMISSION_CATALOG.length}`}
-                    {r.access_type === "panel" && r.pages && (
+                    {r.access_type !== "admin" && r.pages && (
                       <span className="block text-xs">{r.pages.length} de {PAGE_CATALOG.length} secciones</span>
                     )}
                   </TableCell>
@@ -217,7 +233,7 @@ export function RolesTab() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar rol" : "Nuevo rol"}</DialogTitle>
             <DialogDescription>
@@ -270,22 +286,61 @@ export function RolesTab() {
               {isAdminType ? (
                 <p className="text-sm text-muted-foreground">El acceso Administrador incluye todos los permisos.</p>
               ) : (
-                <div className="space-y-3">
-                  {PERMISSION_CATALOG.map((p) => (
-                    <label key={p.key} htmlFor={`perm-${p.key}`} className="flex items-start gap-3 cursor-pointer">
-                      <Checkbox
-                        id={`perm-${p.key}`}
-                        checked={permissions.includes(p.key)}
-                        onCheckedChange={(c) => togglePermission(p.key, c === true)}
-                        className="mt-0.5"
-                      />
-                      <span>
-                        <span className="block text-sm font-medium">{p.label}</span>
-                        <span className="block text-xs text-muted-foreground">{p.description}</span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Qué puede hacer y ver este rol en cada módulo. Algunos permisos incluyen otros: por ejemplo, crear
+                    reservas incluye verlas.
+                  </p>
+                  <Accordion type="multiple" className="rounded-md border px-3">
+                    {PERMISSION_GROUPS.map((g) => {
+                      const keys = g.permissions.map((p) => p.key);
+                      const selected = keys.filter((k) => permissions.includes(k)).length;
+                      return (
+                        <AccordionItem key={g.key} value={g.key} className="last:border-b-0">
+                          <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                            <span className="flex flex-1 items-center justify-between gap-3 pr-2">
+                              <span className="font-medium">{g.label}</span>
+                              <span className="text-xs font-normal text-muted-foreground">{selected} de {keys.length}</span>
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-3 pb-4">
+                            <div className="flex gap-3">
+                              <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => toggleGroup(keys, true)} disabled={selected === keys.length}>
+                                Marcar todos
+                              </Button>
+                              <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => toggleGroup(keys, false)} disabled={selected === 0}>
+                                Quitar todos
+                              </Button>
+                            </div>
+                            {g.permissions.map((p) => {
+                              const requiredBy = permissions.includes(p.key) ? permissionRequiredBy(p.key, permissions) : [];
+                              return (
+                                <label key={p.key} htmlFor={`perm-${p.key}`} className="flex items-start gap-3 cursor-pointer has-[:disabled]:cursor-default">
+                                  <Checkbox
+                                    id={`perm-${p.key}`}
+                                    checked={permissions.includes(p.key)}
+                                    disabled={requiredBy.length > 0}
+                                    onCheckedChange={(c) => togglePermission(p.key, c === true)}
+                                    className="mt-0.5"
+                                  />
+                                  <span>
+                                    <span className="block text-sm font-medium">{p.label}</span>
+                                    <span className="block text-xs text-muted-foreground">{p.description}</span>
+                                    {requiredBy.length > 0 && (
+                                      <span className="block text-xs text-primary">
+                                        Incluido por: {requiredBy.map((k) => permissionLabel.get(k)).join(", ")}
+                                      </span>
+                                    )}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                </>
               )}
             </div>
             {accessType !== "admin" && (

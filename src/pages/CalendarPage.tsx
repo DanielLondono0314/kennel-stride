@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganization } from "@/contexts/OrganizationContext";
@@ -28,6 +29,7 @@ const TASK_TYPE_OPTIONS = TASK_TYPES.map((value) => ({ value, label: TASK_TYPE_L
 
 export default function CalendarPage() {
   const { organization } = useOrganization();
+  const canCreate = usePermission("reservations.create");
   const orgNavigate = useOrgNavigate();
   const orgId = organization?.id;
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -149,6 +151,7 @@ export default function CalendarPage() {
   }, [allEvents, staffFilter, zoneFilter, typeFilter, zones]);
 
   const openNewReservation = (date?: Date) => {
+    if (!canCreate) return;
     setNewReservationDate(date);
     setNewReservationOpen(true);
   };
@@ -174,7 +177,7 @@ export default function CalendarPage() {
         view={view}
         onDateChange={setCurrentDate}
         onViewChange={setView}
-        onNewReservation={() => openNewReservation()}
+        onNewReservation={canCreate ? () => openNewReservation() : undefined}
         reservationCount={visibleEvents.length}
       />
 

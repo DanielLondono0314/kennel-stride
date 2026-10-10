@@ -20,12 +20,12 @@ function short(date: string | null) {
 /** Contratos anexados a un perro, en su perfil. */
 export function DogContractsTab({ dogId, dogName, customerId }: { dogId: string; dogName: string; customerId: string }) {
   const navigate = useOrgNavigate();
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
+  const canView = usePermission("contracts.view");
+  const canCreate = usePermission("contracts.create");
   const { data, isLoading, isError, refetch } = useDogContracts(dogId);
 
-  if (!canSchedule && !canBill) {
-    return <EmptyState icon={FileSignature} title="Sin acceso a contratos" description="Tu rol necesita el permiso de agendar o de cobrar." />;
+  if (!canView) {
+    return <EmptyState icon={FileSignature} title="Sin acceso a contratos" description="Tu rol necesita el permiso de ver contratos." />;
   }
 
   const newContract = () => navigate(`/contracts/new?customer=${customerId}&dog=${dogId}`);
@@ -40,9 +40,11 @@ export function DogContractsTab({ dogId, dogName, customerId }: { dogId: string;
         <p className="text-sm text-muted-foreground">
           {contracts.length === 0 ? `${dogName} no tiene contratos.` : `${contracts.length} ${contracts.length === 1 ? "contrato" : "contratos"}`}
         </p>
-        <Button variant="outline" size="sm" onClick={newContract}>
-          <Plus className="h-4 w-4 mr-2" /> Generar contrato
-        </Button>
+        {canCreate && (
+          <Button variant="outline" size="sm" onClick={newContract}>
+            <Plus className="h-4 w-4 mr-2" /> Generar contrato
+          </Button>
+        )}
       </div>
 
       {contracts.length === 0 ? (

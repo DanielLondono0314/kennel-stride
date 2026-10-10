@@ -17,9 +17,12 @@ values ('00000000-0000-0000-0000-00000000040a', 'RW Org', 'rw-org', '00000000-00
 -- Roles: el trigger de la org crea los de sistema; se agregan dos propios.
 insert into public.org_roles (id, organization_id, name, access_type, permissions) values
   ('00000000-0000-0000-0000-0000000004b2', '00000000-0000-0000-0000-00000000040a', 'Trabajador prueba', 'worker',
-   array['clinical', 'report_cards', 'manage_facility', 'record_weight']),
+   array['dogs.create', 'dogs.edit', 'clinical.edit', 'clinical.import', 'weight.record', 'weight.edit',
+         'welfare.configure', 'report_cards.write', 'facility.manage', 'kennels.assign', 'kennels.move']),
   ('00000000-0000-0000-0000-0000000004b3', '00000000-0000-0000-0000-00000000040a', 'Recepción prueba', 'panel',
-   array['schedule', 'billing', 'record_weight']);
+   array['reservations.create', 'reservations.edit', 'stays.checkin', 'stays.checkout', 'facility.manage',
+         'kennels.assign', 'customers.create', 'customers.edit', 'dogs.create', 'dogs.edit',
+         'invoices.create', 'invoices.payment', 'weight.record']);
 
 insert into public.organization_members (organization_id, user_id, role) values
   ('00000000-0000-0000-0000-00000000040a', '00000000-0000-0000-0000-0000000004a1', 'admin');

@@ -153,10 +153,10 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "No autorizado para esta organización" }, 403);
     }
 
-    // Mismo criterio que usePermission("send_campaign") (roles personalizados
+    // Mismo criterio que usePermission("campaigns.send") (roles personalizados
     // por org): el rol debe ser de tipo admin o tener el permiso marcado.
     const orgRole = (membership as { org_roles: { access_type: string; permissions: string[] } | null }).org_roles;
-    if (orgRole?.access_type !== "admin" && !orgRole?.permissions.includes("send_campaign")) {
+    if (orgRole?.access_type !== "admin" && !orgRole?.permissions.includes("campaigns.send")) {
       return jsonResponse({ error: "Tu rol no tiene permiso para enviar campañas" }, 403);
     }
 

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { Price } from "@/components/shared/Price";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -18,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrgPlans } from "@/hooks/queries/useDogPlans";
 import { usePermission } from "@/hooks/usePermission";
 import { useOrgBasePath } from "@/hooks/useOrgNavigate";
-import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 import { PLAN_STATE_LABELS, planProgressText, planState, type PlanState } from "@/lib/dogPlans";
 
@@ -49,8 +49,7 @@ export default function PlansPage() {
   const base = useOrgBasePath();
   const { organization } = useOrganization();
   const { data: plans = [], isLoading, isError, refetch } = useOrgPlans();
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
+  const canSell = usePermission("plans.sell");
   const [filter, setFilter] = useState<Filter>("current");
   const [search, setSearch] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -58,7 +57,7 @@ export default function PlansPage() {
   // Perros para "Asignar plan".
   const { data: dogs = [] } = useQuery({
     queryKey: ["plans-page-dogs", organization?.id],
-    enabled: !!organization?.id && (canSchedule || canBill),
+    enabled: !!organization?.id && canSell,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dogs")
@@ -111,7 +110,7 @@ export default function PlansPage() {
           <h1 className="text-2xl font-bold">Planes</h1>
           <p className="text-muted-foreground">Los planes contratados por cada perro: vigencia, uso y renovaciones</p>
         </div>
-        {(canSchedule || canBill) && (
+        {canSell && (
           <Button onClick={() => setAssignOpen(true)} className="gap-2 self-start sm:self-auto">
             <Plus className="h-4 w-4" /> Asignar plan
           </Button>
@@ -122,10 +121,10 @@ export default function PlansPage() {
         <Kpi icon={CheckCircle2} tone="success" value={kpis.current} label="Vigentes" />
         <Kpi icon={CalendarCheck} tone="warning" value={kpis.expiring} label="Por vencer" />
         <Kpi icon={AlertTriangle} tone="destructive" value={kpis.lapsed} label="Vencidos o agotados" />
-        <Kpi icon={Wallet} tone="primary" value={formatCurrency(kpis.soldThisMonth)} label="Vendido este mes" />
+        <Kpi icon={Wallet} tone="primary" value={<Price value={kpis.soldThisMonth} />} label="Vendido este mes" />
       </div>
 
-      {!isLoading && <PlanRemindersCard plans={plans} canManage={canSchedule || canBill} />}
+      {!isLoading && <PlanRemindersCard plans={plans} canManage={canSell} />}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-sm">
@@ -199,7 +198,7 @@ export default function PlansPage() {
                       <Badge className={cn("border-0", STATE_STYLE[state])}>{PLAN_STATE_LABELS[state]}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium tabular-nums">
-                      {Number(plan.price) > 0 ? formatCurrency(plan.price) : "—"}
+                      {Number(plan.price) > 0 ? <Price value={plan.price} /> : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -221,7 +220,7 @@ const TONES = {
   primary: "bg-primary/10 text-primary",
 } as const;
 
-function Kpi({ icon: Icon, tone, value, label }: { icon: typeof CheckCircle2; tone: keyof typeof TONES; value: number | string; label: string }) {
+function Kpi({ icon: Icon, tone, value, label }: { icon: typeof CheckCircle2; tone: keyof typeof TONES; value: ReactNode; label: string }) {
   return (
     <Card className="card-kpi">
       <CardContent className="pt-4">

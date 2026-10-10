@@ -111,11 +111,11 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "No autorizado para esta organización" }, 403);
     }
 
-    // Solo el chofer asignado a la ruta o un rol con permiso 'schedule' (roles
+    // Solo el chofer asignado a la ruta o un rol con permiso 'routes.manage' (roles
     // personalizados por org) puede disparar la notificación.
     const orgRole = (membership as { org_roles: { access_type: string; permissions: string[] } | null }).org_roles;
-    const canSchedule = orgRole?.access_type === "admin" || !!orgRole?.permissions.includes("schedule");
-    if (!canSchedule) {
+    const canManageRoutes = orgRole?.access_type === "admin" || !!orgRole?.permissions.includes("routes.manage");
+    if (!canManageRoutes) {
       const { data: myStaff } = await adminClient
         .from("staff_members")
         .select("id")

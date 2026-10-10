@@ -1,7 +1,7 @@
+import { Price } from "@/components/shared/Price";
 import { CalendarRange, Hash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/currency";
 import { PLAN_STATE_LABELS, planProgressPct, planProgressText, planState, type DogPlan, type PlanState } from "@/lib/dogPlans";
 
 const STATE_STYLE: Record<PlanState, string> = {
@@ -55,7 +55,7 @@ export function PlanCard({ plan, compact = false, showPrice = true }: { plan: Do
 
       {!compact && plan.conditions && <p className="whitespace-pre-wrap text-xs text-muted-foreground">{plan.conditions}</p>}
       {!compact && showPrice && plan.price > 0 && (
-        <p className="text-xs text-muted-foreground">Valor del plan: <span className="font-medium text-foreground">{formatCurrency(plan.price)}</span></p>
+        <p className="text-xs text-muted-foreground">Valor del plan: <span className="font-medium text-foreground"><Price value={plan.price} /></span></p>
       )}
     </div>
   );

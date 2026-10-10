@@ -125,9 +125,7 @@ export default function NewContractPage() {
   const [params] = useSearchParams();
   const { organization } = useOrganization();
   const { labels: serviceLabels } = useServiceTypes();
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
-  const canUse = canSchedule || canBill;
+  const canUse = usePermission("contracts.create");
 
   const templatesQuery = useContractTemplates();
   const templates = useMemo(() => templatesQuery.data ?? [], [templatesQuery.data]);

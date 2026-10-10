@@ -6,8 +6,12 @@ import type { OrgRoleInfo } from "@/lib/permissions";
 vi.mock("@/contexts/OrganizationContext", () => ({
   useOrganization: vi.fn(),
 }));
+vi.mock("@/hooks/useMyStaffMember", () => ({
+  useMyStaffMember: vi.fn(() => ({ data: null })),
+}));
 
 import { useOrganization } from "@/contexts/OrganizationContext";
+import { useMyStaffMember } from "@/hooks/useMyStaffMember";
 
 function withRole(role: Partial<OrgRoleInfo> | null) {
   const currentRole = role
@@ -31,30 +35,41 @@ function withRole(role: Partial<OrgRoleInfo> | null) {
 describe("usePermission", () => {
   it("tipo admin puede todo, aunque no tenga casillas", () => {
     withRole({ access_type: "admin", permissions: [] });
-    expect(renderHook(() => usePermission("delete_records")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("dogs.delete")).result.current).toBe(true);
     expect(renderHook(() => usePermission("manage_settings")).result.current).toBe(true);
   });
 
-  it("rol de panel solo tiene sus casillas", () => {
-    withRole({ access_type: "panel", permissions: ["schedule", "billing"] });
-    expect(renderHook(() => usePermission("billing")).result.current).toBe(true);
-    expect(renderHook(() => usePermission("view_reports")).result.current).toBe(false);
+  it("rol de oficina solo tiene sus casillas", () => {
+    withRole({ access_type: "panel", permissions: ["reservations.create", "invoices.create"] });
+    expect(renderHook(() => usePermission("invoices.create")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("invoices.cancel")).result.current).toBe(false);
+    expect(renderHook(() => usePermission("reports.view")).result.current).toBe(false);
+  });
+
+  it("mover perros entre perreras no da check-in ni check-out", () => {
+    withRole({ access_type: "worker", permissions: ["kennels.move"] });
+    expect(renderHook(() => usePermission("kennels.move")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("stays.checkin")).result.current).toBe(false);
+    expect(renderHook(() => usePermission("stays.checkout")).result.current).toBe(false);
   });
 
   it("personal y configuración son exclusivos del tipo admin", () => {
-    withRole({ access_type: "panel", permissions: ["schedule", "billing", "view_reports", "send_campaign"] });
+    withRole({ access_type: "panel", permissions: ["reservations.create", "invoices.create", "reports.view", "campaigns.send"] });
     expect(renderHook(() => usePermission("manage_staff")).result.current).toBe(false);
     expect(renderHook(() => usePermission("manage_settings")).result.current).toBe(false);
   });
 
-  it("worker con registro de peso", () => {
-    withRole({ access_type: "worker", permissions: ["record_weight"] });
-    expect(renderHook(() => usePermission("record_weight")).result.current).toBe(true);
-    expect(renderHook(() => usePermission("clinical")).result.current).toBe(false);
+  it("la especialidad veterinaria da la clínica aunque el rol no la tenga", () => {
+    withRole({ access_type: "worker", permissions: ["weight.record"] });
+    expect(renderHook(() => usePermission("clinical.edit")).result.current).toBe(false);
+    vi.mocked(useMyStaffMember).mockReturnValue({ data: { specialty: "vet" } } as any);
+    expect(renderHook(() => usePermission("clinical.edit")).result.current).toBe(true);
+    expect(renderHook(() => usePermission("invoices.create")).result.current).toBe(false);
+    vi.mocked(useMyStaffMember).mockReturnValue({ data: null } as any);
   });
 
   it("sin rol → ningún permiso", () => {
     withRole(null);
-    expect(renderHook(() => usePermission("billing")).result.current).toBe(false);
+    expect(renderHook(() => usePermission("invoices.create")).result.current).toBe(false);
   });
 });

@@ -1,3 +1,5 @@
+import { Price } from "@/components/shared/Price";
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useMemo, useEffect } from "react";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
@@ -26,7 +28,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/currency";
 import {
   Dog,
   Clock,
@@ -65,6 +66,9 @@ export function CheckOutModal({
   const { categoryFor } = useServiceTypes();
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  // Cobrar (efectivo, tarjeta, factura) y descontar de un plan son permisos distintos.
+  const canCharge = usePermission("invoices.create");
+  const canUsePlans = usePermission("plans.use");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dogPlans, setDogPlans] = useState<DogPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
@@ -110,13 +114,14 @@ export function CheckOutModal({
 
   // Por defecto, el primer plan al que le alcanza.
   useEffect(() => {
-    const best = coverage.find((c) => c.ok);
+    const best = canUsePlans ? coverage.find((c) => c.ok) : undefined;
     setPaymentMethod(best ? `plan:${best.plan.id}` : "cash");
-  }, [coverage]);
+  }, [coverage, canUsePlans]);
 
   const selectedPlan = paymentMethod.startsWith("plan:")
     ? coverage.find((c) => `plan:${c.plan.id}` === paymentMethod) ?? null
     : null;
+  const methodAllowed = selectedPlan ? canUsePlans && selectedPlan.ok : canCharge;
 
   // Calculate stay duration
   const stayInfo = useMemo(() => {
@@ -280,11 +285,11 @@ export function CheckOutModal({
                 {selectedPlan ? (
                   <div className="text-right">
                     <p className="text-sm font-semibold text-success">Incluido en el plan</p>
-                    <p className="text-xs text-muted-foreground line-through">{formatCurrency(reservation.totalPrice)}</p>
+                    <p className="text-xs text-muted-foreground line-through"><Price value={reservation.totalPrice} /></p>
                   </div>
                 ) : (
                   <p className="text-xl font-bold">
-                    {formatCurrency(reservation.totalPrice)}
+                    <Price value={reservation.totalPrice} />
                   </p>
                 )}
               </div>
@@ -312,7 +317,7 @@ export function CheckOutModal({
                 className="grid gap-3"
               >
                 {/* Planes del perro que cubren este servicio */}
-                {coverage.map(({ plan, units, ok, reason }) => {
+                {canUsePlans && coverage.map(({ plan, units, ok, reason }) => {
                   const value = `plan:${plan.id}` as const;
                   return (
                     <label
@@ -341,6 +346,8 @@ export function CheckOutModal({
                   );
                 })}
 
+                {canCharge && (
+                <>
                 {/* Cash option */}
                 <label
                   className={cn(
@@ -358,7 +365,7 @@ export function CheckOutModal({
                       Pago inmediato en efectivo
                     </p>
                   </div>
-                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
+                  <Badge variant="outline"><Price value={reservation.totalPrice} /></Badge>
                 </label>
 
                 {/* Card option */}
@@ -378,7 +385,7 @@ export function CheckOutModal({
                       Pago con tarjeta de crédito/débito
                     </p>
                   </div>
-                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
+                  <Badge variant="outline"><Price value={reservation.totalPrice} /></Badge>
                 </label>
 
                 {/* Invoice option */}
@@ -398,14 +405,22 @@ export function CheckOutModal({
                       Cobrar después con factura
                       {customer && customer.balance < 0 && (
                         <span className="text-warning ml-1">
-                          (Saldo actual: {formatCurrency(Math.abs(customer.balance))})
+                          (Saldo actual: <Price value={Math.abs(customer.balance)} perm="invoices.view" />)
                         </span>
                       )}
                     </p>
                   </div>
-                  <Badge variant="outline">{formatCurrency(reservation.totalPrice)}</Badge>
+                  <Badge variant="outline"><Price value={reservation.totalPrice} /></Badge>
                 </label>
+                </>
+                )}
               </RadioGroup>
+            )}
+            {!loadingPlans && !methodAllowed && (
+              <p className="text-sm text-muted-foreground">
+                Tu rol no puede cobrar{canUsePlans ? " y ningún plan del perro cubre este servicio" : ""}: pide a
+                alguien con permiso de cobrar que haga este check-out.
+              </p>
             )}
           </div>
 
@@ -429,7 +444,7 @@ export function CheckOutModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isSubmitting || loadingPlans}
+            disabled={isSubmitting || loadingPlans || !methodAllowed}
             className="min-w-[140px] bg-success hover:bg-success/90 text-success-foreground"
           >
             {isSubmitting ? (

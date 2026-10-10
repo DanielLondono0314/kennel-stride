@@ -17,15 +17,16 @@ import { ConditionsTab } from "@/components/clinic/ConditionsTab";
 import { WeightTab } from "@/components/clinic/WeightTab";
 import { TemperamentTab } from "@/components/clinic/TemperamentTab";
 import { useUrlState } from "@/hooks/useUrlState";
+import { ClinicalGate } from "@/components/clinic/ClinicalGate";
 
 /** Ficha del perro en la vista del trabajador (celular primero). */
 export default function WorkerDogPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: dog, isLoading } = useWorkerDogProfile(id);
-  const canRecordWeight = usePermission("record_weight");
+  const canRecordWeight = usePermission("weight.record");
   // Todos ven la parte clínica; registrar/editar exige "Registros clínicos".
-  const canClinical = usePermission("clinical");
+  const canClinical = usePermission("clinical.edit");
   const [healthTab, setHealthTab] = useUrlState<string>("salud", "vacunas", { replace: true });
   const { data: lastWeight } = useLatestDogWeight(dog?.id);
   const [weighing, setWeighing] = useState(false);
@@ -91,9 +92,9 @@ export default function WorkerDogPage() {
             <TabsTrigger value="temperamento">Temperamento</TabsTrigger>
             <TabsTrigger value="bienestar">Rondas</TabsTrigger>
           </TabsList>
-          <TabsContent value="vacunas"><VaccinationTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></TabsContent>
-          <TabsContent value="desparasitacion"><DewormingTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></TabsContent>
-          <TabsContent value="historial"><MedicalHistoryTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></TabsContent>
+          <TabsContent value="vacunas"><ClinicalGate><VaccinationTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate></TabsContent>
+          <TabsContent value="desparasitacion"><ClinicalGate><DewormingTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate></TabsContent>
+          <TabsContent value="historial"><ClinicalGate><MedicalHistoryTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></ClinicalGate></TabsContent>
           <TabsContent value="condiciones"><ConditionsTab dogId={dog.id} dogName={dog.name} readOnly={!canClinical} /></TabsContent>
           <TabsContent value="peso"><WeightTab dogId={dog.id} dogName={dog.name} /></TabsContent>
           <TabsContent value="temperamento"><TemperamentTab dogId={dog.id} dogName={dog.name} /></TabsContent>

@@ -4,9 +4,9 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(19);
 
--- ─── Seed: org A con admin, cajero (rol panel solo 'billing') y worker; org B ─
+-- ─── Seed: org A con admin, cajero (rol panel que solo factura) y worker; org B ─
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-00000000aa01', 'admin-a@test.local'),
        ('00000000-0000-0000-0000-00000000aa02', 'cajero-a@test.local'),
@@ -35,7 +35,7 @@ select is((select r.system_key::text from public.organization_members m join pub
 
 insert into public.org_roles (id, organization_id, name, access_type, permissions)
 values ('00000000-0000-0000-0000-00000000c001', '00000000-0000-0000-0000-00000000a100',
-        'Cajero', 'panel', array['billing']);
+        'Cajero', 'panel', array['invoices.create', 'invoices.payment']);
 
 -- Solo role_id → role derivado ('front_desk' para panel personalizado).
 insert into public.organization_members (organization_id, user_id, role_id)
@@ -45,6 +45,21 @@ values ('00000000-0000-0000-0000-00000000a100', '00000000-0000-0000-0000-0000000
 select is((select role::text from public.organization_members
            where user_id = '00000000-0000-0000-0000-00000000aa02'), 'front_desk',
   'rol panel personalizado se sincroniza como front_desk');
+
+-- Los permisos implícitos se agregan solos y quedan en orden de catálogo.
+select is((select permissions from public.org_roles where id = '00000000-0000-0000-0000-00000000c001'),
+  array['prices.view', 'invoices.view', 'invoices.create', 'invoices.payment'],
+  'facturar implica ver facturas y precios');
+
+-- Los roles de sistema nuevos: el trabajador solo registra peso y ve contacto y salud.
+select is((select permissions from public.org_roles
+           where organization_id = '00000000-0000-0000-0000-00000000a100' and system_key = 'worker'),
+  array['customers.view_contact', 'clinical.view', 'weight.record'],
+  'el rol Trabajador de sistema nace con permisos mínimos');
+select is((select cardinality(permissions) from public.org_roles
+           where organization_id = '00000000-0000-0000-0000-00000000a100' and system_key = 'manager'),
+  cardinality(public.org_permission_catalog()),
+  'el Gerente de sistema nace con todos los permisos');
 
 select throws_ok(
   $$insert into public.org_roles (organization_id, name, access_type, permissions)
@@ -70,18 +85,18 @@ set local role authenticated;
 
 -- ─── Capacidades del cajero ───────────────────────────────────────────────
 select pg_temp.act_as('00000000-0000-0000-0000-00000000aa02');
-select ok('00000000-0000-0000-0000-00000000a100' in (select public.get_finance_writer_org_ids()),
-  'cajero (billing) puede escribir finanzas');
-select ok('00000000-0000-0000-0000-00000000a100' not in (select public.get_scheduler_org_ids()),
-  'cajero sin schedule no agenda');
-select ok(not public.has_org_permission('00000000-0000-0000-0000-00000000a100', 'send_campaign'),
-  'cajero sin send_campaign');
+select ok('00000000-0000-0000-0000-00000000a100' in (select public.get_org_ids_with_permission('invoices.create')),
+  'cajero (invoices.create) puede facturar');
+select ok('00000000-0000-0000-0000-00000000a100' not in (select public.get_org_ids_with_permission('reservations.create')),
+  'cajero sin reservations.create no agenda');
+select ok(not public.has_org_permission('00000000-0000-0000-0000-00000000a100', 'campaigns.send'),
+  'cajero sin campaigns.send');
 select ok('00000000-0000-0000-0000-00000000a100' not in (select public.get_admin_org_ids()),
   'cajero no es admin');
 -- La RLS de UPDATE no lanza error: filtra la fila y afecta 0 filas.
 update public.org_roles set permissions = public.org_permission_catalog()
 where id = '00000000-0000-0000-0000-00000000c001';
-select ok(not public.has_org_permission('00000000-0000-0000-0000-00000000a100', 'send_campaign'),
+select ok(not public.has_org_permission('00000000-0000-0000-0000-00000000a100', 'campaigns.send'),
   'un no-admin no puede auto-asignarse permisos editando su rol');
 
 -- ─── Aislamiento entre orgs ───────────────────────────────────────────────
@@ -91,12 +106,12 @@ select is((select count(*)::int from public.org_roles
 
 -- ─── Admin: edita permisos y el cambio aplica de inmediato ────────────────
 select pg_temp.act_as('00000000-0000-0000-0000-00000000aa01');
-update public.org_roles set permissions = array['billing','schedule']
+update public.org_roles set permissions = array['invoices.create', 'reservations.create']
 where id = '00000000-0000-0000-0000-00000000c001';
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000aa02');
-select ok('00000000-0000-0000-0000-00000000a100' in (select public.get_scheduler_org_ids()),
-  'al marcar schedule, el cajero ya puede agendar');
+select ok('00000000-0000-0000-0000-00000000a100' in (select public.get_org_ids_with_permission('reservations.create')),
+  'al marcar reservations.create, el cajero ya puede agendar');
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000aa01');
 select throws_ok(

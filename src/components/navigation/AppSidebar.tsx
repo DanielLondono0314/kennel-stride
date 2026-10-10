@@ -49,11 +49,12 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
   // Un título de grupo solo se muestra si el rol ve alguna de sus secciones.
   const showGroup = (group: string) => PAGE_CATALOG.some((p) => p.group === group && roleCanSeePage(currentRole, p.key));
   const base = `/${orgSlug}`;
-  const canViewReports = usePermission("view_reports");
-  const canSendCampaigns = usePermission("send_campaign");
+  const canViewReports = usePermission("reports.view");
+  const canSendCampaigns = usePermission("campaigns.send");
   const canManageSettings = usePermission("manage_settings");
-  const canManageTasks = usePermission("schedule");
-  const canBill = usePermission("billing");
+  const canSeeAllTasks = usePermission("tasks.view_all");
+  const canSeeInvoices = usePermission("invoices.view");
+  const canSeeContracts = usePermission("contracts.view");
 
   return (
     <aside
@@ -112,7 +113,7 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
         <AppNavLink to={`${base}/dashboard`}    icon={LayoutDashboard} label="Dashboard"     collapsed={collapsed} onClick={onMobileClose} page="dashboard" />
         <AppNavLink to={`${base}/requests`}     icon={ClipboardList}   label="Solicitudes"   collapsed={collapsed} badge={requestCount}   feature="requests" onClick={onMobileClose} page="requests" />
         <AppNavLink to={`${base}/calendar`}     icon={CalendarDays}    label="Calendario"    collapsed={collapsed} onClick={onMobileClose} page="calendar" />
-        {canManageTasks && (
+        {canSeeAllTasks && (
           <AppNavLink to={`${base}/tasks`}      icon={ListTodo}        label="Tareas"        collapsed={collapsed} onClick={onMobileClose} page="tasks" />
         )}
         <AppNavLink to={`${base}/facility`}     icon={Map}             label="Instalaciones" collapsed={collapsed} feature="facility" onClick={onMobileClose} page="facility" />
@@ -136,8 +137,10 @@ export function AppSidebar({ noticeCount = 0, requestCount = 0, mobileOpen = fal
           </p>
         )}
         <AppNavLink to={`${base}/plans`}        icon={CalendarCheck} label="Planes"   collapsed={collapsed} onClick={onMobileClose} page="plans" />
-        <AppNavLink to={`${base}/invoices`}     icon={CreditCard} label="Facturación" collapsed={collapsed} onClick={onMobileClose} page="invoices" />
-        {(canManageTasks || canBill) && (
+        {canSeeInvoices && (
+          <AppNavLink to={`${base}/invoices`}   icon={CreditCard} label="Facturación" collapsed={collapsed} onClick={onMobileClose} page="invoices" />
+        )}
+        {canSeeContracts && (
           <AppNavLink to={`${base}/contracts`}  icon={FileSignature} label="Contratos" collapsed={collapsed} onClick={onMobileClose} page="contracts" />
         )}
 

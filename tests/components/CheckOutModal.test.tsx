@@ -46,6 +46,11 @@ vi.mock("@/contexts/OrganizationContext", () => ({
   useOrganization: () => ({ organization: { id: "org-123" } }),
 }));
 
+// Rol que cobra y descuenta de planes (los permisos se prueban aparte).
+vi.mock("@/hooks/usePermission", () => ({
+  usePermission: () => true,
+}));
+
 const reservation: any = {
   id: "res-1",
   startDate: new Date("2026-06-10T09:00:00Z"),

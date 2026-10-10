@@ -42,7 +42,9 @@ import { cn } from "@/lib/utils";
 export default function DogsPage() {
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
-  const canDelete = usePermission("delete_records");
+  const canDelete = usePermission("dogs.delete");
+  const canCreate = usePermission("dogs.create");
+  const canEdit = usePermission("dogs.edit");
   const orgNavigate = useOrgNavigate();
   const basePath = useOrgBasePath();
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,10 +144,12 @@ export default function DogsPage() {
             <Upload className="h-4 w-4 mr-2" />
             Importar
           </Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewDog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo perro
-          </Button>
+          {canCreate && (
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={handleNewDog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo perro
+            </Button>
+          )}
         </div>
       </div>
 
@@ -214,7 +218,7 @@ export default function DogsPage() {
             ) : isLoading ? (
               <TableRow><TableCell colSpan={7} className="py-4 px-4"><TableSkeleton rows={6} columns={5} /></TableCell></TableRow>
             ) : dogs.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="py-4"><EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={canCreate && <Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} /></TableCell></TableRow>
             ) : dogs.map((dog) => (
               <TableRow key={dog.id} className={cn("cursor-pointer", !dog.is_active && "opacity-60")} onClick={() => orgNavigate(`/dogs/${dog.id}`)}>
                 {canDelete && (
@@ -278,7 +282,7 @@ export default function DogsPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Acciones del perro"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
+                      {canEdit && <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>}
                       {canDelete && (
                         <DropdownMenuItem onClick={() => handleSetActive([dog.id], !dog.is_active)}>
                           {dog.is_active ? "Marcar inactivo" : "Activar"}
@@ -303,7 +307,7 @@ export default function DogsPage() {
         ) : isLoading ? (
           <ListSkeleton rows={4} />
         ) : dogs.length === 0 ? (
-          <EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={<Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} />
+          <EmptyState icon={DogIcon} title="No hay perros" description="Crea el primer perro para empezar a operar." action={canCreate && <Button onClick={handleNewDog}><Plus className="h-4 w-4 mr-2" />Nuevo perro</Button>} />
         ) : dogs.map((dog) => (
           <Card
             key={dog.id}
@@ -344,7 +348,7 @@ export default function DogsPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Acciones del perro"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>
+                      {canEdit && <DropdownMenuItem onClick={() => handleEditDog(dog)}>Editar</DropdownMenuItem>}
                       {canDelete && (
                         <DropdownMenuItem onClick={() => handleSetActive([dog.id], !dog.is_active)}>
                           {dog.is_active ? "Marcar inactivo" : "Activar"}

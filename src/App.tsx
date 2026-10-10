@@ -180,12 +180,12 @@ const App = () => {
                       <Route element={<PageRoute page="plans" />}><Route path="plans"            element={<PlansPage />} /></Route>
                       {/* Los paquetes de créditos se reemplazaron por planes. */}
                       <Route path="packages"         element={<Navigate to="../plans" replace />} />
-                      <Route element={<PageRoute page="invoices" />}><Route path="invoices"         element={<InvoicesPage />} /></Route>
-                      <Route element={<PageRoute page="contracts" />}><Route path="contracts"        element={<ContractsPage />} /></Route>
-                      <Route element={<PageRoute page="contracts" />}><Route path="contracts/new"    element={<NewContractPage />} /></Route>
-                      <Route element={<PageRoute page="reports" />}><Route path="reports"          element={<ReportsPage />} /></Route>
+                      <Route element={<PageRoute page="invoices" perm="invoices.view" />}><Route path="invoices"         element={<InvoicesPage />} /></Route>
+                      <Route element={<PageRoute page="contracts" perm="contracts.view" />}><Route path="contracts"        element={<ContractsPage />} /></Route>
+                      <Route element={<PageRoute page="contracts" perm="contracts.create" />}><Route path="contracts/new"    element={<NewContractPage />} /></Route>
+                      <Route element={<PageRoute page="reports" perm="reports.view" />}><Route path="reports"          element={<ReportsPage />} /></Route>
                       <Route element={<FeatureRoute feature="campaigns" />}>
-                        <Route element={<PageRoute page="campaigns" />}><Route path="campaigns" element={<CampaignsPage />} /></Route>
+                        <Route element={<PageRoute page="campaigns" perm="campaigns.send" />}><Route path="campaigns" element={<CampaignsPage />} /></Route>
                       </Route>
                       <Route element={<PageRoute page="routes" />}><Route path="routes"           element={<RoutesPage />} /></Route>
                       <Route element={<FeatureRoute feature="clinic" />}>

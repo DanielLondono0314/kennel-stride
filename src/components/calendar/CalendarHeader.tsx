@@ -24,7 +24,8 @@ interface CalendarHeaderProps {
   view: CalendarView;
   onDateChange: (date: Date) => void;
   onViewChange: (view: CalendarView) => void;
-  onNewReservation: () => void;
+  /** Sin esto (el rol no crea reservas) no hay botón. */
+  onNewReservation?: () => void;
   reservationCount: number;
 }
 
@@ -116,10 +117,12 @@ export function CalendarHeader({
         </Select>
 
         {/* New reservation */}
-        <Button onClick={onNewReservation} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Reserva
-        </Button>
+        {onNewReservation && (
+          <Button onClick={onNewReservation} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Reserva
+          </Button>
+        )}
       </div>
     </div>
   );

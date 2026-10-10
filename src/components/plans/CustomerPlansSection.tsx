@@ -15,8 +15,7 @@ import { PlanCard } from "./PlanCard";
 export function CustomerPlansSection({ dogs }: { dogs: { id: string; name: string }[] }) {
   const base = useOrgBasePath();
   const { data: plans = [], isLoading } = usePlansForDogs(dogs.map((d) => d.id));
-  const canSchedule = usePermission("schedule");
-  const canBill = usePermission("billing");
+  const canSell = usePermission("plans.sell");
   const [assignOpen, setAssignOpen] = useState(false);
 
   const nameById = new Map(dogs.map((d) => [d.id, d.name]));
@@ -24,7 +23,7 @@ export function CustomerPlansSection({ dogs }: { dogs: { id: string; name: strin
 
   return (
     <div className="space-y-3">
-      {(canSchedule || canBill) && dogs.length > 0 && (
+      {canSell && dogs.length > 0 && (
         <div className="flex justify-end">
           <Button size="sm" variant="outline" onClick={() => setAssignOpen(true)} className="gap-1.5">
             <Plus className="h-4 w-4" /> Asignar plan

@@ -67,7 +67,7 @@ function Rating({ label, value }: { label: string; value: number }) {
 export function DogDetailSheet({ dog, onOpenChange, settings, fields }: Props) {
   const orgNavigate = useOrgNavigate();
   const basePath = useOrgBasePath();
-  const canRecord = usePermission("record_weight");
+  const canRecord = usePermission("weight.record");
   const [weighOpen, setWeighOpen] = useState(false);
   const { data: entries, isLoading } = useDogWeightLog(dog?.id);
 

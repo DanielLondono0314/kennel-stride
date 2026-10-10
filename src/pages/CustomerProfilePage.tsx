@@ -1,3 +1,5 @@
+import { Price } from "@/components/shared/Price";
+import { usePermission } from "@/hooks/usePermission";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +88,11 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function CustomerProfilePage() {
+  const canSeeContact = usePermission("customers.view_contact");
+  const canSeeInvoices = usePermission("invoices.view");
+  const canCreateDog = usePermission("dogs.create");
+  const canEditCustomer = usePermission("customers.edit");
+  const canCreateReservation = usePermission("reservations.create");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { organization } = useOrganization();
@@ -233,17 +240,17 @@ export default function CustomerProfilePage() {
               {customer.first_name} {customer.last_name}
             </h1>
             <div className="flex flex-wrap gap-2 mt-1">
-              {customer.email && (
+              {canSeeContact && customer.email && (
                 <a href={`mailto:${customer.email}`} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline">
                   <Mail className="h-3.5 w-3.5" aria-hidden /> {customer.email}
                 </a>
               )}
-              {customer.phone && (
+              {canSeeContact && customer.phone && (
                 <a href={telHref(customer.phone) ?? undefined} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline">
                   <Phone className="h-3.5 w-3.5" aria-hidden /> {customer.phone}
                 </a>
               )}
-              {whatsappHref(customer.phone) && (
+              {canSeeContact && whatsappHref(customer.phone) && (
                 <a
                   href={whatsappHref(customer.phone)!}
                   target="_blank"
@@ -266,10 +273,12 @@ export default function CustomerProfilePage() {
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
           </Button>
-          <Button variant="outline" onClick={() => setEditModalOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          {canEditCustomer && (
+            <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -290,14 +299,14 @@ export default function CustomerProfilePage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Total gastado</p>
-            <p className="text-3xl font-bold mt-1">{formatCurrency(totalSpent)}</p>
+            <p className="text-3xl font-bold mt-1"><Price value={totalSpent} perm="invoices.view" /></p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground uppercase font-medium tracking-wide">Balance</p>
             <p className={`text-3xl font-bold mt-1 ${customer.balance < 0 ? "text-destructive" : customer.balance > 0 ? "text-success" : ""}`}>
-              {customer.balance < 0 ? "-" : ""}{formatCurrency(Math.abs(customer.balance))}
+              {canSeeInvoices && customer.balance < 0 ? "-" : ""}<Price value={Math.abs(customer.balance)} perm="invoices.view" />
             </p>
           </CardContent>
         </Card>
@@ -318,10 +327,12 @@ export default function CustomerProfilePage() {
             <Calendar className="h-4 w-4" />
             Reservas ({reservations.length})
           </TabsTrigger>
+          {canSeeInvoices && (
           <TabsTrigger value="invoices" className="gap-2">
             <CreditCard className="h-4 w-4" />
             Facturas ({invoices.length})
           </TabsTrigger>
+          )}
           <TabsTrigger value="info" className="gap-2">
             <User className="h-4 w-4" />
             Info
@@ -334,17 +345,21 @@ export default function CustomerProfilePage() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
               <Dog className="h-10 w-10" />
               <p>Sin mascotas registradas</p>
-              <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Agregar mascota
-              </Button>
+              {canCreateDog && (
+                <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Agregar mascota
+                </Button>
+              )}
             </div>
           ) : (
             <>
-            <div className="flex justify-end mb-3 no-print">
-              <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Agregar mascota
-              </Button>
-            </div>
+            {canCreateDog && (
+              <div className="flex justify-end mb-3 no-print">
+                <Button size="sm" variant="outline" onClick={() => setDogModalOpen(true)} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Agregar mascota
+                </Button>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {dogs.map((dog) => (
                 <Link
@@ -405,11 +420,13 @@ export default function CustomerProfilePage() {
 
         {/* Reservations Tab */}
         <TabsContent value="reservations" className="mt-4" forceMount>
-          <div className="flex justify-end mb-3 no-print">
-            <Button size="sm" variant="outline" onClick={() => setReservationModalOpen(true)} disabled={dogs.length === 0} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Nueva reserva
-            </Button>
-          </div>
+          {canCreateReservation && (
+            <div className="flex justify-end mb-3 no-print">
+              <Button size="sm" variant="outline" onClick={() => setReservationModalOpen(true)} disabled={dogs.length === 0} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Nueva reserva
+              </Button>
+            </div>
+          )}
           <div className="border rounded-lg bg-card overflow-x-auto">
             <Table>
               <TableHeader>
@@ -441,7 +458,7 @@ export default function CustomerProfilePage() {
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(r.start_date), "d MMM yyyy", { locale: es })}
                     </TableCell>
-                    <TableCell>{formatCurrency(r.total_price)}</TableCell>
+                    <TableCell><Price value={r.total_price} /></TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[r.status] ?? "bg-gray-100 text-gray-600"}`}>
                         {statusLabels[r.status] ?? r.status}
@@ -523,14 +540,14 @@ export default function CustomerProfilePage() {
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Email</span>
-                  {customer.email ? <a href={`mailto:${customer.email}`} className="hover:underline">{customer.email}</a> : <span>—</span>}
+                  {canSeeContact && customer.email ? <a href={`mailto:${customer.email}`} className="hover:underline">{customer.email}</a> : <span>—</span>}
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Teléfono</span>
-                  {customer.phone ? <a href={telHref(customer.phone) ?? undefined} className="hover:underline">{customer.phone}</a> : <span>—</span>}
+                  {canSeeContact && customer.phone ? <a href={telHref(customer.phone) ?? undefined} className="hover:underline">{customer.phone}</a> : <span>—</span>}
                 </div>
-                {customer.address && (
+                {canSeeContact && customer.address && (
                   <>
                     <Separator />
                     <div className="flex justify-between">

@@ -17,12 +17,18 @@ const TILE: Record<KennelStatus, string> = {
 };
 
 /**
- * Vista "Perreras" de Instalaciones: ver ocupación y, con el permiso
- * "Gestionar perreras", crear, renombrar, eliminar, asignar, mover, liberar y
- * poner en mantenimiento, sin pasar por check-in/check-out.
+ * Vista "Perreras" de Instalaciones: ver ocupación y, según los permisos del
+ * rol, mover perros (sin pasar por check-in/check-out), asignar, liberar,
+ * poner en mantenimiento, o crear, renombrar y eliminar perreras.
  */
 export default function WorkerKennelsPage() {
-  const canManage = usePermission("manage_facility");
+  const configure = usePermission("facility.manage");
+  const can = {
+    move: usePermission("kennels.move"),
+    assign: usePermission("kennels.assign") || configure,
+    configure,
+  };
+  const canManage = can.configure;
   const { data: zones = [], isLoading } = useWorkerKennels({ includeEmptyZones: canManage });
   const { create } = useKennelActions();
 
@@ -146,7 +152,7 @@ export default function WorkerKennelsPage() {
         })
       )}
 
-      <KennelSheet kennel={selected} zones={zones} canManage={canManage} onOpenChange={(o) => !o && setSelectedId(null)} />
+      <KennelSheet kennel={selected} zones={zones} can={can} onOpenChange={(o) => !o && setSelectedId(null)} />
     </div>
   );
 }

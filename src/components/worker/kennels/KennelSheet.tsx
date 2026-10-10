@@ -24,11 +24,12 @@ function errorMessage(e: unknown) {
 
 /** Detalle de una perrera y sus acciones (asignar, mover, liberar, mantenimiento, notas, renombrar, eliminar). */
 export function KennelSheet({
-  kennel, zones, canManage, onOpenChange,
+  kennel, zones, can, onOpenChange,
 }: {
   kennel: WorkerKennel | null;
   zones: WorkerKennelZone[];
-  canManage: boolean;
+  /** move: mover perros · assign: asignar, liberar, mantenimiento y notas · configure: renombrar y eliminar. */
+  can: { move: boolean; assign: boolean; configure: boolean };
   onOpenChange: (open: boolean) => void;
 }) {
   const base = useOrgBasePath();
@@ -107,18 +108,20 @@ export function KennelSheet({
                 <p className="rounded-lg bg-warning/10 p-3 text-sm">{kennel.notes}</p>
               )}
 
-              {canManage ? (
+              {can.move || can.assign || can.configure ? (
                 <div className="grid gap-2">
                   {kennel.status === "occupied" && (
                     <>
-                      <Button variant="outline" className="justify-start gap-2" onClick={() => setMode("move")} disabled={busy}>
-                        <ArrowRightLeft className="h-4 w-4" /> Mover a otra perrera
-                      </Button>
+                      {can.move && (
+                        <Button variant="outline" className="justify-start gap-2" onClick={() => setMode("move")} disabled={busy}>
+                          <ArrowRightLeft className="h-4 w-4" /> Mover a otra perrera
+                        </Button>
+                      )}
                       {kennel.reservationId ? (
                         <p className="text-xs text-muted-foreground">
                           Esta perrera está ligada a una reserva con check-in: se libera sola al hacer el check-out.
                         </p>
-                      ) : (
+                      ) : can.assign ? (
                         <Button
                           variant="outline"
                           className="justify-start gap-2"
@@ -127,11 +130,11 @@ export function KennelSheet({
                         >
                           <LogOut className="h-4 w-4" /> Liberar perrera
                         </Button>
-                      )}
+                      ) : null}
                     </>
                   )}
 
-                  {kennel.status === "available" && (
+                  {can.assign && kennel.status === "available" && (
                     <>
                       <Button className="justify-start gap-2" onClick={() => setMode("assign")} disabled={busy}>
                         <Dog className="h-4 w-4" /> Asignar un perro
@@ -147,7 +150,7 @@ export function KennelSheet({
                     </>
                   )}
 
-                  {kennel.status === "maintenance" && (
+                  {can.assign && kennel.status === "maintenance" && (
                     <Button
                       className="justify-start gap-2"
                       disabled={busy}
@@ -157,6 +160,7 @@ export function KennelSheet({
                     </Button>
                   )}
 
+                  {can.assign && (
                   <div className="space-y-1.5 pt-2">
                     <Label htmlFor="kennel-notes">Notas de la perrera</Label>
                     <Textarea
@@ -177,7 +181,10 @@ export function KennelSheet({
                       </Button>
                     )}
                   </div>
+                  )}
 
+                  {can.configure && (
+                  <>
                   <div className="space-y-1.5 pt-2">
                     <Label htmlFor="kennel-name">Nombre</Label>
                     <div className="flex gap-2">
@@ -201,12 +208,14 @@ export function KennelSheet({
                       <Trash2 className="h-4 w-4" /> Eliminar perrera
                     </Button>
                   )}
+                  </>
+                  )}
                 </div>
               ) : (
                 <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                   {kennel.notes ? <>{kennel.notes}<br /><br /></> : null}
-                  Para crear, editar, asignar o mover perreras, pide a un administrador el permiso
-                  <span className="font-medium text-foreground"> Gestionar perreras</span>.
+                  Para mover perros, asignar o configurar perreras, pide a un administrador el permiso
+                  correspondiente en tu rol.
                 </p>
               )}
             </>

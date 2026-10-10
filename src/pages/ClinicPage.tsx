@@ -24,6 +24,7 @@ import { ClinicDashboard, type ClinicTab } from "@/components/clinic-dashboard/C
 import { useUrlState } from "@/hooks/useUrlState";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermission } from "@/hooks/usePermission";
+import { ClinicalGate } from "@/components/clinic/ClinicalGate";
 
 interface DbDog {
   id: string;
@@ -38,7 +39,8 @@ interface DbDog {
 }
 
 export default function ClinicPage() {
-  const canClinical = usePermission("clinical");
+  const canClinical = usePermission("clinical.edit");
+  const canImport = usePermission("clinical.import");
   const basePath = useOrgBasePath();
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
@@ -118,7 +120,7 @@ export default function ClinicPage() {
             <FileText className="h-4 w-4" /> Fichas clínicas
           </button>
         </div>
-        {canClinical && (
+        {canImport && (
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4" /> Importar
           </Button>
@@ -272,13 +274,13 @@ export default function ClinicPage() {
               </TabsList>
 
               <TabsContent value="history">
-                <MedicalHistoryTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
+                <ClinicalGate><MedicalHistoryTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} /></ClinicalGate>
               </TabsContent>
               <TabsContent value="vaccines">
-                <VaccinationTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
+                <ClinicalGate><VaccinationTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} /></ClinicalGate>
               </TabsContent>
               <TabsContent value="deworming">
-                <DewormingTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
+                <ClinicalGate><DewormingTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} /></ClinicalGate>
               </TabsContent>
               <TabsContent value="conditions">
                 <ConditionsTab dogId={selectedDog.id} dogName={selectedDog.name} readOnly={!canClinical} />
